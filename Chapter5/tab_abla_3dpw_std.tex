@@ -1,0 +1,69 @@
+% \begin{table}[t]
+% \centering
+% \begin{tabular}{@{}lrrrr@{}}
+% \toprule
+% \multicolumn{1}{l}{Num Modes} & 
+% \multicolumn{1}{c}{1}         & 
+% \multicolumn{1}{c}{3}         & 
+% \multicolumn{1}{c}{5}         & 
+% \multicolumn{1}{c}{25}        \\ \midrule
+% \multicolumn{1}{r}{Ours w/o Mode Reproj.} & 76.4             & 74.1              & 73.5              & 72.8                     \\
+% \multicolumn{1}{r}{Ours w/o Flow} & \textbf{75.4}    & 73.7              & 73.5              & 71.3                     \\
+% \multicolumn{1}{r}{Ours}         & 75.5             & \textbf{71.9}     & \textbf{71.0}     & \textbf{68.7}            \\ \bottomrule
+% \end{tabular}
+% \caption{\label{tab:abl_unambi}\textbf{Ablation study on H36m} removing either the normalizing flow or the mode re-projection losses and reporting the change in performance.}
+% \end{table}
+
+
+
+% \multicolumn{4}{c|}{Active Losses $\mathcal{L}$} & 
+
+\begin{table}[t]
+\caption{\textbf{Ablation study on 3DPW} removing either the normalizing flow or the mode re-projection losses and reporting the change in performance.}\label{tab:tab_abl}
+\vspace{0.2cm}
+\centering \footnotesize
+\begin{tabular}{@{}cc|ccccccc@{}}
+\toprule
+\multicolumn{2}{c}{Quantization $n$} & 
+% \multicolumn{2}{c}{1} & 
+\multicolumn{2}{c}{5} & 
+\multicolumn{2}{c}{10} & 
+\multicolumn{2}{c}{25} \\ 
+\midrule 
+Mode reproj. & Flow weight
+% & MPJPE     & RE        
+& MPJPE     & RE
+& MPJPE      & RE 
+& MPJPE      & RE \\
+\midrule
+% BOTTOM LEFT
+& 
+% & \textbf{93.0}      & \textbf{59.5}
+& 86.4       & 57.9
+& 84.0        & 57.5
+& 79.0        & 56.3       \\
+% BOTTOM RIGHT
+& \checkmark
+% Ours w/o Mode Reproj
+% & \textbf{93.0} & \textbf{59.5}
+& 84.1       & \textbf{57.0}
+& 81.9        & 56.7 
+& 77.8        & 55.8       \\
+% TOP LEFT
+\checkmark &
+% Ours w/o Flow Weight
+% & 93.8      & 59.9
+& 82.7       & 57.5
+& 79.9        & 57.0
+& 76.2        & 55.9       \\
+% TOP RIGHT
+% \textbf{Ours} 
+\checkmark & \checkmark
+% & 93.8 & 59.9
+& \textbf{82.2} & 57.1
+& \textbf{79.4} & \textbf{56.6}
+& \textbf{75.8} & \textbf{55.6}
+\\ \bottomrule
+\end{tabular}
+%\vspace{-0.45cm}
+\end{table}

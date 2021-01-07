@@ -11,6 +11,13 @@ CUED PhD thesis template
 ## Author(s)
 *   Krishna Kumar
 
+
+## Examples
+
+*   Alex's: https://www.repository.cam.ac.uk/handle/1810/287944
+*   Yani's: https://www.repository.cam.ac.uk/handle/1810/278976
+*   Fotios': https://www.repository.cam.ac.uk/handle/1810/292450
+
 --------------------------------------------------------------------------------
 ## Features
 
