@@ -326,16 +326,6 @@ year = {2017}
 	Year = {2019}
 	}
 
-@article{loper2015smpl,
-	Author = {Loper, Matthew and Mahmood, Naureen and Romero, Javier and Pons-Moll, Gerard and Black, Michael J},
-	Journal = {ACM transactions on graphics (TOG)},
-	Number = {6},
-	Pages = {248},
-	Publisher = {ACM},
-	Title = {{SMPL}: A skinned multi-person linear model},
-	Volume = {34},
-	Year = {2015}}
-
 @inproceedings{kanazawa18end-to-end,
 	Author = {Angjoo Kanazawa and Michael J. Black and David W. Jacobs and Jitendra Malik},
 	Booktitle = cvpr,
@@ -614,13 +604,6 @@ year = {2017}
   booktitle=cvpr,
   pages={3794--3801},
   year={2014}
-}
-
-@misc{pascal-voc-2012,
-	author = "Everingham, M. and Van~Gool, L. and Williams, C. K. I. and Winn, J. and Zisserman, A.",
-	title = "The {PASCAL} {V}isual {O}bject {C}lasses {C}hallenge 2012 {(VOC2012)} {R}esults",
-  year = {2012},
-	url = "http://www.pascal-network.org/challenges/VOC/voc2012/workshop/index.html"
 }
 
 @inproceedings{NB13,
@@ -954,7 +937,7 @@ year = {2017}
 @InProceedings{biggs2018creatures,
   author    = {Biggs, Benjamin and Roddick, Thomas and Fitzgibbon, Andrew and Cipolla, Roberto},
   booktitle = accv,
-  title     = {{C}reatures great and {SMAL}: {R}ecovering the shape and motion of animals from video},
+  title     = {{C}reatures {G}reat and {SMAL}: {R}ecovering the shape and motion of animals from video},
   year      = {2018},
 }
 

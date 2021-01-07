@@ -326,16 +326,6 @@ year = {2017}
 	Year = {2019}
 	}
 
-@article{loper2015smpl,
-	Author = {Loper, Matthew and Mahmood, Naureen and Romero, Javier and Pons-Moll, Gerard and Black, Michael J},
-	Journal = {ACM transactions on graphics (TOG)},
-	Number = {6},
-	Pages = {248},
-	Publisher = {ACM},
-	Title = {{SMPL}: A skinned multi-person linear model},
-	Volume = {34},
-	Year = {2015}}
-
 @inproceedings{kanazawa18end-to-end,
 	Author = {Angjoo Kanazawa and Michael J. Black and David W. Jacobs and Jitendra Malik},
 	Booktitle = cvpr,
@@ -922,13 +912,6 @@ year = {2017}
   publisher={Elsevier}
 }
 
-@article{wiles2017silnet,
-  title={SilNet: Single-and Multi-View Reconstruction by Learning from Silhouettes},
-  author={Wiles, Olivia and Zisserman, Andrew},
-  journal={arXiv preprint arXiv:1711.07888},
-  year={2017}
-}
-
 @article{DAVIS2017-1st,
   author = {X. Li and Y. Qi and Z. Wang and K. Chen and Z. Liu and J. Shi and P. Luo and C. Change Loy and X. Tang},
   title = {Video Object Segmentation with Re-identification},
@@ -941,12 +924,6 @@ year = {2017}
   title = {Lucid Data Dreaming for Object Tracking},
   journal = {The 2017 DAVIS Challenge on Video Object Segmentation - CVPR Workshops},
   year = {2017}
-}
-
-@article{johnson2010clustered,
-  title={Clustered pose and nonlinear appearance models for human pose estimation},
-  author={Johnson, Sam and Everingham, Mark},
-  year={2010}
 }
 
 @article{zhou2016semantic,
@@ -967,7 +944,7 @@ year = {2017}
 @InProceedings{biggs2018creatures,
   author    = {Biggs, Benjamin and Roddick, Thomas and Fitzgibbon, Andrew and Cipolla, Roberto},
   booktitle = accv,
-  title     = {{C}reatures great and {SMAL}: {R}ecovering the shape and motion of animals from video},
+  title     = {{C}reatures {G}reat and {SMAL}: {R}ecovering the shape and motion of animals from video},
   year      = {2018},
 }
 
