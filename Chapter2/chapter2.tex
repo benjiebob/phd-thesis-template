@@ -3,7 +3,7 @@
 %****************************** Second Chapter *********************************
 %*******************************************************************************
 
-\chapter{Related Work}
+\chapter{Background}
 
 \ifpdf
     \graphicspath{{Chapter2/Figs/Raster/}{Chapter2/Figs/PDF/}{Chapter2/Figs/}}
@@ -21,38 +21,22 @@ In this section, I will introduce the components required for the rest of this t
 
 \section{Representing 3D Objects}
 
-Talk about meshes, radiance fields etc.
+\subsection{Simple Structures}
+Talk about meshes, neural radiance fields etc.
 
-\section{Reconstructing 3D Objects from Images}
+\subsection{Articulated Objects}
 
-\subsection{Classical theory}
+\section{Camera Geometry}
 
-Give an overview towards classical NRSFM methods. Introduce camera geometry, rendering, etc. include lots of maths.
+\subsection{Pinhole Camera Model}
 
-\subsection{Articulated Subjects}
+\subsection{Rendering}
 
-Articulated subjects pose more challenges etc. Some methods maintain a model-free approach as before, talk about various works for humans (e.g. PiFu).
+\section{Methods for Learning}
 
-However, model-based approaches offer certain advantages (semantically meaningful parts, etc.). Explain SMPL and SMAL models.
+\subsection{Energy Minimization}
 
-\section[Template-Based]{3D Reconstruction with Deformable Template Meshes}
-
-Introduce energy based methods and include loss functions etc., incl. SMAL optimizer, SMALR and finally SMAL-ST (deep learning techniques). All the SMPL approaches: HMR, GraphCMR, SPIN etc. 
-
-Explain the various types of loss that are used. Good place for a Andrew's table.
-
-\section{Data-Limited Training}
-
-What do people do when there is no data available?
-
-\section{Dealing with Ambiguous Input}
-
-How to people cope with ambiguities?
-
-
-
-
-
+\subsection{Deep Learning}
 
 
 

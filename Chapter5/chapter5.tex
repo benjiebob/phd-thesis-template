@@ -4,6 +4,11 @@
 %*******************************************************************************
 \chapter{Handling Ambiguities}
 
+\newcommand{\rk}[1]{{\color{red}#1}}
+\newcommand{\MPJPE}{MPJPE\xspace}
+\newcommand{\RE}{RE\xspace}
+\newcommand{\SE}{SE\xspace}
+
 % **************************** Define Graphics Path **************************
 \ifpdf
     \graphicspath{{Chapter5/Figs/Raster/}{Chapter5/Figs/PDF/}{Chapter5/Figs/}}
@@ -21,9 +26,10 @@ We suggest that ambiguities can be modelled more effectively by parametrizing th
 We propose to learn a multi-hypothesis neural network regressor using a best-of-M loss, where each of the M hypotheses is constrained to lie on a manifold of plausible human poses by means of a generative model.
 We show that our method outperforms alternative approaches in ambiguous pose recovery on standard benchmarks for 3D humans, and in heavily occluded versions of these benchmarks.
   
-\input{intro.tex}
-\input{rw.tex}
-\input{method.tex}
-\input{exp.tex}
-\input{ccl.tex}
+\input{Chapter5/intro.tex}
+\input{Chapter5/intro.tex}
+\input{Chapter5/rw.tex}
+\input{Chapter5/method.tex}
+\input{Chapter5/exp.tex}
+\input{Chapter5/ccl.tex}
   
