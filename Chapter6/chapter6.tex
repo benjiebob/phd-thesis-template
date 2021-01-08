@@ -1,30 +1,35 @@
 %!TEX root = ../thesis.tex
 %*******************************************************************************
-%****************************** Second Chapter *********************************
+%****************************** Third Chapter **********************************
 %*******************************************************************************
+\chapter{Handling Ambiguities}
 
-\chapter{Conclusions}
+\newcommand{\rk}[1]{{\color{red}#1}}
+\newcommand{\MPJPE}{MPJPE\xspace}
+\newcommand{\RE}{RE\xspace}
+\newcommand{\SE}{SE\xspace}
 
+% **************************** Define Graphics Path **************************
 \ifpdf
     \graphicspath{{Chapter6/Figs/Raster/}{Chapter6/Figs/PDF/}{Chapter6/Figs/}}
 \else
     \graphicspath{{Chapter6/Figs/Vector/}{Chapter6/Figs/}}
 \fi
 
-\section{Discussion and Limitations}
+\section{First section of the third chapter}
+In this section, blah blah.
 
-In this section I will conclude and discuss limitations
-
-\subsection{Discussion}
-
-Talk about meshes, radiance fields etc.
-
-\subsection{Applications in Animal Tracking}
-
-Discussion as to what GSK have been doing.
-
-\subsection{Future Work}
-
-What needs to happen etc.
-
-
+\section{abstract}
+We consider the problem of obtaining dense 3D reconstructions of humans from single and partially occluded views.
+In such cases, the visual evidence is usually insufficient to identify a 3D reconstruction uniquely, so we aim at recovering several plausible reconstructions compatible with the input data.
+We suggest that ambiguities can be modelled more effectively by parametrizing the possible body shapes and poses via a suitable 3D model, such as SMPL for humans.
+We propose to learn a multi-hypothesis neural network regressor using a best-of-M loss, where each of the M hypotheses is constrained to lie on a manifold of plausible human poses by means of a generative model.
+We show that our method outperforms alternative approaches in ambiguous pose recovery on standard benchmarks for 3D humans, and in heavily occluded versions of these benchmarks.
+  
+\input{Chapter6/intro.tex}
+\input{Chapter6/intro.tex}
+\input{Chapter6/rw.tex}
+\input{Chapter6/method.tex}
+\input{Chapter6/exp.tex}
+\input{Chapter6/ccl.tex}
+  

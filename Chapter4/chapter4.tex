@@ -1,8 +1,12 @@
+
+
 %!TEX root = ../thesis.tex
 %*******************************************************************************
 %****************************** Third Chapter **********************************
 %*******************************************************************************
-\chapter{Precise Shape Reconstructions}
+\chapter{Learning from Synthetic Data}
+
+\def\figref#1{Fig.~\ref{fig:#1}}
 
 % **************************** Define Graphics Path **************************
 \ifpdf
@@ -11,601 +15,557 @@
     \graphicspath{{Chapter4/Figs/Vector/}{Chapter4/Figs/}}
 \fi
 
-\section{First section of the third chapter}
+\section{Introduction}
 And now I begin my third chapter here \dots
 
-% Generic math commands
-\def\E#1{E_\textrm{#1}}
-\def\L#1{L_{\textrm{#1}}}
-\newcommand\inv[1]{\left.#1\right.^{-1}}
-\newcommand\transpose[1]{\left.#1\right.^{T}}
-\newcommand{\anote}[1]{{\color{red}[#1]}}
-
-
-% INITIAL SUBMISSION 
-% \begin{comment}
-% \titlerunning{ECCV-20 submission ID \ECCVSubNumber} 
-% \authorrunning{ECCV-20 submission ID \ECCVSubNumber} 
-% \author{Anonymous ECCV submission}
-% \institute{Paper ID \ECCVSubNumber}
-% %\end{comment}
-%******************
-
-\def\ss#1{\vspace{-0ex}\subsubsection{#1}}
-
-\section{Abstract}
-We introduce an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. 
-The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
-We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
-We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
-In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
-As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
-
-\section{Introduction}
-Animals contribute greatly to our society, in numerous ways economic and otherwise (there are more than 63 million pet dogs in the US alone~\cite{appa20}).
-In consequence, there has been considerable attention in the computer vision research community to the interpretation of imagery of animals.
-Although these techniques share similarities to techniques for understanding images of humans, a key difference is that obtaining labelled training data for animals is more difficult than for humans, because of the wide range of shapes and species of animals, and the difficulty of educating manual labellers in animal physiology.
-\begin{figure}[t]
-\input{Chapter4/fig_splash_cr.tex}\medbreak
-\caption{
-\textbf{End-to-end 3D Dog Reconstruction from monocular images.}
-We propose a novel method that, given a monocular image of a dog can predict a set of parameters for our SMBLD 3D dog model which is consistent with the input. We regularize learning using a multi-modal shape prior, which is tuned during training with an expectation maximization scheme.\label{fig:splash}}
-\end{figure}
-
-A particular species of interest is the dog, however it is noticeable that existing work has not yet demonstrated effective 3D reconstruction of dogs over large test sets.
-We postulate that this is partially because dog breeds are remarkably dissimilar in shape and texture, presenting a challenge to the current state of the art.
-The methods we propose extend the state of the art in several ways.
-While each of these qualities exist in some existing works, we believe ours is the first to exhibit this combination, leading to a new state of the art in terms of scale and object diversity.
 \begin{enumerate}
-    \item We reconstruct pose and shape on a test set of 1703 low-quality internet images of a complex 3D object class (dogs).
-    \item We directly regress to object pose and shape from a single image without a model fitting stage.
-    \item We use easily obtained 2D annotations in training, and none at test time.
-    \item We incorporate fitting of a new multi-modal prior into the training phase (via EM update steps), rather than fitting it to 3D data as in previous work.
-    \item We introduce new degrees of freedom to the SMAL model, 
-    allowing explicit scaling of subparts.
+  \item We want precise shape reconstructions in real-time
+  \item Refer back to SMAL-ST, requires 3D synthetic training data from video
+  \item A whole chapter on 'training in-the-loop' methods
+  \item Talk about expectation maximization, SMBLD, EM-in-the-loop
+  \item Optional: Talk about how this can be extended to a multi-view GSK setup, similar to MeshRCNN
 \end{enumerate}
 
-\subsection{Related work}
 
-The closest work in terms of scale is the category-specific mesh reconstruction of Kanazawa et al.~\cite{kanazawa2018birds}, where 2850 images of birds were reconstructed.  However doing so for the complex pose and shape variations of dogs required the advances described in this paper.
+%===========================================================
+\section{Abstract}
+We present a system to recover the 3D shape and motion of a wide variety of quadrupeds from video.  The system comprises a machine learning front-end which predicts candidate 2D joint positions, a discrete optimization which finds kinematically plausible joint correspondences, 
+and an energy minimization stage which fits a detailed 3D model to the image. In order to overcome the limited availability of motion capture training data from animals, and the difficulty of generating realistic synthetic training images, the system is designed to work on silhouette data.  The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
 
-Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
-It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
-Thus we claim that the achievement of reconstructing a full range of dog breeds, 
-with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
+%===========================================================
+\section{Introduction}
 
-\newcolumntype{L}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
-\newcolumntype{R}[1]{>{\RaggedLeft\hspace{0pt}}p{#1}}
+Animal welfare is an important concern for business and society, with an estimated 70 billion animals currently living under human care~\cite{FAOSTAT}. Monitoring and assessment of animal health can be assisted by obtaining accurate measurements of an individual's shape, volume and movement. These measurements should be taken without interfering with the animal's normal activity, and are needed around the clock, under a variety of lighting and weather conditions, perhaps at long range (e.g.\ in farm fields or wildlife parks). Therefore a very wide range of cameras and imaging modalities must be handled. For small animals in captivity, a depth camera might be possible, but techniques which can operate solely from intensity data will have a much wider range of applicability.
 
+We address this problem using techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting.  A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
 
-\newcommand{\awfhang}[1]{
-\begin{minipage}[t]{\textwidth}% Top-hanging minipage, will align on
-                               % bottom of first line
-\begin{tabbing} % tabbing so that minipage shrinks to fit
-\\[-\baselineskip] % Make first line zero-height
-#1 % Include user's text
-\end{tabbing}
-\end{minipage}} % can't allow } onto next line, as {WIDEBOX}~x will not tie.
+\newfloatcommand{capbtabbox}{table}[][\FBwidth]
 
-
-\begin{table}[t!]
-{\sffamily
-\scriptsize
-\def\hd#1{\awfhang{#1}}
-\begin{tabular}{@{}L{20mm}%Paper
-|L{12mm}%Class
-L{15mm}%Train
-|L{15mm}%Template
-L{17mm}%Video
-L{17mm}%Test
-|L{9mm}%Model
-L{5mm}%Size
-@{}}
-\hd{Paper}%
-&\hd{Animal\\Class}%
-&\hd{Training\\requirements}%
-&\hd{Template\\Model}%
-&\hd{Video\\required}%
-&\hd{Test Time\\Annotation}%
-&\hd{Model\\Fitting}%
-&\hd{Test\\Size}%
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-This paper
-& Dogs  % 2D Joints, Silhouettes, 3D Template, 3D Priors
-& J2, S2, T3, P3
-& SMAL
-& No & None & No & 1703
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-3D-Safari~\cite{Zuffi19Safari}        
-& Zebras, horses
-% 3D models (albeit synthetic), 2D Joints,  Silhouettes,  3D Priors
-& M3 (albeit synthetic), J2, S2, P3
-& SMAL
-& 3-7 frames / animal & None & Yes & 200
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Lions, Tigers and Bears (SMALR)~\cite{Zuffi:CVPR:2018} 
-& MLQ
-& Not trained
-& SMAL
-& 3-7 frames / animal & J2, S2 & Yes & 14
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-3D Menagerie (SMAL)~\cite{DBLP:journals/corr/ZuffiKJB16}                
-& MLQ 
-& Not trained
-& SMAL
-& No & J2, S2 & Yes & 48 
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Creatures Great and SMAL~\cite{biggs2018creatures}
-& MLQ
-& Not trained
-& SMAL
-& Yes & S2 (for best results shown) & Yes & 9             \\\hline 
-%%%%%%%%%%%%%%%%%%%%%%
-Category Specific Mesh Reconstructions~\cite{kanazawa2018birds}
-& Birds
-& J2, S2
-& Bird convex hull
-& No & None & No & 2850          
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-What Shape are Dolphins~\cite{cashman2013shape}
-& Dolphins, Pigeons 
-& Not trained
-& Dolphin Template
-& 25 frames / category & J2, S2 & Yes & 25
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Animated 3D Creatures~\cite{reinert2016animatedsketching}
-& MLQ
-& Not trained
-& Generalized Cylinders
-& Yes & J2, S2 & Yes & 15
-\\\hline
-\end{tabular}
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\labelledpic#1#2{
+\begin{tikzpicture}
+\node (pic) {#1};
+\path[fill=white,draw=gray,thick] (pic.south west) +(3ex,3ex) circle (2ex)
+   node {#2};
+\end{tikzpicture}
 }
-\caption{Literature summary: Our paper extends large-scale ``in-the-wild'' reconstruction to the difficult class of diverse breeds of dogs. 
-MLQ: Medium-to-large quadrupeds. J2: 2D Joints. S2: 2D Silhouettes. T3: 3D Template. P3: 3D Priors. M3: 3D Model.}
-\label{tab:literature}
-% \vspace{-8mm}
-\end{table}
 
-% \textbf{Monocular 3D reconstruction of human bodies}
-\subsubsection{Monocular 3D reconstruction of human bodies}
-The majority of recent work in 3D pose and shape recovery from monocular images tackles the special case of 3D \emph{human} reconstruction. As a result, the research community has collected a multitude of open source human datasets which provide strong supervisory signals for training deep neural networks. These include accurate 3D deformable template models~\cite{loper2015smpl} generated from real human scans, 3D motion capture datasets~\cite{ionescu2013human3,vonMarcard2018} and large 2D datasets~\cite{lin2014microsoft,Johnson10,andriluka14cvpr} which provide keypoint and silhouette annotations. 
+% TODO!
+% \begin{figure}[t]
+% \def\p#1#2{\parbox{0.32\linewidth}{
+% \labelledpic{\includegraphics[trim={4cm 7cm 4cm 7cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+% {\scriptsize #1}}}
+% \def\ps#1#2{\parbox{0.32\linewidth}{
+% \labelledpic{\includegraphics[trim={0cm 2cm 0cm 2cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+% {\scriptsize #1}}}
+% \p a{rgb}             \p b{target}         \p c{heatmap}
+% \p d{skeleton_sil}    \p e{00048_overlay}  \ps f{00048_alternative}
+% \caption{{\bf System overview}: input video (a) is automatically processed using DeepLabv3+~\cite{deeplabv3plus} to produce silhouettes (b), from which 2D joint predictions are regressed in the form of heatmaps (c).  Optimal joint assignment (OJA) finds kinematically coherent 2D-to-3D correspondences~(d), 
+% which initialize a 3D shape model, optimized to match the silhouette~(e). 
+% Alternative view shown in (f).
+% }
+% \label{fig:overview}
+% \end{figure}
 
-The abundance of available human data has supported the development of successful monocular 3D reconstruction pipelines~\cite{kolotouros19convolutional,hmrKanazawa17}. Such approaches rely on accurate 3D data to build detailed priors over the distribution of human shapes and poses, and use large 2D keypoints datasets to promote generalization to ``in-the-wild'' scenarios. Silhouette data has also been shown to assist in accurate reconstruction of clothes, hair and other appearance detail~\cite{pifuSHNMKL19,alldieck2019learning}.
-While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros2019learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. Inspired by this innovation, we learn an iteratively-improving shape prior by applying expectation maximization during the training process.
+Although superficially similar to human tracking, animal tracking (AT) has some interesting differences that make it worthy of study:
 
-\textbf{Monocular 3D reconstruction of animal categories.}
-While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. 
+\subsubsection*{Variability.}
+In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
 
-A primary reason for this is absence of large scale 3D datasets\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.} stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
-On the other hand, animal silhouette data is plentiful~\cite{mscoco,everingham2010pascal,DAVIS2017-2nd}.
+\subsubsection*{Training data.}
+For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
 
-%In part due to the practical challenges associated with motion capture of animal categories, there is a severe lack of 3D animal data which could be used to build accurate 3D deformable models or supervise 3D predictions~\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.}. 
+Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
+For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
 
-Zuffi et al.~\cite{DBLP:journals/corr/ZuffiKJB16} made a significant contribution to 3D animal reconstruction research by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper2015smpl} for human reconstruction) from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. In this work we develop \emph{SMBLD}, an extension of SMAL that better represents the diverse dog category by adding scale parameters and refining the shape prior using our large image dataset.
+These concerns are of course alleviated if we have access to synthetic training data.  Here, humans and animals share an advantage in the availability of parameterized 3D models of shape and pose.  The recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} can generate a wide range of quadruped species, although without surface texture maps.  However, as with humans, it remains difficult to generate RGB images which are sufficiently realistic to train modern machine learning models.  In the case of humans, this has been overcome by generating depth maps, but this then requires a depth camera at test time~\cite{shotton-kinect}. The alternative, used in this work, is to generate 2D silhouette images so that machine learning will predict joint heatmaps from silhouettes only.
 
-% While the authors show accurate fits (via energy minimization to hand-clicked keypoints) to a variety of quadruped species, they show few results shown on the dog category (primarily wolves). 
+Taking into account the above constraints, this work applies a novel strategy to animal tracking, which assumes a machine-learning approach to extraction of animal silhouettes from video, and then fits a parameterized 3D model to silhouette sequences.  We make the following contributions:
+\begin{itemize}
+\item A machine-learned mapping from silhouette data of a large class of quadru\-peds to generic 2D joint positions.
+\item A novel optimal joint assigment (OJA) algorithm extending the bipartite matching of Cao {\em et al.}~\cite{cao2017realtime} in two ways, one which can be cast as a quadratic program (QP), and an extension optimized using a genetic algorithm (GA).
+\item A procedure for optimization of a 3D deformable model to fit 2D silhouette data and 2D joint positions, while encouraging temporally coherent outputs.
+\item We introduce a new benchmark animal dataset of joint annotations (BADJA) which contains sparse keypoint labels and silhouette segmentations for eleven animal video sequences. 
+Previous work in 3D animal reconstruction has relied on bespoke hand-clicked keypoints~\cite{zuffi2017menagerie,zuffi_lions} and little quantitative evaluation of performance could be given.
+The sequences exhibit a range of animals, are selected to capture a variety of animal movement and include some challenging visual scenarios such as occlusion and motion blur.
+\end{itemize}
+The system is outlined in \figref{overview}.  The remainder of the paper describes related literature before a detailed description of system components.  Joint accuracy results at multiple stages of the pipeline are reported on the new BADJA dataset, which contains ground truths for real animal subjects. We also conduct experiments on synthetic animal videos to produce joint accuracy statistics and full 3D mesh comparisons. A qualitative comparison is given to recent work~\cite{zuffi2017menagerie} on the related single-frame 3D shape and pose recovery problem. The paper concludes with an assessment of strengths and limitations of the work.
+\newpage
+\section{Related work}
+3D animal tracking is relatively new to the computer vision literature, but animal breed identification is a well studied problem~\cite{imagenet_cvpr09}. Video tracking benchmarks often use animal sequences~\cite{DAVIS2017-1st,DAVIS2017-2nd}, although the tracking output is typically limited to 2D affine transformations rather than the detailed 3D mesh that we propose.  Although we believe our work is the first to demonstrate dense 3D tracking of animals in video without the need for user-provided keypoints, we do build on related work across computer vision:
 
-% Compared to humans, there are also significantly fewer 2D keypoint datasets for animals. The recent Animal Pose dataset~\cite{animalpose} is one such alternative, but contains significantly fewer labelled images (4,000 compared to 20,580). On the other hand, animal silhouette data is plentiful, and can be found in MS-COCO~\cite{mscoco}, Pascal VOC~\cite{everingham2010pascal} and DAVIS~\cite{DAVIS2017-2nd} among others.
+\subsubsection*{Morphable shape models.}
+Cashman and Fitzgibbon~\cite{cashman2013shape} obtained one of the first 3D morphable animal models, but their work was limited to small classes of objects (e.g. dolphins, pigeons), and did not incorporate a skeleton.  Their work also showed the use of the 2D silhouette for fitting, which is key to our method. 
+Reinert {\em et al.} \cite{reinert2016animated} meanwhile construct 3D meshes by fitting generalized cylinders to hand-drawn skeletons.
+Combined skeletal and morphable models were used by Khamis {\em et al.}~\cite{hand-shape} for modelling the human hand, and Loper {\em et al.}~\cite{loper15smpl} in the SMPL model which has been extensively used for human tracking. 
 
+The SMPL model was extended to animals by Zuffi {\em et al.}~\cite{zuffi2017menagerie}, where the lack of motion capture data for animal subjects is cleverly overcome by building the model from $41$ 3D scans of toy figurines from five quadruped families in arbitrary poses. Their paper demonstrates single-frame fits of their model to real-world animal data, showing that despite the model being built from ``artists' impressions'' it remains an accurate model of real animals. This is borne out further by our work.  Their paper did however depend on per-frame human annotated keypoint labels, which would be costly and challenging to obtain for large video sequences. This work was recently extended~\cite{zuffi_lions} with a refinement step that optimizes over model vertex positions. This can be considered independent to the initial SMAL model fit and would be trivial to add to our method.
 
+\subsubsection*{Shape from silhouette.} Silhouette images have been shown to contain sufficient shape information to enable their use in many 3D recovery pipelines. Chen {\em et al.}~\cite{chen2010inferring} demonstrate single-view shape reconstruction from such input for general object classes, by building a shape space model from 3D samples. More related to our work, Favreau {\em et al.}~\cite{favreau2004animal} apply PCA to silhouette images to extract animal gaits from video sequences. The task of predicting silhouette images from 2D input has been effectively used as a proxy for regressing 3D model parameters for humans~\cite{tan17indirect,kanazawa18end-to-end} and other 3D objects~\cite{wiles2017silnet}.
 
-% A primary reason for this is absence of large scale 3D datasets stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. 
+\subsubsection*{Joint position prediction.} There is an extensive body of prior work related to joint position prediction for human subjects. Earlier work used graphical approaches such as pictorial structure models~\cite{andriluka2010monocular,pishchulin2013poselet,johnson2010clustered}, which have since been replaced with deep learning-based methods~\cite{cao2017realtime,bulat2016human}. Few works predict animal joint positions directly owing to the lack of annotated data, although Mathis {\em et al.}~\cite{mathis2018deeplabcut} demonstrate the effectiveness of human pose estimation architectures for restricted animal domains. Our method instead trains on silhouette input, allowing the use of synthetic training imagery. The related task of animal part segmentation~\cite{wang2015joint,wang2015semantic} has seen some progress due to general object part datasets~\cite{chen_cvpr14,zhou2017scene}.
 
-% \textbf{Model-free animal reconstruction}
-
-% There have also been a number of ``model-free'' approaches which do not rely on a initial template model. Agudo et al.~\cite{Agudo_2018_CVPR} and Novotny et al.~\cite{novotny2019c3dpo} demonstrate 3D keypoint lifting on animal categories but require adaptation to produce a mesh. Vicente et al.~\cite{vicente_3dv} and Probst et al.~\cite{Probst2018_ECCVa} produce meshes, but all techniques rely on provided 2D keypoints at test-time. An exception is Kanazawa et al. \cite{kanazawa2018birds}, which learns a 3D bird model via an end-to-end reconstruction network. However, the bird category exhibits limited articulation and is therefore a simpler category than the dog category considered here.
-
-% \textbf{Template-based 3D reconstruction of animals}.
-% \textbf{Monocular 3D reconstruction of animal categories}
-While there have been various ``model-free'' approaches which do not rely on an initial template model to generate the 3D animal reconstruction, these techniques often do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}. An exception is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds}, although we argue that the bird category exhibits more limited articulation than our dog category.
-
-%Early work fitted simple primitives such as cylinders to user-provided limb annotations. More recently, the
-We instead focus on model-based approaches. The SMAL authors~\cite{DBLP:journals/corr/ZuffiKJB16} demonstrate fitting their deformable 3D model to quadruped species using user-provided keypoint and silhouette dataset. SMALR~\cite{Zuffi:CVPR:2018} then demonstrated fitting to broader animal categories by incorporating multi-view constraints from video sequences. Biggs et al.~\cite{biggs2018creatures} overcame the need for hand-clicked keypoints by training a joint predictor on synthetic data. 3D-Safari~\cite{Zuffi19Safari} further improve by training a deep network on synthetic data (built using SMALR~\cite{Zuffi:CVPR:2018}) to recover detailed zebra shapes in the wild.
-
-A drawback of these approaches is their reliance on a test-time energy-based optimization procedure, which is susceptible to failure with poor quality keypoint/silhouette predictions and increases the computational burden. By contrast our method requires no additional energy-based refinement, and is trained purely from single in-the-wild images. The experimental section of this paper contains a robust comparison between our end-to-end method and relevant optimization-based approaches. 
-
-% Following recent trends in human reconstruction, Zuffi et al.\cite{Zuffi19Safari} train a deep network to recover detailed zebra shapes in the wild. Their approach relies on an energy-minization step after the initial network inference and makes use of multi-view fitting (via ~\cite{Zuffi:CVPR:2018}) to generate synthetic 3D training data. By contrast our method requires no additional energy-based refinement, and is trained purely from single in-the-wild images. We further argue that our selected dog category (120 breeds) contains significantly more diverse shape and poses than are handled here.
-
-A major impediment to research in 3D animal reconstruction has been the lack of a strong evaluation benchmark, with most of the above methods showing only qualitative evaluations or providing quantitative results on fewer than 50 examples. To remedy this, we introduce \emph{StanfordExtra}, a new large-scale dataset which we hope will drive further progress in the field. 
-
-\input{Chapter4/fig_system_overview2.tex}
-
-\section{Parametric animal model}
-
+\subsection{Preliminaries}
 \def\R#1{{\mathbb{R}^{#1}}}
 \def\RR#1#2{{\mathbb{R}^{#1 \times #2}}}
 \def\posn{\phi}
 \def\pose{\theta}
 \def\npose{P}
 \def\shape{\beta}
-\def\scale{\kappa}
-\def\trans{t}
-\def\betacov{{\Sigma_{\beta}}}
-\def\posecov{{\Sigma_{\pose}}}
-\def\posemean{{\mu_{\pose}}}
-\def\betamean{{\mu_{\beta}}}
-\def\nimages{N}
 \def\nshape{B}
 \def\verts{\nu}
 \def\nverts{V}
 \def\jointselect{\mathtt{K}}
 \def\njoints{J}
-\def\f{f}
-
-%\subsection{SMAL}
-At the heart of our method is a parametric representation of a 3D animal mesh, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by~\cite{DBLP:journals/corr/ZuffiKJB16}. SMAL is a deformable 3D animal mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The model consists of a linear blend skinning function $F_{v}: (\pose, \shape) \mapsto V$, which generates a set of vertex positions $V \in \RR{3889}{3}$, and a joint function $F_{J}: (\pose, \shape) \mapsto J$, which generates a set of joint positions $J \in \RR{35}{3}$.
-
-\subsection{Introducing scale parameters}
-While SMAL has been shown to be adequate for representing a variety of quadruped types, we find that the modes of dog variation are poorly captured by the current model. This is unsurprising, since SMAL used only four dogs in its construction.
-
-We therefore introduce a simple but effective way to improve the model's representational power over this particularly diverse  animal category. We augment the set of shape parameters $\beta$ with an additional set $\scale$ which independently scale parts of the mesh. For each model joint, we define parameters ${\scale_x,\scale_y,\scale_z}$ which apply a local scaling of the mesh along the local coordinate $x, y, z$ axes, before pose is applied. Allowing each joint to scale entirely independently can however lead to unrealistic deformations, so we share scale parameters between multiple joints, e.g. leg lengths. The new Skinned Multi-Breed Linear Model for Dogs (SMBLD) is therefore adapted from SMAL by adding $6$ scale parameters to the existing set of shape parameters. Figure~\ref{fig:shape_variation} shows how introducing scale parameters increases the flexibility of the SMAL model. We also extend the provided SMAL shape prior (which later initializes our EM procedure) to cover the new scale parameters by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes. Further details left to the supplementary.
-
-\input{Chapter4/fig_scalingparams.tex}
-
-% \subsection{Learning a unimodal 3D prior via fitting}
-
-% Another method for improving the generalizability of the SMAL model is to improve the 3D shape prior. Such priors are typically used to ensure shape deformation remain within a realistic and anatomically plausible range. Due to the limited diversity of scans used to build the SMAL model, while the shape prior does enforce realism among deformations, it does not allow for a wide enough range to cover the set of dogs in our dataset.
-
-% We improve the quality of the prior (and learn a prior over our new scale parameters) by fitting to a set of $13$ artist-designed 3D dog meshes, which are more varied than the original set. We apply an energy minimization scheme which aligns the SMAL vertices to each scan, under smoothing regularizers. Further details left to the supplementary.
-
-
-\section{End-to-end dog reconstruction from monocular images} 
-
-We now consider the task of reconstructing a 3D dog mesh from a monocular image. We achieve this by training an end-to-end convolutional network that predicts a set of SMBLD model and perspective camera parameters. In particular, we train our network to predict pose $\pose$ and shape $\shape$ SMBLD parameters together with translation $\trans$ and focal length $f$ for a perspective camera. A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
-
-\subsection{Model architecture}
-
-%extended with convolutional layer and an fully-connected layer 
-Our network architecture is inspired by the model of 3D-Safari~\cite{Zuffi19Safari}. Given an input image cropped to (224, 224), we apply a Resnet-50~\cite{he2016deep} backbone network to encode a 1024-dimensional feature map. These features are passed through various linear prediction heads to produce the required parameters. The pose, translation and camera prediction modules follow the design of 3D-Safari, but we describe the differences in our shape module.
-
-\ss{Pose, translation and camera prediction.}
-These modules are independent multi-layer perceptrons which map the above features to the various parameter types. As with 3D-Safari we use two linear layers to map to a set of $35 \times 3$ 3D pose parameters (three parameters for each joint in the SMBLD kinematic tree) given in Rodrigues form. We use independent heads to predict camera frame translation $\trans_{x,y}$ and depth $\trans_{z}$ independently. We also predict the focal length of the perspective camera similarly to 3D-Safari.
-
-\ss{Shape and scale prediction.}
-
-Unlike 3D-Safari, we design our network to predict the set of shape parameters (including scale) rather than vertex offsets. We observe improvement by handling the standard 20 blend-shape parameters and our new scale parameters in separate linear prediction heads. We retrieve the scale parameters by $\scale = \exp{x}$ where $x$ are the network predictions, as we find predicting log scale helps stabilise early training.
-
-\subsection{Training losses}
-
-A common approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shape, \trans, \f)$ with 3D ground truth annotations~\cite{kolotouros2019learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
-
-
-We instead develop a method that instead relies on \emph{weak 2D supervision} to guide network training. In particular, we rely on only 2D keypoints and silhouette segmentations, are significantly cheaper to obtain.
-
-The rest of this section describes the set of losses used to supervise the network at train time.
-
-\ss{Joint reprojection.}
-The most important loss to promote accurate limb positioning is the joint reprojection loss $\L{joints}$ which compares the projected model joints $\pi(F_{J}(\pose, \shape), \trans, \f)$ to the ground truth annotations $\hat{X}$. Given the parameters predicted by the network, we apply the SMBLD model to transform the pose and shape parameters into a set of 3D joint positions $J \in \RR{35}{3}$, and project them to the image plane using translation and camera parameters. The joint loss $L_{joints}$ is given by the $\ell_2$ error between the ground truth and projected joints:
-
+We are given a deformable 3D model such as SMAL~\cite{zuffi2017menagerie} which parametrizes a 3D mesh as a function of {\em pose} parameters~$\pose \in \R\npose$ (e.g.\ joint angles) and {\em shape} parameters~$\shape \in \R\nshape$. 
+In detail, a 3D mesh is an array of vertices $\verts \in \RR 3\nverts$ (the vertices are columns of a $3 \times \nverts$ matrix) and a set of triangles represented as integer triples $(i,j,k)$, which are indices into the vertex array.
+A deformable model such as SMPL or SMAL may be viewed as supplying a set of triangles, and a function
 \begin{equation}
-\L{joints}(\pose, \shape, \trans, \f; \hat{X}) = \lVert \hat{X} - \pi(F_{J}(\pose, \shape), \trans, \f) \rVert_{2}
+\verts(\pose, \shape) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
+\end{equation}
+which generates the 3D model for a given pose and shape.
+The mesh topology (i.e.~the triangle vertex indices) is provided by the deformable model, and is the same for all shapes and poses we consider, so in the sequel we shall consider a mesh to be defined only by the 3D positions of its vertices.
+
+In any given image, the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation as a unit quaternion. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
+\begin{equation}
+\posn * \verts(\pose, \shape)
+\end{equation}
+represents a 3D model of given pose and shape transformed to its 3D position.
+
+\def\proj{\pi}
+We will also have occasion to talk about model {\em joints}.  These appear naturally in models with an explicit skeleton, but more generally they can be defined as some function mapping from the model parameters to an array of 3D points analogous to the vertex transformation above.  We consider the joints to be defined by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices (this is quite general, as $\verts$ may include vertices not mentioned in the triangulation).  A general camera model is described by a function $\proj: \R 3 \mapsto \R 2$.  This function incorporates details of the camera intrinsics such as focal length, which are assumed known.  
+Thus 
+\begin{equation}
+\kappa(\posn, \pose, \shape) := \proj(\posn * \verts(\pose, \shape) \jointselect)
+\end{equation}
+is the $2\times \njoints$ matrix whose columns are 2D joint locations corresponding to a 3D model specified by (position, pose, shape) parameters $(\posn, \pose, \shape)$.
+
+The model is also assumed to be supplied with a rendering function $R$ which takes a vertex array in camera coordinates, and generates a 2D binary image of the model silhouette.  That is,
+\begin{equation}
+R\bigl(\posn * \verts(\pose, \shape)\bigr) \in \mathbb{B}^{W\times H}
+\end{equation}
+for an image resolution of $W \times H$.  We use the differentiable renderer of Loper {\em et al.}~\cite{loper2014opendr} to allow derivatives to be propagated through $R$.  
+\newpage
+\section{Method}
+\def\seq#1#2#3#4{\left[{#1_{#2}}\right]_{#2=#3}^{#4}}
+The test-time problem to be solved is to take a sequence of input images
+$
+\mathcal I = \seq I t1T
+$
+which are segmented to the silhouette of a single animal (i.e.~a video with multiple animals is segmented multiple times), producing a sequence of binary silhouette images 
+$
+\mathcal S = \seq S t1T.
+$
+
+The computational task is to output for each image the shape,  pose, and position parameters describing the animal's motion.
+
+As outlined above, the method has three parts.  
+(1.) The discriminative front-end extracts silhouettes from video, and then uses the silhouettes to predict 2D joint positions, with multiple candidates per joint. 
+(2.) Optimal joint assignment (OJA) corrects confused or missing skeletal predictions by finding an optimal assignment of joints from a set of network-predicted proposals. Finally, (3.) a generative deformable 3D model is fitted to the silhouettes and joint candidates as an energy minimization process.
+
+\subsection{Prediction of 2D joint locations using multimodal heatmaps}
+The goal of the first stage is to take, for each video frame, a $W\times H$ binary image representing the segmented animal, and to output a $W \times H \times \njoints$ tensor of heatmaps. The network architecture is standard: a stacked hourglass network~\cite{newell2016stacked} using synthetically generated training data, but the training procedure is augmented using ``multi-modal'' heatmaps. 
+
+For standard unimodal heatmaps, training data comprises $(S, \kappa)$ pairs, that is pairs of binary silhouette images, and the corresponding 2D joint locations as a $2\times J$ matrix.  To generate each image, a random shape vector $\shape$, pose parameters $\pose$ and camera position $\posn$ are drawn, and used to render a silhouette $R\bigl(\posn * \verts(\pose, \shape)\bigr)$ and 2D joint locations $\kappa(\posn,\pose,\shape)$, which are encoded into a $W \times H \times \njoints$ tensor of heatmaps, blurring with a Gaussian kernel of radius $\sigma$. 
+
+% bjb_insert
+The random camera positions are generated as follows: the orientation of the camera relative to the animal is uniform in the range $[0, 2\pi]$, the distance from the animal is uniform in the range 1 to 20 meters and the camera height is in the range $[0,\frac{\pi}{2}]$. This smaller range is chosen to restrict unusual camera elevation. Finally, the camera ``look" vector is towards a point uniformly in a 1m cube around the animal's center, and the ``up" vector is Gaussian around the model Y axis.  
+
+This training process generalizes well from synthetic to real images due to the use of the silhouette, but the lack of interior contours in silhouette input data often results in confusion between joint ``aliases'': left and right or front and back legs.  When these predictions are wrong and of high confidence, little probability mass is assigned to the area around the correct leg, meaning no available proposal is present after non-maximal suppression.
+
+We overcome this by explicitly training the network to assign some probability mass to the ``aliased'' joints. For each joint, we define a list of potential aliases as weights $\lambda_{j,j'}$ and linearly blend the unimodal heatmaps $G$ to give the final training heatmap $H$:
+\begin{equation}
+    H_{j}(p) = \sum_{j'} \lambda_{j,j'} G(p; \kappa_{j'}, \sigma)
+\end{equation}
+For non-aliased joints $j$ (all but the legs), we simply set $\lambda_{j,j} = 1$ and $\lambda_{j,j'} = 0$, yielding the unimodal maps, and for legs, we use 0.75 for the joint, and 0.25 for the alias.  We found this ratio sufficient to ensure opposite legs have enough probability mass to pass through a modest non-maximal suppression threshold without overly biasing the skeleton with maximal predicted confidence. An example of a heatmap predicted by a network trained on multimodal training samples is illustrated in \figref{single_multi}. 
+
+\begin{figure}[t]
+\begin{floatrow}
+\ffigbox{%%%%%%%%%%%%
+\centering
+\begin{tabular}{c}
+\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.6\linewidth]{single_vs_multi_new/left_heatmap_single.png}\\
+\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.6\linewidth]{single_vs_multi_new/left_heatmap_multi.png}
+\end{tabular}
+}{
+\caption{Example predictions from a network trained on unimodal (top) and multi-modal (bottom) ground-truth  for front-left leg joints.}
+\label{fig:single_multi}
+}
+\ffigbox{
+\centering
+\def\lp#1#2{\labelledpic{\includegraphics[height=19mm]{#2}}{#1}}
+\begin{tabular}{cc}
+\lp a{skeletons_new/skeleton_rgb_dog_cropped.jpg}&
+\lp b{skeletons_new/skeleton_rgb_impala_cropped.jpg}\\
+\lp c{skeletons_new/skeleton_rgb_rhino_cropped.jpg}&
+\lp d{skeletons_new/skeleton_rgb_horsejump-high_cropped.jpg}
+\end{tabular}
+}{
+\caption{Example outputs from the joint prediction network, with maximum likelihood predictions linked into skeleton.}
+\label{fig:exp-network}
+}
+\end{floatrow}
+\end{figure}
+
+\subsection{Optimal joint assignment (OJA)}
+\label{sec:qp}
+Since heatmaps generated by the joint predictor are multi-modal, the non-maximum suppression procedure yields multiple possible locations for each joint. We represent the set of joint proposals $X = \{x_{jp}\}$, where $x_{jp}$ indicates the 2D position of proposal $p \in \{1,...,N_j\}$ associated with joint $j \in J$.
+Before applying the optimizer, we must select a subset of proposals $X^* \subseteq X$ which form a complete skeleton, i.e. precisely one proposal is selected for every joint. In this section we consider how to choose the optimal subset by formulating the problem as an extended optimal assignment problem.
+
+\def\bvec#1{\bar{#1}}
+\def\LL#1{L_{\text{#1}}}
+In order to select a complete skeleton proposal from the set of joint proposals $\{x_{jp}\}$, we introduce a binary indicator vector $\bvec a_j = \{a_{jp}\} \in \{0, 1\}^{N_j+1}$, where $a_{jp} = 1$ indicates that the $p^\text{th}$ proposal for joint $j$ is a correct assignment, and the $p = N_j+1$ position corresponds to a {\em null proposal}, indicating that joint $j$ has no match in this image.
+The null proposals are handled as described in each of the energy terms below.
+Let $A$ be the jagged array $[\bvec a_j]_{j=1}^J$ containing all assignment variables (for the current frame), and let $X^* = X(A)$ denote the subset of points selected by the binary array $A$.   
+Optimal assignment minimizes the function
+\begin{equation}
+L(A) = \LL{prior}(A) + \LL{conf}(A) + \LL{temp}(A) + \LL{cov-sil}(A) + \LL{cov-bone}(A)
+\end{equation}
+which balances agreement of the joint configuration with a learned {\em prior}, the network-supplied {\em confidences}, {\em temporal} coherence, and {\em coverage} terms which encourage the  model to correctly project over the silhouette.   Without the coverage terms, this can be optimized as a quadratic program, but we obtain better results by using the coverage terms, and using a genetic algorithm.  In addition, the parameters $A$ must satisfy the $J$ constraints $\sum_{p=1}^{N_j+1} a_{jp} = 1$, that exactly one joint proposal (or the null proposal) must be selected for each joint.
+
+\def\lterm#1{\subsubsection{$\LL{#1}$:}}
+
+\lterm{prior} We begin by defining the prior probability of a particular skeletal configuration as a multivariate Gaussian distribution over selected joint positions.
+
+The mean $\mu \in \R{2J}$ and covariance $\Sigma \in \R{2J\times 2J}$ terms are obtained from the training examples generated as above. The objective of OJA is to select a configuration $X^*$ which maximizes the prior, which is equivalent to minimizing the Mahalanobis distance
+$(x^*-\mu)^T\Sigma^{-1}(x^*-\mu)$, which is given by the summation
+\begin{equation}
+\LL{prior}(A) = \sum_j^J\sum_p^{N_j}\sum_k^J\sum_q^{N_k}a_{jp}a_{kq}(x_{jp} - \mu_j)\Sigma_{jk}^{-1}(x_{kq}-\mu_k)
+\end{equation}
+This is a quadratic function of $A$, so $\LL{prior}(A) = \text{vec}(A)^\top Q \text{vec}(A)$ for a fixed matrix $Q$, and can be formulated as a quadratic program (QP).  Null proposals are simply excluded from the sum, equivalent to marginalizing over their position. 
+
+\lterm{conf}
+The next energy term comes from the output of the joint prediction network, which provides a confidence score $y_{jp}$ associated with each joint proposal~$x_{jp}$.  Then $\LL{conf}(A) = \sum_j\sum_p -\lambda\log(y_{jp}) a_{jp}$ is a linear function of $A$, 
+and $\lambda_{\text{conf}}$ is a tunable parameter to control the relative contribution of the network confidences compared with that of the skeleton prior.
+Null proposals pay a fixed cost $\lambda_{null}$, effectively acting as a threshold whereby the null proposal will be selected if no other proposal is of sufficient likelihood. 
+
+\lterm{temp}
+A common failure case of the joint prediction network is in situations where a joint position is highly ambiguous, for example between the left and right legs. In such cases, the algorithm will commonly alternate between two equally likely predictions. This leads to large displacements in joint positions between consecutive frames which are difficult for the later model fitting stage to recover from. This can be addressed by introducing a temporal term into the OJA. We impose a prior on the distance moved by each joint between frame $t_0$ and $t_1$, which is given by a normal distribution with zero mean and variance $\sigma^{2} =e^{\tau|t_1 - t_0 - 1|}$. 
+The parameter $\tau$ controls the strength of the interaction between distant frames. This results in an additional quadratic term in our objective function, which has the form $L_{temp} = a^\top T^{(t_0, t_1)} a$ for matrix $T^{(t_0, t_1)}$ given by 
+\begin{equation}
+\left[T^{(t_0, t_1)}\right]_{jp, kq} = \begin{cases}
+e^{-\alpha|t_1 - t_0 - 1|}||x^{(t_0)}_{jp} - x^{(t_1)}_{kq}||^2 & \text{if } j=k\\
+0 & \text{otherwise}
+\end{cases}
 \end{equation}
 
-Note that many of our training images exhibit significant occlusion, so $\hat{X}$ contains many invisible joints. We handle this by masking $\L{joints}$ to prevent invisible joints contributing to the loss.
+\subsubsection*{QP solution.}
+Thus far, all terms in $L(A)$ are quadratic or linear.
+To optimize over an entire sequence of frames, we construct the block diagonal matrix $\hat{Q}$ whose diagonal elements are the prior matrices $Q^{(t)}$ and the block symmetric matrix $\hat{T}$ whose off-diagonal elements are the temporal matrices $T^{(t_0, t_1)}$. The solution vector for the sequence $\hat{A}$ is constructed by stacking the corresponding vectors for each frame. The quadratic program is specified using the open source CVXPY library \cite{diamond2016cvxpy} and solved using the ``\emph{Suggest-and-Improve}'' framework proposed by Park and Boyd \cite{park2017general}. It is initialized by choosing the proposal with the highest confidence for each joint. Appropriate values for the free parameters $\lambda_{\text{conf}, \text{temp}}$ and $\alpha$ were chosen empirically via grid search. 
 
-\ss{Silhouette loss.}
-The silhouette loss $\L{sil}$ is used to promote shape alignment between the SMBLD dog mesh and the input dog. In order to compute the silhouette loss, we define a rendering function $R: (\verts, \trans, \f) \mapsto S$ which projects the SMBLD mesh to produce a binary segmentation mask. In order to allow derivatives to be propagated through $R$, we implement $R$ using the differentiable Neural Mesh Renderer~\cite{kato2018renderer}. The loss is computed as the $\ell_2$ difference between a projected silhouette and the ground truth mask $\hat{S}$:
+\lterm{cov-\{sil,bone\}}
+The above quadratic formulation is sufficient to correct many errors in the raw output (which we later demonstrate in the experimental section), but suffers from an `overcounting' problem, in which leg joint predictions both cover the same silhouette leg region, leaving another leg empty. We therefore extend the definition of $L(A)$ to include two additional terms. 
 
+\def\silhouette{S}
+
+\lterm{cov-sil} penalizes large silhouette areas with no nearby selected joint. This term requires a precomputed set of silhouette sample points $Z \subseteq \mathbb{R}^2$, which we aim to ``cover'' as best as possible with the set of selected joints. Intuitively, the silhouette is considered well-covered if all sample points are close to \emph{some} selected joint proposal. The set $Z$ is generated from the medial axis transform (MAT)\cite{blum1967transformation} of the silhouette, $Z^{t} = \text{MAT}(\silhouette^{t})$
+with a cubed loss strongly penalizing projection outside the silhouette:
 \begin{equation}
-\L{sil}(\pose, \shape, \trans, \f; \hat{S}) = \lVert \hat{S} - R\bigl(F_{V}(\pose, \shape), \trans, \f \bigr) \rVert_{2}
+\LL{cov-sil}(A^{t};X^{t},Z^{t}) = \sum_{i}\min_{j}\|Z_{i}^{t} - \hat{X}_{j}^{t}\|^3
 \end{equation}
 
+\begin{figure}[t!]
+\begin{floatrow}
+\ffigbox{%%%%%%%%%%%%
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\bjb{\rule{0.5in}{0pt}\rule{0pt}{0.25in}}
 
-\ss{Priors.}
-In the absence of 3D ground truth training data, we rely on priors obtained from artist graphics models to encourage realism in the network predictions. We model both pose and shape using a multivariate Gaussian prior, consisting of means $\mu_{\pose},\mu_{\shape}$ and covariance matrices $\Sigma_{\pose},\Sigma_{\shape}$. The loss is given as the log likelihood of a given shape or pose vector under these distributions, which corresponds to the Mahalanobis distance between the predicted parameters and their corresponding means:
-\begin{align}
-    \L{pose}(\pose; \mu_{\pose}, \Sigma_{\pose}) &= (\pose - \mu_{\pose})^T \Sigma_{\pose}^{-1} (\pose - \mu_{\pose})\\
-    \L{shape}(\shape; \mu_{\shape}, \Sigma_{\shape}) &= (\shape - \mu_{\shape})^T \Sigma_{\shape}^{-1} (\shape - \mu_{\shape})
-\end{align}
-Unlike previous work, we find there is no need to use a loss to penalize pose parameters if they exceed manually specified joint angle limits. We suspect our network learns this regularization naturally because of our large dataset.
+\begin{center}
+\scalebox{-1}[1]{\includegraphics[width=0.49\linewidth]{sil_coverage_new/approx_render_cov_cropped.jpg}}
+\scalebox{-1}[1]{\includegraphics[width=0.49\linewidth]{sil_coverage_new/med_axis_overlay_error_cropped.jpg}}
+% predictions taken from rs_dog frame 0100
+\end{center}
+}
+{\caption{Silhouette coverage loss. The error (shown in red) is the the distance between the median axis transform (right) and the nearest point on an approximate rendering (left).}
+\label{fig:example_errors}}
+\ffigbox{ 
+    \raisebox{1 em}{
+    \centering
+    \includegraphics[trim={0cm 0cm 0cm 0cm}, clip,width=0.45\linewidth]{bone_coverage/skeleton_sil_cropped.jpg}
+    \includegraphics[trim={0cm 0cm 0cm 0cm},clip,width=0.45\linewidth]{bone_coverage/bone_error_overlay_cropped.jpg}
+    }
+}
+{\caption{Bone coverage loss. One of the back-right leg joints is incorrectly assigned (left), leading to a large penalty since the lower leg bone crosses outside the dilated silhouette (right).}
+\label{fig:cov-bone}
+% camel 0020}
+}
+\end{floatrow}
+\end{figure}
 
-%our network this is a positive side-effect of training a network on a large dataset rather than optimizing independently to single images, as the network can learn natural regularisation that discourages infeasible joint configurations.
+\lterm{cov-bone} is used to prevent bones crossing the background. The joint hierarchy is stored in a kinematic tree structure $K = \{\{j,k\} \text{ if joints } j, k \text{ are connected by a bone}\}$.
+\begin{equation}
+\LL{cov-bone}(A^{t};X^{t},\silhouette^{t},K) = \sum_{\{j,k\} \in K}\biggl(1 - \min_{\lambda \in \big[0:0.1:1\big]}\silhouette^{t}(\hat{X}_{j}^{t} + \lambda(\hat{X}_{j}^{t} - \hat{X}_{k}^{t}))\biggr)
+\end{equation}
 
-%this is since the network is able to use the plentiful training examples to learn its own prior.
+\begin{figure}[t!]
+    
+\end{figure}
 
-\subsection{Learning a multi-modal shape prior.}
+\subsubsection*{GA Solution.}
+We minimize this more complex objective using a genetic algorithm (GA)\cite{holland1992adaptation}, which requires defining a fitness function, ``genes", an initial population, crossover procedure, and mutation procedure. 
+The {\em fitness function} is precisely the energy $L(A)$ given above, and the {\em genes} are vectors of $J$ integers, rather than one-hot encodings.
+We begin with a population size of 128 genes, in which the first 32 are set equal to the max confidence solutions given by the network in order to speed up convergence. The remaining 96 are generated by selecting a random proposal for each joint. {\em Crossover} is conducted as standard by slicing genes in two parts, and pairing first and second parts from different parents to yield the next generation. In each generation, each gene has some probability of undergoing a {\em mutation}, in which between 1 and 4 joints have new proposals randomly assigned. Weights were set empirically and we run for 1000 generations.
+Examples of errors corrected by these two energy terms are shown in Fig.~\ref{fig:example_errors} and Fig.~\ref{fig:cov-bone}.
 
-% Using a unimodal prior tends to result in predictions which look relatively similar in shape. To promote diversity among predicted 3D dog shapes, our method extends the formulation above to incorporate a mixture of Gaussians prior. We represent the mixture as a set of $M$ Gaussians, whose means are initialized by drawing samples from our existing prior:
+\subsection{Generative model optimization}
+\def\E#1{{E_{\text{#1}}}}
+The generative model optimization stage refines model parameters to better match the silhouette sequence $\mathcal S$, by minimizing an energy which sums 4 terms:
 
-% \begin{align}
-%     \mu_{\shape}^{m} &\sim N(\mu_{\shape}, \Sigma_{\shape}) \\
-%     \Sigma_{\shape}^{m} &:= \Sigma_{\shape}
-% \end{align}
+\def\ss#1{\vspace{-0ex}\subsubsection{#1}}
 
-% We assign each training image $i$ with a set of mixture weights $\{w_{i}^{1}, \dots w_{i}^{M}\}$, where initially $w_{i}^{m} := \frac{1}{M}.$
+\ss{Silhouette energy.}
+The silhouette energy $\E{sil}$ compares the rendered model to a given silhouette image, given simply by the L2 difference between the OpenDR rendered image and the given silhouette:
+\begin{equation}
+\E{sil}(\posn, \pose, \shape; S) = \lVert S - R\bigl(\posn * \verts(\pose, \shape)\bigr) \rVert
+\end{equation}
 
-% We can then apply the following mixture shape loss:
+\ss{Unimodal Prior energy.}
+The prior term $\E{prior}$ encourages the regressed shape and pose parameters to remain close to a those in the combined artist traininthose in our set of artist 3D dog meshes.
 
 % \begin{equation}
-%     L_{mixture}=\sum_{m=1}^M w_{i}^{m}L_{shape}(\shape_{i}, \mu_{\shape}^{m}, \Sigma_{\shape}^{m})
+%     \L{pose}(\pose) = (\pose - \meanpose)^T \pose_cov^{-1} (\pose - \meanpose)
 % \end{equation}
 
-% In order to allow our mixture prior to learn ``in-the-loop" from the available training data, we apply expectation maximization every $k$ epochs during training. This step recomputes the means and variances for each mixture component based on the observed shapes in the training set, and updates the per-image mixture weights:
+% \begin{equation}
+%     \L{uni-shape}(\beta) = (\beta - \meanbeta)^T \beta_cov^{-1} (\beta - \meanbeta)
+% \end{equation}
 
-% \begin{align}
-%     \mu_{\shape}^{m} :=& \mathrm{E}_{i}[\beta_{i}W_{i}^{m}]\\
-%     \Sigma_{\shape}^{m} :=& \mathrm{Cov}_{i}[\beta_{i}W_{i}^{m}, \beta_{i}W_{i}^{m}]\\
-%     w_{i}^{m} :=& \frac{L_{shape}(\shape_{i}, \mu_{\shape}^{m}, \Sigma_{\shape}^{m})}{\sum_{m'}^{M}L_{shape}(\shape_{i}, \mu_{\shape}^{m'}, \Sigma_{\shape}^{m'})}
-% \end{align}
-
-
-% \section{Attempt 2}
-
-The previous section introduced a unimodal, multivariate Gaussian shape prior, based on mean $\mu_{\shape}$ and covariance matrix $\Sigma_{\shape}$. However, we find enforcing this prior throughout training tends to result in predictions which appear similar in 3D shape, even when tested on dog images of different breeds. We propose to improve diversity among predicted 3D dog shapes by extending the above formulation to a Mixture of $M$ Gaussians prior.  
-The mixture shape loss is then given as:
-\begin{align}
-    \L{mixture}(\shape_{i}; \mu_{\shape}, \Sigma_{\shape}, \Pi_{\shape})
-    % =&
-    % \sum_{m=1}^M
-    % \Pi_{\shape}^m
-    % (\shape_{i} - \mu_{\shape}^{m})^{T} \inv{\Sigma_{\shape}^{m}} (\shape_{i} - \mu_{\shape}^{m})
-    % \\
-    =&
-    \sum_{m=1}^M \Pi_{\shape}^{m}\L{shape}(\shape_{i}; \mu_{\shape}^{m}, \Sigma_{\shape}^{m})
-\end{align}
-Where $\mu_{\shape}^{m}$, $\Sigma_{\shape}^{m}$ and $\Pi_{\shape}^{m}$ 
-are the mean, covariance and mixture weight respectively for Gaussian component 
-$m$. For each component the mean is sampled from our existing unimodal prior and the covariance is set equal to the unimodal prior i.e. $\Sigma_{\shape}^{m} := \Sigma_{\shape}$. All mixture weights are initially set to $\frac{1}{M}$.
-
-Each training image $i$ is assigned a set of latent variables $\{w_{i}^{1}, \dots w_{i}^{M}\}$ encoding the probability of the dog shape in image~$i$ being generated by component~$m$. 
-
-\subsection{Expectation Maximization in the loop}
-
-As previously discussed, our initial shape prior is obtained from artist data which we find is unrepresentative of the diverse shapes present in our real dog dataset. We address this by proposing to recover the latent variables $w_{i}^{m}$ and parameters ($\mu_{\shape}^{m}$, $\Sigma_{\shape}^{m}$ and $\Pi_{\shape}^{m}$) of our 3D shape prior by learning from monocular images of in-the-wild dogs and their 2D training labels in our training dataset.
-
-We achieve this using Expectation Maximization (EM), which regularly updates the means and variances for each mixture component and per-image mixture weights based on the observed shapes in the training set. While training our 3D reconstruction network, we progressively update our shape mixture model with an alternating `E' step and `M' step described below:
-
-\subsubsection{The `E' Step.}
-The `E' step computes the expected value of the latent variables~$w_{i}^{m}$ 
-assuming fixed $(\mu_{\shape}^{m}, \Sigma_{\shape}^{m}, \Pi_{\shape}^{m})$ for all $i \in \{1,\dots,N\}, m \in \{1,\dots,M\}$.
-
-The update equation for an image $i$ with latest shape prediction $\shape_{i}$ 
-and cluster $m$ with parameters $(\mu_{\shape}^{m}, \Sigma_{\shape}^{m}, \Pi_{\shape}^{m})$ 
-is given as:
-% distance between the latest shape prediction $\shape_{i}$ and the cluster $(\mu_{\shape}^{m}, \Sigma_{\shape}^{m})$
-
-% \begin{align}
-%     w_{i}^{m} 
-%     :=& 
-%     \frac{
-%         (\shape_{i} - \mu_{\shape}^{m})^{T} \inv{\Sigma_{\shape}^{m}} (\shape_{i} - \mu_{\shape}^{m})
-%     }
-%     {
-%         \sum_{m'}^{M}
-%         (\shape_{i} - \mu_{\shape}^{m'})^{T} \inv{\Sigma_{\shape}^{m'}} (\shape_{i} - \mu_{\shape}^{m'})
-%     }
-%     \\
-%     :=&
-%     \frac{
-%         L_{shape}(\shape_{i}, \mu_{\shape}^{m}, \Sigma_{\shape}^{m})
-%     }
-%     {
-%         \sum_{m'}^{M}L_{shape}(\shape_{i}, \mu_{\shape}^{m'}, \Sigma_{\shape}^{m'})
-%     } 
-% \end{align}
-
-\begin{align}
-    w_{i}^{m} 
-    :=& 
-    \frac{
-        \mathcal{N}(\shape_{i} | \mu_{\shape}^{m},\Sigma_{\shape}^{m})\Pi_{\shape}^{m}
-    }
-    {
-        \sum_{m'}^{M}
-        \mathcal{N}(\shape_{i} | \mu_{\shape}^{m'},\Sigma_{\shape}^{m'})\Pi_{\shape}^{m'}
-    }
-    % \\
-    % :=&
-    % \frac{
-    %     L_{shape}(\shape_{i}, \mu_{\shape}^{m}, \Sigma_{\shape}^{m})
-    % }
-    % {
-    %     \sum_{m'}^{M}L_{shape}(\shape_{i}, \mu_{\shape}^{m'}, \Sigma_{\shape}^{m'})
-    % } 
-\end{align}
-
-
-
-\subsubsection{The `M' Step.}
-The `M' step computes new values for $(\mu_{\shape}^{m}, \Sigma_{\shape}^{m}, \Pi_{\shape}^{m})$, assuming fixed $w_{i}^{m}$ for all $i \in \{1,\dots,N\}, m \in \{1,\dots,M\}$.
-
-The update equations are given as follows:
-
-% \begin{align}
-%     \mu_{\shape}^{m} :=& 
-%     \frac{
-%         \sum_{i}w_{i}^{m}\shape_{i}
-%     }
-%     {
-%         \sum_{i}w_{i}^{m}
-%     }
-%     \\
-%     \Sigma_{\shape}^{m} :=& 
-%     \frac{
-%         \sum_{i}w_{i}^{m}
-%         (\shape_{i} - \Sigma_{\shape}^{m})
-%         (\shape_{i} - \Sigma_{\shape}^{m})^{T}
-%     }
-%     {
-%         \sum_{i}w_{i}^{m}
-%     }
-%     \\
-%     \Pi_{\shape}^{m} :=& 
-%     \frac{1}{N}\sum_{i}{w_{i}^{m}}.
-% \end{align}
-
-
+The Mahalanobis distance is used to encourage the model to remain close to: (1) a distribution over shape coefficients given by the mean and covariance of SMAL training samples of the relevant animal family, (2) a distribution of pose parameters built over a walking sequence. The final term ensures the pose parameters remain within set limits.
 \begin{equation}
-    \mu_{\shape}^{m} := 
-    \frac{
-        \sum_{i}w_{i}^{m}\shape_{i}
-    }
-    {
-        \sum_{i}w_{i}^{m}
-    }
-    \quad
-    \Sigma_{\shape}^{m} :=
-    \frac{
-        \sum_{i}w_{i}^{m}
-        (\shape_{i} - \Sigma_{\shape}^{m})
-        (\shape_{i} - \Sigma_{\shape}^{m})^{T}
-    }
-    {
-        \sum_{i}w_{i}^{m}
-    }
-    \quad
-    \Pi_{\shape}^{m} :=
-    \frac{1}{N}\sum_{i}{w_{i}^{m}}
+\E{lim}(\pose) = \max\{\pose - \pose_{\text{max}}, 0\} + \max\{\pose_{\text{min}} - \pose, 0\}.
 \end{equation}
 
+\ss{Joints energy.}
+The joints energy $\E{joints}$ compares the rendered model joints to the OJA predictions, and therefore must account for missing and incorrect joints.  It is used primarily to stabilize the nonlinear optimization in the initial iterations, and its importance is scaled down as the silhouette term begins to enter its convergence basin.
+
+\begin{equation}
+\E{joints}(\posn, \pose, \shape; X^{*}) = 
+\lVert X^{*} - \posn * \verts(\pose,\shape)\jointselect(:,j) \rVert
+\end{equation}
+
+\ss{Temporal energy.}
+The optimizer for each frame is initialized to the result of that previous. In addition, a simple temporal smoothness term is introduced to penalize large inter-frame variation:
+\begin{equation}
+\E{temp}(\posn, \pose, \shape; X^{*}) = (\phi_t - \phi_{t+1})^2 + (\shape_t - \shape_{t+1})^2
+\end{equation}
+The optimization is via a second order dogleg method~\cite{lourakis2005levenberg}.
+
 \section{Experiments}
+\subsubsection*{Datasets.}
+In order to quantify our experiments, we introduce a new benchmark animal dataset of joint annotations (BADJA) comprising several video sequences with 2D joint labels and segmentation masks.
+These sequences were derived from the DAVIS video segmentation dataset~\cite{Perazzi2016}, as well as additional online stock footage for which segmentations were obtained using Adobe's UltraKey tool~\cite{adobe_ultrakey}. A set of twenty joints on the 3D SMAL mesh were labeled, illustrated in \figref{badja_examples}. These joints were chosen on the basis of being informative to the skeleton and being simple for a human annotator to localize. To make manual annotation feasible and to ensure a diverse set of data, annotations are provided for every fifth frame. 
 
-% As with other methods, we observe that introducing a silhouette term into the network loss before the model's pose has been somewhat solved can result in unsatisfactory local minima. We overcome this by using a pre-training stage with the following loss terms:
+The video sequences were selected to comprise a range of different quadrupeds undergoing various movement typical of their species. Although the dataset is perhaps insufficient in size to train deep neural networks, the variety in animal shape and pose renders it suitable for evaluating quadruped joint prediction methods. 
 
+\subsection{Joint prediction}
+\label{sec:exp-network}
+%bjb_insert
+For the joint predictor $\rho$ we train a stacked hourglass network \cite{newell2016stacked}. Following state-of-the-art performance on related human 2D pose estimation datasets (\cite{andriluka14cvpr,lin2014microsoft}), we construct a network consisting of 8 stacks, 256 features and 1 block. As input we provide synthetically-generated silhouette images of size $256\times 256$, which are obtained by randomly sampling shape and pose parameters from the SMAL model. The corresponding training targets are ground truth heatmaps produced by smoothing the 2D projected joint locations with a Gaussian kernel. Since we are working with synthetic data, we are able to generate training samples on the fly, resulting in an effectively infinite training set. A small adaptation was required to prevent the network degenerating to an unfavourable solution on silhouette input: foreground masks were applied to both ground truth silhouette and predicted heatmaps to prevent the network degenerating to an all-zero heatmap, which produces a reasonably good loss and prevents the network training successfully. The network was trained using the RMSProp optimizer for 40k iterations with a batch size of 18 and learning rate of $2.5\times 10^{-4}$. The learning rate was decayed by 5\% every 10k iterations. Training until convergence took 24 hours on a Nvidia Titan X GPU.
 
-In this section we compare our method to competitive baselines. We begin by describing our new large-scale dataset of annotated dog images, followed by a quantitative and qualitative evaluation.
+Joint accuracy is evaluated with the Probability of Correct Keypoint (PCK) metric defined by Yang and Ramanan~\cite{yang2013articulated}. The PCK is the percentage of predicted keypoints which are within a threshold distance $d$ from the ground truth keypoint location. The threshold distance is given by $d=\alpha\sqrt{|S|}$ where $|S|$ is the area of the silhouette and $\alpha$ is a constant factor which we set to $\alpha=0.2$ for these experiments.
 
-\subsection{StanfordExtra: A new large-scale dog dataset with 2D keypoint and silhouette annotations}
+\figref{exp-network} shows a selection of maximum likelihood joint predictions on real world images. Note that despite being trained only on synthetic data, the network generalizes extremely well to animals in the wild. The performance extends even to species which were not present in the SMAL model, such as the impala and rhino. The network is also robust to challenging poses (\ref{fig:exp-network}b), occlusions (\ref{fig:exp-network}c) and distraction objects such as the human rider in (\ref{fig:exp-network}d). It is however susceptible to situations where the silhouette image is ambiguous, for example if the animal is facing directly towards or away from the camera. Figure~\ref{fig:blooper} contains examples of failure modes.
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[height=0.1775\textheight]{OllieFigs/collage_wide.png}
-    \includegraphics[height=0.1775\textheight]{OllieFigs/heatmap.png}
-    \caption{\textbf{StanfordExtra example images}. \emph{Left}: outlined segmentations and labelled keypoints for 24 representative images. \emph{Right}: heatmap of deviation of worker submitted results from mean for each submission.}
-    \label{fig:dataset}
-\end{figure*}
-
-In order to evaluate our method, we introduce \emph{StanfordExtra}: a new large-scale dataset with annotated 2D keypoints and binary segmentation masks for dogs. We opted to take source images from the existing Stanford Dog Dataset~\cite{StanfordDogs}, which consists of 20,580 dog images taken ``in the wild" and covers 120 dog breeds. The dataset contains vast shape and pose variation between dogs, as well as nuisance factors such as self/environmental occlusion, interaction with humans/other animals and partial views. Figure~\ref{fig:dataset} (left) shows samples from the new dataset.
-
-We used Amazon Mechanical Turk to collect a binary silhouette mask and 20 keypoints per image: 3 per leg (knee, ankle, toe), 2 per ear (base, tip), 2 per tail (base, tip), 2 per face (nose and jaw). We can approximate the difficulty of the dataset by analysing the variance between 3 annotators at both the joint labelling and silhouette task. Figure~\ref{fig:dataset} (right) illustrates typical per-joint variance in joint labelling. Further details of the data curation procedure are left to the supplementary materials. 
-
-\subsection{Evaluation protocol}
-
-Our evaluation is based on our new StanfordExtra dataset. In line with other methods which tackle ``in-the-wild'' 3D reconstruction of articulated subjects~\cite{kolotouros2019learning,kolotouros19convolutional}, we filter images from the original dataset of 20,580 for which the majority of dog keypoints are invisible. We consider these images unsuitable for our full-body dog reconstruction task. We also remove images for which the consistency in keypoint/silhouette segmentations between the 3 annotators is below a set threshold. This leaves us with 8,476 images which we divide per-breed into an 80\%/20\% train and test split.
-
-We consider two primary evaluation metrics. IoU is the intersection-over-union of the projected model silhouette compared to the ground truth annotation and indicates the quality of the reconstructed 3D shape. Percentage of Correct Keypoints (PCK) computes the percentage of joints which are within a normalized distance (based on square root of 2D silhouette area) to the ground truth locations, and evaluates the quality of reconstructed 3D pose. We also produce PCK results on various joint groups (legs, tail, ears, face) to compare the reconstruction accuracy for different parts of the dog model.
-
-\subsection{Training procedure}
-
-We train our model in two stages. The first omits the silhouette loss which we find can lead the network to unsatisfactory local minima if applied too early. With the silhouette loss turned off, we find it satisfactory to use the simple unimodal prior (and without EM) for this preliminary stage since there is no loss to specifically encourage a strong shape alignment. After this, we introduce the silhouette loss, the mixture prior and begin applying the expectation maximization updates over $M=10$ clusters. We train the first stage for 250 epochs, the second stage for 150 and apply the EM step every 50 epochs. All losses are weighted, as described in the supplementary. The entire training procedure takes 96 hours on a single P100 GPU.
-
-\subsection{Comparison to baselines}
-
-We first compare our method to various baseline methods. SMAL~\cite{DBLP:journals/corr/ZuffiKJB16} is an approach which fits the 3D SMAL model using per-image energy minimization. Creatures Great and SMAL (CGAS)~\cite{biggs2018creatures} is a three-stage method, which employs a joint predictor on silhouette renderings from synthetic 3D dogs, applies a genetic algorithm to clean predictions, and finally applies the SMAL optimizer to produce the 3D mesh.
-
-At test-time both SMAL and CGAS rely on manually-provided segementation masks, and SMAL also relies on hand-clicked keypoints. In order to produce a fair comparison, we produce a set of \emph{predicted} keypoints for StanfordExtra by training the Stacked Hourglass Network~\cite{newell2016stacked} with 8 stacks and 1 block, and \emph{predicted} segmentation masks using DeepLab v3+~\cite{journals/corr/ChenPK0Y16}. The Stacked Hourglass Network achieves 71.4\% PCK score, DeepLab v3+ achieves 83.4\% IoU score and the CGAS joint predictor achieves 41.8\% PCK score. 
-
-%All methods are trained from scratch and evaluated on our Stanford Dog validation set.
-
-Table~\ref{tab:baselines} and Figure~\ref{fig:comparison_sup} show the comparison against competitive methods. For full examination, we additionally provide results for SMAL and CGAS in the scenario that ground-truth keypoints and/or segmentations are available at test time. 
-
-The results show our end-to-end method outperforms the competitors when they are provided with predicted keypoints/segmentations (white rows). Our method therefore achieves a new state-of-the-art on this 3D reconstruction task. In addition, we show our method achieves improved average IoU/PCK scores than competitive methods, even when they are provided ground truth annotations at test time (grey rows). We also demonstrate wider applicability of two contributions from our work (scale parameters and improved prior) by showing improved performance of the SMAL method when these are incorporated. Finally, our model's test-time speed is significantly faster than the competitors as it does not require an optimizer.
-
-\input{Chapter4/tab_baselines.tex}
-\input{Chapter4/fig_comparison_sup2.tex}
-
-%xxx: Note that CGAS does badly as it can't clean up using video
-\subsection{Generalization to unseen dataset}
-
-Table~\ref{tab:animalpose} shows an experiment to compare how well our model generalizes to a new data domain. We test our model against the SMAL~\cite{DBLP:journals/corr/ZuffiKJB16} method (using predicted keypoints and segmentations as above for fairness) on the recent Animal Pose dataset~\cite{animalpose}. The data preparation process is the same as for StanfordExtra and no fine-tuning was used for either method. We achieve good results in this unseen domain and still improve over the SMAL optimizer.
-
-% \begin{table}
-%     \parbox{.45\linewidth}{
-%         % \small
-%         \centering
-%         \begin{tabular}{@{}lcccccc@{}}
-%         \toprule
-%         \multicolumn{1}{l}{Method} & 
-%         \multicolumn{1}{c}{IoU} & 
-%         \multicolumn{5}{c}{PCK} \\
-%         \multicolumn{2}{c}{} &
-%         \multicolumn{1}{c}{Avg} &
-%         \multicolumn{1}{c}{Legs} &
-%         \multicolumn{1}{c}{Tail} &
-%         \multicolumn{1}{c}{Ears} &
-%         \multicolumn{1}{c}{Face} \\
-%         \midrule
-%         SMAL~\cite{DBLP:journals/corr/ZuffiKJB16} & 63.6 & 69.1 & 60.9 & 83.5 & 75.0 & 93.0 \\
-%         % \hline
-%         \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-%         \bottomrule
-%         \multicolumn{7}{c}{} \\
-%         \multicolumn{7}{c}{}
-%         % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-%         % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6}
-%         \end{tabular}
-%         \vspace{1em}
-%         \caption{
-%             \label{tab:animalpose}
-%             \textbf{Animal Pose dataset~\cite{animalpose}}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for SMAL.}
-%     }
-%     \hfill
-%     \parbox{.45\linewidth}{
-%         % \small
-%         \centering
-%         \begin{tabular}{@{}lcccccc@{}}
-%         \toprule
-%         \multicolumn{1}{l}{Method} & 
-%         \multicolumn{1}{c}{IoU} & 
-%         \multicolumn{5}{c}{PCK} \\
-%         \multicolumn{2}{c}{} &
-%         \multicolumn{1}{c}{Avg} &
-%         \multicolumn{1}{c}{Legs} &
-%         \multicolumn{1}{c}{Tail} &
-%         \multicolumn{1}{c}{Ears} &
-%         \multicolumn{1}{c}{Face} \\
-%         \midrule
-%         \textbf{Ours} & \textbf{73.6} & \textbf{75.7} & \textbf{75.0} & \textbf{77.6} & 69.9 & 90.0 \\
-%         $-$EM & 67.7 & 74.6 & 72.9 & 75.2 & \textbf{72.5} & 88.3 \\
-%         $-$MoG & 68.0 & 74.9 & 74.3 & 73.3 & 70.0 & \textbf{90.2} \\ 
-%         $-$Scale & 67.3 & 72.6 & 72.9 & 75.3 & 62.3 & 89.1 \\
-%         \bottomrule 
-%         \end{tabular}
-%         \vspace{1em}
-%         \caption{\label{tab:ablation}\textbf{Ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.}
-%     }
-% \end{table}
-
-\subsection{Ablation study}
-
-We also produce a study in which we ablate individual components of our method and examine the effect on the PCK/IoU performance. We evaluate three variants: (1) \textbf{Ours w/o EM} that omits EM updates, (2) \textbf{Ours w/o MoG} which replaces our mixture shape prior with a unimodal prior, (3)~\textbf{Ours w/o Scale} which removes the scale parameters. 
-
-The results in Table~\ref{tab:ablation} indicate that each individual component has a positive impact on the overall method performance. In particular, it can be seen that the inclusion of the EM and Mixture of Gaussians prior leads to an improvement in IoU, suggesting that the shape prior refinements steps help the model accurately fit the exact dog shape. Interestingly, we notice that adding the Mixture of Gaussians prior but omitting EM steps slightly hinders performance, perhaps due to an sub-optimal initialization for the $M$ clusters. However, we find adding EM updates to the Mixture of Gaussian model improves all metrics except the ear keypoint accuracy. We observe the error here is caused by the our shape prior learning slightly imprecise shapes for dogs with extremely ``floppy'' ears. Although there is good silhouette coverage for these regions, the fact our model has only a single articulation point per ear causes a lack of flexibility that results in occasionally misplaced ear tips for these instances. This could be improved in future work by adding additional model joints to the ear. Finally, we find the increased model flexibility afforded by the SMBLD scale parameters have a positive effect on IoU/PCK scores. 
+\begin{figure}[t]
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\begin{center}
+\resizebox{.95\linewidth}{!}{
+\includegraphics[width=.24\linewidth]{annotations/00110_rgb_horse_cropped.jpg}
+~
+\includegraphics[width=.24\linewidth]{annotations/00021_camel_rgb_cropped.jpg}
+~
+\includegraphics[width=.24\linewidth]{annotations/00085_rgb_dog_cropped.jpg}
+~
+\includegraphics[width=.24\linewidth]{annotations/00008_bear_rgb_cropped.jpg}}
+\end{center}
+\caption{Example joint annotations from the BADJA dataset.  A total of 11 video sequences are in the dataset, annotated every 5 frames with 20 joint positions and visibility indicators.
+}
+\label{fig:badja_examples}
+\end{figure}
 
 
-% We are able to use the dataset to examine which dog parts are the most challenging to position. 
-% \input{eccv2020kit/fig_jointspreads}
-% \anote{TODO: PCK tables and errors visualized on 3D dog.}
-% \paragraph{Analysis over breeds}
-% A significant benefit of our dog dataset is that the supplied breed labels allows for reconstruction performance to be evaluated over particular breeds. \anote{Figure} ranks the breeds by error.
-% \input{eccv2020kit/tab_breed}
+\subsection{Optimal joint assignment}
+Following non-maximum suppression of the joint heatmaps obtained in Section~\ref{sec:exp-network}, we apply OJA to select an optimal set of joints with which to initialize the final optimization stage. It can be seen that the OJA step is able to address many of the failure cases introduced by the joint prediction network, for example by eliminating physically implausible joint configurations (\figref{comparison}, row 1) or by resolving the ambiguity between the left and right legs (\figref{comparison}, row 2).  Table~\ref{tab:animal} summarizes the performance of both the raw network predictions and results of the two OJA methods. Over most of the sequences in the BADJA dataset it can be seen that the use of coverage terms (employed by the OJA-GA model) improves skeleton accuracy. In particular, the bear, camel and rs\_dog sequences show substantial improvements. The method does however struggle on the horsejump\_high sequence, in which part of the silhouette is occluded by the human rider which adversely affects the silhouette coverage term. Across all sequences the selected OJA-GA method improves joint prediction accuracy by 7\% compared to the raw network output. 
 
-\subsection{Qualitative evaluation}
+\begin{figure}[t]
+\begin{floatrow}
+\ffigbox{
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\comparisonheight{20mm}
+\begin{tabular}{ccc}
+    \includegraphics[trim={7cm 6cm 7cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0046_skel_sil_raw_2.png} &
+    
+    \includegraphics[trim={7cm 6cm 7cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0046_skel_sil_cleaned_qp_3.png} &
+    \includegraphics[trim={7cm 6cm 7cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0046_skel_sil_cleaned_ga_2.png} \\
+    
+    \includegraphics[trim={6cm 6cm 6cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0069_skel_sil_raw.png}
+        &
+    \includegraphics[trim={6cm 6cm 6cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0069_skel_sil_cleaned_qp.png}
+        &
+    {}\includegraphics[trim={6cm 6cm 6cm 6cm},clip,height=\comparisonheight]{ga_vs_qp/0069_skel_sil_cleaned_ga.png} \\
+    (a) & (b) & (c)
+\end{tabular}
+}{
+\caption{Example skeletons from raw predictions (a), processed with OJA-QP (b), and OJA-GA (c).}
+\label{fig:comparison}
+}
+~
+\capbtabbox{%
+\small
+\begin{tabular}{lccc}
+\toprule
+                & Raw       & QP        & GA    \\
+\midrule
+bear           & 83.1      & 83.7      & \textbf{88.9}   \\
+camel          & 73.3      & 74.1      & \textbf{87.1}   \\
+cat            & 58.5      & \textbf{60.1}      & 58.4    \\
+cows           & 89.2      & 88.4      & \textbf{94.7}  \\
+dog            & \textbf{66.9}  & 66.6   & \textbf{66.9}  \\
+horsejump-high & 26.5      & \textbf{27.7}      & 24.4   \\
+horsejump-low  & 26.9      & 27.0      & \textbf{31.9}   \\
+tiger          & 76.5      & 88.8      & \textbf{92.3}   \\
+rs\_dog        & 64.2      & 63.4      & \textbf{81.2}   \\
+\midrule
+Average        & 62.8      & 64.4      & \textbf{69.5}   \\
+\bottomrule
+\end{tabular}
+}{\caption{Accuracy of OJA on BADJA test sequences.}
+\label{tab:animal}
+}
+\end{floatrow}
+\end{figure}
 
-Figure~\ref{fig:comparison_sup} shows a range of example system outputs when tested on range of StanfordExtra and Animal Pose~\cite{animalpose} dogs with varying pose and shape and in challenging conditions. Note that only StanfordExtra is used for training.
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}cccccccccc@{}}
 
+\toprule
+        \multirow{2}{*}{Seq.}  & \multirow{2}{*}{Family} & \multicolumn{2}{c}{PCK (\%)} &   \multirow{2}{*}{Mesh}  & \multirow{2}{*}{Seq.} & \multirow{2}{*}{Family} & \multicolumn{2}{c}{PCK (\%)} &   \multirow{2}{*}{Mesh} \\
+&  & Raw                  & OJA-GA &  &&& Raw                  & OJA-GA           \\ \midrule
+01 & Felidae         & 91.8     & 91.9  & 38.2   &  06 & Equidae         & 84.4     & 84.8  & 19.2     \\
+02 & Felidae         & 94.7     & 95.0  & 42.4   &  07 & Bovidae         & 94.6     & 95.0  & 40.6     \\
+03 & Canidae         & 87.7     & 88.0  & 27.3   &  08 & Bovidae        & 85.2     & 85.8  & 41.5     \\  
+04 & Canidae         & 87.1     & 87.4  & 22.9   &  09 & Hippopotamidae  & 90.5     & 90.6  & 11.8     \\
+05 & Equidae         & 88.9     & 89.8  & 51.6   &  10 & Hippopotamidae  & 93.7     & 93.9  & 23.8     \\    
+\bottomrule
+\end{tabular}%
 
-% \input{fig_comparison}
+\caption{Quantitative evaluation on synthetic test sequences. We evaluate the performance of the raw network outputs and quadratic program post-processing using the probability of correct keypoint (PCK) metric (see sec. \ref{sec:exp-network}). We evaluate mesh fitting accuracy by computing the mean distance between the predicted and ground truth vertices.}
+\label{tab:synthetic}
+\end{table}
 
-% \input{fig_qualresults}
+\begin{figure}[t]
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\bjb{\rule{0.5in}{0pt}\rule{0pt}{0.25in}}
+\setlength{\fboxsep}{0pt}%
+\centering
+\begin{tabular}{ccc}
+\includegraphics[width=0.3\linewidth]{smal_comp_cat/rgb_cropped.jpg}
+&
+\includegraphics[width=0.3\linewidth]{smal_comp_cat/muybridge_107_smal_res_cropped.jpg}
+&
+\includegraphics[width=0.3\linewidth]{smal_comp_cat/3d_fit_overlay_rgb_cropped.jpg}
+\\
 
-% \input{fig_qual_results_animal_pose}
-% \section{Failure Cases}
+\includegraphics[width=0.3\linewidth]{smal_comp_horse/rgb_cropped.jpg} &
+\includegraphics[width=0.3\linewidth]{smal_comp_horse/00049424_ferrari_smal_cropped.jpg} &
 
+\includegraphics[width=0.3\linewidth]{smal_comp_horse/3d_fit_overlay_rgb_cropped.jpg} \\
+
+RGB & SMAL \cite{zuffi2017menagerie} & \textbf{Ours}
+\end{tabular}
+\caption{Our results are comparable in quality to SMAL~\cite{zuffi2017menagerie}, but note that we do not require hand-clicked keypoints.
+}
+\label{fig:compar_smal}
+\end{figure}
+
+\subsection{Model fitting}
+The predicted joint positions and silhouette are input to the optimization phase, which proceeds in four stages. The first stage solves for the model's global rotation and translation parameters, which positions the camera. We follow SMPLify~\cite{bogo16keep} by solving this camera stage for torso points only, which remain largely fixed through shape and pose variation. We then solve for all shape, pose and translation parameters and gradually decrease the emphasis of the priors. The silhouette term is introduced in the penultimate stage, as otherwise we find this can lead to the optimizer finding unsatisfactory local minima.
+
+The final outputs of our optimization pipeline are shown in \figref{example_results}. In each of the cases illustrated the optimizer is able to successfully find a set of pose and shape parameters which, when rendered, closely resembles the input image. The final row of \figref{example_results} demonstrates the generalizability of the proposed method: the algorithm is able to find a reasonable pose despite no camel figurines being included in the original SMAL model.
+
+\subsubsection*{Comparison to other work.} We compare our approach visually to that given by Zuffi {\em et al.}~\cite{zuffi2017menagerie}. Recall that their results require hand-clicked keypoints whereas ours fits to points predicted automatically by the hourglass network, which was trained on synthetic animal images. Further, their work is optimized for single frame fitting and is tested on animals in simple poses, whereas we instead focus on the more challenging task of tracking animals in video. \figref{compar_smal} shows the application of our model to a number of single frame examples from the SMAL result data~\cite{zuffi2017menagerie}.
+
+\subsubsection*{Quantitative experiments.}
+There is no existing ground truth dataset for comparing reconstructed 3D animal meshes, but an estimate of quantitative error is obtained by testing on synthetic sequences for a range of quadruped species. These are generated by randomly deforming the model and varying the camera position to animate animal motion, see Figure~\ref{fig:synth}. Table~\ref{tab:synthetic} shows results on these sequences. 
+%bjb_insert
+
+\begin{figure}[t!]
+\begin{tabular}{cccccc}
+\includegraphics[width=0.16\linewidth]{synth_pipeline_45/gt_fit_cropped.png} & 
+\includegraphics[width=0.16\linewidth]{synth_pipeline_45/3d_fit_cropped.png} &
+
+\includegraphics[width=0.16\linewidth]{synth_pipeline_50/gt_fit_cropped.png} &
+\includegraphics[width=0.16\linewidth]{synth_pipeline_50/3d_fit_cropped.png} &
+
+\includegraphics[width=0.16\linewidth]{synth_pipeline_55/gt_fit_cropped.png} &
+\includegraphics[width=0.16\linewidth]{synth_pipeline_55/3d_fit_cropped.png} \\
+\end{tabular}
+\caption{Evaluating synthetic data. Green models: ground truth, Orange models: predicted. Frames 5, 10 and 15 of sequence 4 shown. Error on this sequence 22.9.}
+\label{fig:synth}
+\end{figure}
+
+\subsection{Automatic silhouette prediction}
+While not the main focus of our work, we are able to perform the full 3D reconstruction process from an input image with no user intervention. We achieve this by using the DeepLabv3+ network~\cite{deeplabv3plus} as a front-end segmentation engine to automatically generate animal silhouettes. This network was trained on the PASCAL VOC 2012 dataset, which includes a variety of animal quadruped classes. An example result generated using the fully automatic pipeline is shown in \figref{overview}.
+
+\clearpage
+
+\begin{figure}[h!]
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\lp#1[#2]#3{\parbox{0.16\linewidth}{\labelledpic{#1}{\includegraphics[#2]{#3}}}}
+\begin{tabular}{cccccc}
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/rgb.jpg} & 
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/target.jpg} & 
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/heatmap.jpg} & 
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/cleaned_skeleton_sil.jpg} &
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/3d_fit_overlay_rgb.jpg} & 
+\includegraphics[trim={0 2cm 0 1.25cm},clip,width=0.16\linewidth]{res_bear_new/3d_fit_reversed.jpg} \\
+
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/rgb.jpg} & 
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/target.jpg} & 
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/heatmap.jpg} & 
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/cleaned_skeleton_sil.jpg} &
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/3d_fit_overlay_rgb.jpg} & 
+\includegraphics[trim={0 0.5cm 0 0.5cm},clip,width=0.16\linewidth]{res_horse_new/3d_fit_reversed.jpg} \\
+
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/rgb.jpg} & 
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/target.jpg} & 
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/heatmap.jpg} & 
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/cleaned_skeleton_sil.jpg} &
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/3d_fit_overlay_rgb.jpg} & 
+\includegraphics[trim={0 1.5cm 0 1.5cm},clip,width=0.16\linewidth]{res_rsdog158_new/3d_fit_reversed.jpg} \\
+
+\lp a[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/rgb.jpg} & 
+\lp b[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/target.jpg} & 
+\lp c[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/heatmap.jpg} & 
+\lp d[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/cleaned_skeleton_sil.jpg} &
+\lp e[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/3d_fit_overlay_rgb.jpg} & 
+\lp f[trim={0 1cm 0 1cm},clip,width=0.98\linewidth]{res_camel_new/3d_fit_reversed.jpg} 
+\end{tabular}
+\caption{Example results on various animals. From left to right: RGB input, extracted silhouette, network-predicted heatmaps, OJA-processed joints, overlay 3D fit and alternative view.}
+\label{fig:example_results}
+\end{figure}
+
+\vspace{-3em}
+
+\begin{figure}[h!]
+\centering
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {dog_agility_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {elephant_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {rhino_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+
+\caption{Failure modes of the proposed system. \emph{Left}: Missing interior contours prevent the optimizer from identifying which way the dog is facing. \emph{Middle}: The model has never seen an elephant, so assumes the trunk is the tail. \emph{Right}: Heavy occlusion. The model interprets the tree as background and hence the silhouette term tries to minimize coverage over this region.}
+\label{fig:blooper}
+\end{figure}
+
+\vspace{-2em}
 \section{Conclusions}
-This paper presents an end-to-end method for automatic, monocular 3D dog reconstruction. We achieve this using only weak 2D supervision, provided by our novel StanfordExtra dataset. Further, we show we can learn a more detailed shape prior by tuning a gaussian mixture during model training and this leads to improved reconstructions. We also show our method improves over competitive baselines, even when they are given access to ground truth data at test time.
-
-Future work should involve tackling some failure cases of our system, for example handling multiple overlapping dogs or dealing with heavy motion blur. Other areas for research include extending our EM formulation to handle video input to take advantage of multi-view shape constraints, and transferring knowledge accumulated through training on StanfordExtra dogs to other species.
-
-\section{Acknowlegements}
-The authors would like to thank the GSK AI team for providing access to their GPU cluster, Michael Sutcliffe, Thomas Roddick, Matthew Allen and Peter Fisher for useful technical discussions, and the GSK TDI group for project sponsorship. 
-
-\input{Chapter4/fig_qualresults_sup.tex}
+In this work we have introduced a technique for 3D animal reconstruction from video using a quadruped model parameterized in shape and pose. By incorporating automatic segmentation tools, we demonstrated that this can be achieved with no human intervention or prior knowledge of the species of animal being considered. Our method performs well on examples encountered in the real world, generalizes to unseen animal species and is robust to challenging input conditions.
+    
