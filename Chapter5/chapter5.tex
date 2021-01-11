@@ -2,7 +2,7 @@
 %*******************************************************************************
 %****************************** Third Chapter **********************************
 %*******************************************************************************
-\chapter{Precise Shape Reconstructions}
+\chapter{Real-Time and Accurate Shape Recovery}
 
 % **************************** Define Graphics Path **************************
 \ifpdf
@@ -11,8 +11,19 @@
     \graphicspath{{Chapter5/Figs/Vector/}{Chapter5/Figs/}}
 \fi
 
-\section{First section of the third chapter}
-And now I begin my third chapter here \dots
+% Extra experiments: 
+% (1) Show that training on synthetic real data doesn't work (e.g. fake textures).
+% (2) Use a GAN to generate synthetic data?
+
+
+\section{Introduction}
+We introduce an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. 
+The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
+We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
+We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
+In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
+As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
+
 
 % Generic math commands
 \def\E#1{E_\textrm{#1}}
@@ -20,26 +31,7 @@ And now I begin my third chapter here \dots
 \newcommand\inv[1]{\left.#1\right.^{-1}}
 \newcommand\transpose[1]{\left.#1\right.^{T}}
 \newcommand{\anote}[1]{{\color{red}[#1]}}
-
-
-% INITIAL SUBMISSION 
-% \begin{comment}
-% \titlerunning{ECCV-20 submission ID \ECCVSubNumber} 
-% \authorrunning{ECCV-20 submission ID \ECCVSubNumber} 
-% \author{Anonymous ECCV submission}
-% \institute{Paper ID \ECCVSubNumber}
-% %\end{comment}
-%******************
-
 \def\ss#1{\vspace{-0ex}\subsubsection{#1}}
-
-\section{Abstract}
-We introduce an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. 
-The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
-We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
-We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
-In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
-As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
 
 \section{Introduction}
 Animals contribute greatly to our society, in numerous ways economic and otherwise (there are more than 63 million pet dogs in the US alone~\cite{appa20}).
@@ -74,105 +66,7 @@ It is interesting to note that while several papers demonstrate reconstruction a
 Thus we claim that the achievement of reconstructing a full range of dog breeds, 
 with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
 
-\newcolumntype{L}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
-\newcolumntype{R}[1]{>{\RaggedLeft\hspace{0pt}}p{#1}}
 
-
-\newcommand{\awfhang}[1]{
-\begin{minipage}[t]{\textwidth}% Top-hanging minipage, will align on
-                               % bottom of first line
-\begin{tabbing} % tabbing so that minipage shrinks to fit
-\\[-\baselineskip] % Make first line zero-height
-#1 % Include user's text
-\end{tabbing}
-\end{minipage}} % can't allow } onto next line, as {WIDEBOX}~x will not tie.
-
-
-\begin{table}[t!]
-{\sffamily
-\scriptsize
-\def\hd#1{\awfhang{#1}}
-\begin{tabular}{@{}L{20mm}%Paper
-|L{12mm}%Class
-L{15mm}%Train
-|L{15mm}%Template
-L{17mm}%Video
-L{17mm}%Test
-|L{9mm}%Model
-L{5mm}%Size
-@{}}
-\hd{Paper}%
-&\hd{Animal\\Class}%
-&\hd{Training\\requirements}%
-&\hd{Template\\Model}%
-&\hd{Video\\required}%
-&\hd{Test Time\\Annotation}%
-&\hd{Model\\Fitting}%
-&\hd{Test\\Size}%
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-This paper
-& Dogs  % 2D Joints, Silhouettes, 3D Template, 3D Priors
-& J2, S2, T3, P3
-& SMAL
-& No & None & No & 1703
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-3D-Safari~\cite{Zuffi19Safari}        
-& Zebras, horses
-% 3D models (albeit synthetic), 2D Joints,  Silhouettes,  3D Priors
-& M3 (albeit synthetic), J2, S2, P3
-& SMAL
-& 3-7 frames / animal & None & Yes & 200
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Lions, Tigers and Bears (SMALR)~\cite{zuffi_lions} 
-& MLQ
-& Not trained
-& SMAL
-& 3-7 frames / animal & J2, S2 & Yes & 14
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-3D Menagerie (SMAL)~\cite{zuffi2017menagerie}                
-& MLQ 
-& Not trained
-& SMAL
-& No & J2, S2 & Yes & 48 
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Creatures Great and SMAL~\cite{biggs2018creatures}
-& MLQ
-& Not trained
-& SMAL
-& Yes & S2 (for best results shown) & Yes & 9             \\\hline 
-%%%%%%%%%%%%%%%%%%%%%%
-Category Specific Mesh Reconstructions~\cite{kanazawa2018birds}
-& Birds
-& J2, S2
-& Bird convex hull
-& No & None & No & 2850          
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-What Shape are Dolphins~\cite{cashman2013shape}
-& Dolphins, Pigeons 
-& Not trained
-& Dolphin Template
-& 25 frames / category & J2, S2 & Yes & 25
-\\\hline
-%%%%%%%%%%%%%%%%%%%%%%
-Animated 3D Creatures~\cite{reinert2016animatedsketching}
-& MLQ
-& Not trained
-& Generalized Cylinders
-& Yes & J2, S2 & Yes & 15
-\\\hline
-\end{tabular}
-}
-\caption{Literature summary: Our paper extends large-scale ``in-the-wild'' reconstruction to the difficult class of diverse breeds of dogs. 
-MLQ: Medium-to-large quadrupeds. J2: 2D Joints. S2: 2D Silhouettes. T3: 3D Template. P3: 3D Priors. M3: 3D Model.}
-\label{tab:literature}
-% \vspace{-8mm}
-\end{table}
 
 % \textbf{Monocular 3D reconstruction of human bodies}
 \subsubsection{Monocular 3D reconstruction of human bodies}
@@ -517,62 +411,56 @@ The results show our end-to-end method outperforms the competitors when they are
 
 Table~\ref{tab:animalpose} shows an experiment to compare how well our model generalizes to a new data domain. We test our model against the SMAL~\cite{zuffi2017menagerie} method (using predicted keypoints and segmentations as above for fairness) on the recent Animal Pose dataset~\cite{animalpose}. The data preparation process is the same as for StanfordExtra and no fine-tuning was used for either method. We achieve good results in this unseen domain and still improve over the SMAL optimizer.
 
-% \begin{table}
-%     \parbox{.45\linewidth}{
-%         % \small
-%         \centering
-%         \begin{tabular}{@{}lcccccc@{}}
-%         \toprule
-%         \multicolumn{1}{l}{Method} & 
-%         \multicolumn{1}{c}{IoU} & 
-%         \multicolumn{5}{c}{PCK} \\
-%         \multicolumn{2}{c}{} &
-%         \multicolumn{1}{c}{Avg} &
-%         \multicolumn{1}{c}{Legs} &
-%         \multicolumn{1}{c}{Tail} &
-%         \multicolumn{1}{c}{Ears} &
-%         \multicolumn{1}{c}{Face} \\
-%         \midrule
-%         SMAL~\cite{zuffi2017menagerie} & 63.6 & 69.1 & 60.9 & 83.5 & 75.0 & 93.0 \\
-%         % \hline
-%         \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-%         \bottomrule
-%         \multicolumn{7}{c}{} \\
-%         \multicolumn{7}{c}{}
-%         % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-%         % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6}
-%         \end{tabular}
-%         \vspace{1em}
-%         \caption{
-%             \label{tab:animalpose}
-%             \textbf{Animal Pose dataset~\cite{animalpose}}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for SMAL.}
-%     }
-%     \hfill
-%     \parbox{.45\linewidth}{
-%         % \small
-%         \centering
-%         \begin{tabular}{@{}lcccccc@{}}
-%         \toprule
-%         \multicolumn{1}{l}{Method} & 
-%         \multicolumn{1}{c}{IoU} & 
-%         \multicolumn{5}{c}{PCK} \\
-%         \multicolumn{2}{c}{} &
-%         \multicolumn{1}{c}{Avg} &
-%         \multicolumn{1}{c}{Legs} &
-%         \multicolumn{1}{c}{Tail} &
-%         \multicolumn{1}{c}{Ears} &
-%         \multicolumn{1}{c}{Face} \\
-%         \midrule
-%         \textbf{Ours} & \textbf{73.6} & \textbf{75.7} & \textbf{75.0} & \textbf{77.6} & 69.9 & 90.0 \\
-%         $-$EM & 67.7 & 74.6 & 72.9 & 75.2 & \textbf{72.5} & 88.3 \\
-%         $-$MoG & 68.0 & 74.9 & 74.3 & 73.3 & 70.0 & \textbf{90.2} \\ 
-%         $-$Scale & 67.3 & 72.6 & 72.9 & 75.3 & 62.3 & 89.1 \\
-%         \bottomrule 
-%         \end{tabular}
-%         \vspace{1em}
-%         \caption{\label{tab:ablation}\textbf{Ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.}
-%     }
-% \end{table}
+\begin{table}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\multicolumn{1}{l}{Method} & 
+\multicolumn{1}{c}{IoU} & 
+\multicolumn{5}{c}{PCK} \\
+\multicolumn{2}{c}{} &
+\multicolumn{1}{c}{Avg} &
+\multicolumn{1}{c}{Legs} &
+\multicolumn{1}{c}{Tail} &
+\multicolumn{1}{c}{Ears} &
+\multicolumn{1}{c}{Face} \\
+\midrule
+SMAL~\cite{zuffi2017menagerie} & 63.6 & 69.1 & 60.9 & 83.5 & 75.0 & 93.0 \\
+% \hline
+\textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
+\bottomrule
+\multicolumn{7}{c}{} \\
+\multicolumn{7}{c}{}
+% \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
+% \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6}
+
+\end{tabular}
+\caption{
+    \label{tab:animalpose}
+    \textbf{Animal Pose dataset~\cite{animalpose}}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for SMAL.}
+\end{table}
+
+\begin{table}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\multicolumn{1}{l}{Method} & 
+\multicolumn{1}{c}{IoU} & 
+\multicolumn{5}{c}{PCK} \\
+\multicolumn{2}{c}{} &
+\multicolumn{1}{c}{Avg} &
+\multicolumn{1}{c}{Legs} &
+\multicolumn{1}{c}{Tail} &
+\multicolumn{1}{c}{Ears} &
+\multicolumn{1}{c}{Face} \\
+\midrule
+\textbf{Ours} & \textbf{73.6} & \textbf{75.7} & \textbf{75.0} & \textbf{77.6} & 69.9 & 90.0 \\
+$-$EM & 67.7 & 74.6 & 72.9 & 75.2 & \textbf{72.5} & 88.3 \\
+$-$MoG & 68.0 & 74.9 & 74.3 & 73.3 & 70.0 & \textbf{90.2} \\ 
+$-$Scale & 67.3 & 72.6 & 72.9 & 75.3 & 62.3 & 89.1 \\
+\bottomrule 
+\end{tabular}
+\caption{\label{tab:ablation}\textbf{Ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.}
+\end{table}
+
 
 \subsection{Ablation study}
 
@@ -604,8 +492,5 @@ Figure~\ref{fig:comparison_sup} shows a range of example system outputs when tes
 This paper presents an end-to-end method for automatic, monocular 3D dog reconstruction. We achieve this using only weak 2D supervision, provided by our novel StanfordExtra dataset. Further, we show we can learn a more detailed shape prior by tuning a gaussian mixture during model training and this leads to improved reconstructions. We also show our method improves over competitive baselines, even when they are given access to ground truth data at test time.
 
 Future work should involve tackling some failure cases of our system, for example handling multiple overlapping dogs or dealing with heavy motion blur. Other areas for research include extending our EM formulation to handle video input to take advantage of multi-view shape constraints, and transferring knowledge accumulated through training on StanfordExtra dogs to other species.
-
-\section{Acknowlegements}
-The authors would like to thank the GSK AI team for providing access to their GPU cluster, Michael Sutcliffe, Thomas Roddick, Matthew Allen and Peter Fisher for useful technical discussions, and the GSK TDI group for project sponsorship. 
 
 \input{Chapter5/fig_qualresults_sup.tex}

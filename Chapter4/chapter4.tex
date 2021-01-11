@@ -15,29 +15,24 @@
     \graphicspath{{Chapter4/Figs/Vector/}{Chapter4/Figs/}}
 \fi
 
+
+% Extra experiments: 
+% (1) Show that training on synthetic real data doesn't work (e.g. fake textures).
+% (2) Use a GAN to generate synthetic data?
+
+
 \section{Introduction}
-And now I begin my third chapter here \dots
-
-\begin{enumerate}
-  \item We want precise shape reconstructions in real-time
-  \item Refer back to SMAL-ST, requires 3D synthetic training data from video
-  \item A whole chapter on 'training in-the-loop' methods
-  \item Talk about expectation maximization, SMBLD, EM-in-the-loop
-  \item Optional: Talk about how this can be extended to a multi-view GSK setup, similar to MeshRCNN
-\end{enumerate}
-
-
-%===========================================================
-\section{Abstract}
 We present a system to recover the 3D shape and motion of a wide variety of quadrupeds from video.  The system comprises a machine learning front-end which predicts candidate 2D joint positions, a discrete optimization which finds kinematically plausible joint correspondences, 
 and an energy minimization stage which fits a detailed 3D model to the image. In order to overcome the limited availability of motion capture training data from animals, and the difficulty of generating realistic synthetic training images, the system is designed to work on silhouette data.  The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
 
-%===========================================================
-\section{Introduction}
-
-Animal welfare is an important concern for business and society, with an estimated 70 billion animals currently living under human care~\cite{FAOSTAT}. Monitoring and assessment of animal health can be assisted by obtaining accurate measurements of an individual's shape, volume and movement. These measurements should be taken without interfering with the animal's normal activity, and are needed around the clock, under a variety of lighting and weather conditions, perhaps at long range (e.g.\ in farm fields or wildlife parks). Therefore a very wide range of cameras and imaging modalities must be handled. For small animals in captivity, a depth camera might be possible, but techniques which can operate solely from intensity data will have a much wider range of applicability.
-
 We address this problem using techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting.  A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
+
+For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
+
+Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
+For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+
+These concerns are of course alleviated if we have access to synthetic training data.  Here, humans and animals share an advantage in the availability of parameterized 3D models of shape and pose.  The recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} can generate a wide range of quadruped species, although without surface texture maps.  However, as with humans, it remains difficult to generate RGB images which are sufficiently realistic to train modern machine learning models.  In the case of humans, this has been overcome by generating depth maps, but this then requires a depth camera at test time~\cite{shotton-kinect}. The alternative, used in this work, is to generate 2D silhouette images so that machine learning will predict joint heatmaps from silhouettes only.
 
 \newfloatcommand{capbtabbox}{table}[][\FBwidth]
 
@@ -51,34 +46,21 @@ We address this problem using techniques from the recent human body and hand tra
 }
 
 % TODO!
-% \begin{figure}[t]
-% \def\p#1#2{\parbox{0.32\linewidth}{
-% \labelledpic{\includegraphics[trim={4cm 7cm 4cm 7cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
-% {\scriptsize #1}}}
-% \def\ps#1#2{\parbox{0.32\linewidth}{
-% \labelledpic{\includegraphics[trim={0cm 2cm 0cm 2cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
-% {\scriptsize #1}}}
-% \p a{rgb}             \p b{target}         \p c{heatmap}
-% \p d{skeleton_sil}    \p e{00048_overlay}  \ps f{00048_alternative}
-% \caption{{\bf System overview}: input video (a) is automatically processed using DeepLabv3+~\cite{deeplabv3plus} to produce silhouettes (b), from which 2D joint predictions are regressed in the form of heatmaps (c).  Optimal joint assignment (OJA) finds kinematically coherent 2D-to-3D correspondences~(d), 
-% which initialize a 3D shape model, optimized to match the silhouette~(e). 
-% Alternative view shown in (f).
-% }
-% \label{fig:overview}
-% \end{figure}
-
-Although superficially similar to human tracking, animal tracking (AT) has some interesting differences that make it worthy of study:
-
-\subsubsection*{Variability.}
-In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
-
-\subsubsection*{Training data.}
-For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
-
-Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
-For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
-
-These concerns are of course alleviated if we have access to synthetic training data.  Here, humans and animals share an advantage in the availability of parameterized 3D models of shape and pose.  The recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} can generate a wide range of quadruped species, although without surface texture maps.  However, as with humans, it remains difficult to generate RGB images which are sufficiently realistic to train modern machine learning models.  In the case of humans, this has been overcome by generating depth maps, but this then requires a depth camera at test time~\cite{shotton-kinect}. The alternative, used in this work, is to generate 2D silhouette images so that machine learning will predict joint heatmaps from silhouettes only.
+\begin{figure}[t]
+\def\p#1#2{\parbox{0.32\linewidth}{
+\labelledpic{\includegraphics[trim={4cm 7cm 4cm 7cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+{\scriptsize #1}}}
+\def\ps#1#2{\parbox{0.32\linewidth}{
+\labelledpic{\includegraphics[trim={0cm 2cm 0cm 2cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+{\scriptsize #1}}}
+\p a{rgb}             \p b{target}         \p c{heatmap}
+\p d{skeleton_sil}    \p e{00048_overlay}  \ps f{00048_alternative}
+\caption{{\bf System overview}: input video (a) is automatically processed using DeepLabv3+~\cite{deeplabv3plus} to produce silhouettes (b), from which 2D joint predictions are regressed in the form of heatmaps (c).  Optimal joint assignment (OJA) finds kinematically coherent 2D-to-3D correspondences~(d), 
+which initialize a 3D shape model, optimized to match the silhouette~(e). 
+Alternative view shown in (f).
+}
+\label{fig:overview}
+\end{figure}
 
 Taking into account the above constraints, this work applies a novel strategy to animal tracking, which assumes a machine-learning approach to extraction of animal silhouettes from video, and then fits a parameterized 3D model to silhouette sequences.  We make the following contributions:
 \begin{itemize}
@@ -168,7 +150,6 @@ The goal of the first stage is to take, for each video frame, a $W\times H$ bina
 
 For standard unimodal heatmaps, training data comprises $(S, \kappa)$ pairs, that is pairs of binary silhouette images, and the corresponding 2D joint locations as a $2\times J$ matrix.  To generate each image, a random shape vector $\shape$, pose parameters $\pose$ and camera position $\posn$ are drawn, and used to render a silhouette $R\bigl(\posn * \verts(\pose, \shape)\bigr)$ and 2D joint locations $\kappa(\posn,\pose,\shape)$, which are encoded into a $W \times H \times \njoints$ tensor of heatmaps, blurring with a Gaussian kernel of radius $\sigma$. 
 
-% bjb_insert
 The random camera positions are generated as follows: the orientation of the camera relative to the animal is uniform in the range $[0, 2\pi]$, the distance from the animal is uniform in the range 1 to 20 meters and the camera height is in the range $[0,\frac{\pi}{2}]$. This smaller range is chosen to restrict unusual camera elevation. Finally, the camera ``look" vector is towards a point uniformly in a 1m cube around the animal's center, and the ``up" vector is Gaussian around the model Y axis.  
 
 This training process generalizes well from synthetic to real images due to the use of the silhouette, but the lack of interior contours in silhouette input data often results in confusion between joint ``aliases'': left and right or front and back legs.  When these predictions are wrong and of high confidence, little probability mass is assigned to the area around the correct leg, meaning no available proposal is present after non-maximal suppression.
