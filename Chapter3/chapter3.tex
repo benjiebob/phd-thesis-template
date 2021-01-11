@@ -13,9 +13,9 @@
 
 \section{Introduction}
 
-This section will discuss related work
+This section will discuss a variety of related work.
 
-\section{Skeletal fitting methods}
+\section{Methods for 2D/3D skeletal fitting}
 
 The first class of techniques, known as \textit{skeletal fitting} methods, recover detailed pose attributes from the target but learn only weak shape attributes. As these methods only ever return a skeletal outline, apart from basic limb measurements, no other shape detail (e.g. surface definition, object density etc.) is obtained. However, it is important to note that this is often perfectly satisfactory, and wholly dependent on the intended use-case. In particular, such techniques have found numerous applications in controllerless gaming and for other human-computer interaction purposes. Early approaches worked by building statistical models of limb lengths and poses using freely available motion capture data~\cite{barron2001estimating}. These could then be used to adapt a digital skeleton to fit each frame of an input video sequence. 
 
@@ -28,13 +28,13 @@ Shotton et al. \cite{kinectpaper} designed a notable approach in this category b
     \label{fig:kinect_skeleton}
 \end{figure}
 
-\subsection{Two-stage approaches}
+\subsection{Multi-stage approaches}
 More recent approaches are either predict 2D joint positions on an input image, and use a subsequent step that `lifts' these to a 3D pose, or predicts the 3D pose directly. Note that both approaches must overcome significant ambiguity. Determining joint positions is a task made challenging due to large variations in visual appearence, commonly due to clothing, body shape and camera view. As explained by Toshev and Szegedy~\cite{toshev2014deeppose}, even with perfect joint locations the subsequent lifting step is also ill-posed, as the space of consistent 3D poses for given 2D landmark locations is infinite. This is typically resolved using strong prior knowledge which usually takes the form of 3D geometric pose priors and temporal or structural constraints. Examples of such systems include DeepPose~\cite{toshev2014deeppose}, an approach which employs a CNN to reason jointly about 2D landmark detection and 3D pose estimation from single RGB images. Pishchulin et al.~\cite{pishchulin2016deepcut} later introduced DeepCut which extends DeepPose to the multi-person case. Both systems are trained on large body joint databases. 
 
 \subsection{Direct approaches}
 However, some direct techniques exist which do not require an initial 2D joint prediction. These include methods that directly regress to a 3D pose~\cite{tekin2016direct}. However, these typically rely on an annotated set of 3D joint labels, which can be difficult and costly to obtain, or being able to build a representative synthetic dataset, which is non-trivial task.
 
-%% Discuss David Novotny's system etc.
+%% Discuss Amazon's system, Novotny's system etc.
 
 \subsection{Discussion on applicability to animals}
 % 2D predictor DeepLabCut 
@@ -49,6 +49,8 @@ This section will discuss methods for dense 3D reconstruction.
 \end{enumerate}
 
 \section{Model-based dense 3D reconstruction}
+
+We want to do model based reconstruction to impose a prior on the fitting and also automatically recover an interpretable fit. 
 
 \subsection{Fitting to animal video sequences}
 Stebbing et al.~\cite{arap_stebbing} introduce a technique capable of fitting a template mesh to live video sequences for a range of different animal species. Some user interaction is required in order to segment the animal from the background and to provide sparse 3D-mesh-to-2D-image key point correspondences. This work only operates on input video sequences (rather than single frames), so a number of temporal terms are incorporated that encourage sensible inter-frame model deviation. The system requires an annotated input template mesh representative of the target animal species. Note that this work does not require the template mesh to have an inner skeletal structure. However, the user assists an ARAP-style term by assigning each mesh vertex $v_i$ to one of $M$ groups which share a set of basis rotations $B_{m}$. 
@@ -199,6 +201,7 @@ The most recent, and state-of-the-art approaches employ deep learning techniques
     \caption{Indirect learning method regressing to SMPL parameters from an RGB video sequence. Reprinted from~\cite{tan17indirect}.}
     \label{fig:indirect_learning}
 \end{figure}
+
 
     
 % \section{Obtaining animal test data}

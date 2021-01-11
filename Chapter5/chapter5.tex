@@ -11,10 +11,21 @@
     \graphicspath{{Chapter5/Figs/Vector/}{Chapter5/Figs/}}
 \fi
 
-% Extra experiments: 
-% (1) Show that training on synthetic real data doesn't work (e.g. fake textures).
-% (2) Use a GAN to generate synthetic data?
 
+% Plan:
+% - Introduction - discuss the dog category and how little it has been explored and why it's important.. challenging examples. Also focus on difficult categories in human reconstruction (infants, overweight individuals). We also want to make it run real-time.
+% - Related Work - focus on techniques which focus on challenging caetgories. Draw out the most similar work (kanazawa birds and zebras). For this work, we want to only deal with monocular input to extend applicability to multiple categories. "in-the-loop" methods.
+% - Technical related work [AWF] - Methods for adapting priors, expectation maximization etc.
+% - StanfordExtra - since in this paper we want high fidelity reconstructions for one category, it is economical to collect training data for it. 
+% - SMBLD - Design of a realistic dog template model. Possibly run SMAL optimizer using this SMBLD model and compare with previous paper. While better, there is still room for improvement.
+% - Expectation maximization in the loop.
+% - End-to-end deep learning approach. Architecture etc.
+% - Experimentation. 
+
+
+% Additional Experiments
+% (1) Add a model fitting stage
+% (2) In theory could also run on horses, but would take time.
 
 \section{Introduction}
 We introduce an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. 
@@ -33,10 +44,9 @@ As a by-product of training, we generate a new parameterized model (including li
 \newcommand{\anote}[1]{{\color{red}[#1]}}
 \def\ss#1{\vspace{-0ex}\subsubsection{#1}}
 
-\section{Introduction}
-Animals contribute greatly to our society, in numerous ways economic and otherwise (there are more than 63 million pet dogs in the US alone~\cite{appa20}).
-In consequence, there has been considerable attention in the computer vision research community to the interpretation of imagery of animals.
-Although these techniques share similarities to techniques for understanding images of humans, a key difference is that obtaining labelled training data for animals is more difficult than for humans, because of the wide range of shapes and species of animals, and the difficulty of educating manual labellers in animal physiology.
+% Animals contribute greatly to our society, in numerous ways economic and otherwise (there are more than 63 million pet dogs in the US alone~\cite{appa20}).
+% In consequence, there has been considerable attention in the computer vision research community to the interpretation of imagery of animals.
+% Although these techniques share similarities to techniques for understanding images of humans, a key difference is that obtaining labelled training data for animals is more difficult than for humans, because of the wide range of shapes and species of animals, and the difficulty of educating manual labellers in animal physiology.
 \begin{figure}[t]
 \input{Chapter5/fig_splash_cr.tex}\medbreak
 \caption{

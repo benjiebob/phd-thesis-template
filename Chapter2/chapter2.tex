@@ -30,8 +30,6 @@ In this section, I will introduce the components required for the rest of this t
         \label{fig:polygon_mesh}
     \end{figure}
 
-    \subsubsection{Keypoint Correspondences}
-    Model fitting algorithms are typically provided with point correspondences between the template mesh and input images in order to help constrain the optimization. Correspondences are either provided by a human annotator or predicted by a discriminative machine learning model.
     
     \subsection{Mesh deformation}
     The process of adapting a 3D mesh is known as \textit{mesh deformation} and is common across many computer graphics applications, particuarly those in which models are designed to represent dynamic objects. To constrain an optimization function (or simplify the animation process), it is useful to introduce priors that prevent unnatural mesh movement. Two methods for achieving this are discussed:
@@ -124,6 +122,10 @@ In this section, I will introduce the components required for the rest of this t
 The following section describes an number of existing model fitting methods.
 
 \subsection{Fitting a rigged template mesh to a set of correspondences}
+ % Edit to talk about e.g. SMPLify
+
+%  Model fitting algorithms are typically provided with point correspondences between the template mesh and input images in order to help constrain the optimization. Correspondences are either provided by a human annotator or predicted by a discriminative machine learning model.
+
 Taylor et al. demonstrate a model fitting approach that operates on a rigged 3D human mesh~\cite{taylor2012vitruvian}. Their aim is to learn a set of pose parameters $\theta \in \mathbb{R}^{d}$ so as to explain a set of image points $D = \{x_{i}\}_{i=0}^{n}$. Data points $x_{i} \in \mathbb{R}^{3}$ are collected from a calibrated depth camera. Once these pose parameters are learnt, the mesh is deformed according to the LBS algorithm defined above.
 
 The template mesh contains $|J| = 13$ joints, and $m$ skinned vertices ${V} = \{v_{i}\}_{i=1}^{m}$. Again, each vertex $v_{i} \in V$ is defined as:
