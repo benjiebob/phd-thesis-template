@@ -7,10 +7,19 @@ We start by describing the datasets and the baselines, followed by a quantitativ
 \input{Chapter6/tab_all.tex}
 \input{Chapter6/tab_abla_3dpw_std.tex}
 
-\paragraph{Datasets and evaluation protocol.}
+\subsection{Datasets}
+
+We begin by testing on a recent animal dataset of dogs. Since this dataset is limited, we additionally run an evaluation on a Human3.6m dataset which is considerably more varied and challenging.
+
+\subsubsection{RGBD-Dog Dataset}
+
+Our evaluation begins with the recent RGBD-Dog dataset. 
 
 Our evaluation focuses on the Human3.6m (\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} 
 and \textbf{3DPW} datasets \cite{vonmarcard2018recovering}.
+
+\subsubsection{Human3.6M}
+
 H36M is one of the largest datasets of humans annotated with 3D pose using MoCap sensors.
 \begin{wrapfigure}{r}{0.45\textwidth}
   \begin{center}
@@ -20,7 +29,13 @@ H36M is one of the largest datasets of humans annotated with 3D pose using MoCap
     \caption{Example image and corresponding annotation from the ambiguous H36M dataset \textbf{AH36M}. Best viewed in colour.\label{f:ambi_samples}}
     \vspace{-1.8em}
 \end{wrapfigure}
-As common practice, we train on subjects S1, S5, S6, S7 and S8, and test on S9 and S11. 3DPW is only used for evaluation and, following \cite{kolotouros19convolutional}, we evaluate on its test set.
+
+As common practice, we train on subjects S1, S5, S6, S7 and S8, and test on S9 and S11. 
+
+\subsubsection{3D People in the Wild}
+3DPW is only used for evaluation and, following \cite{kolotouros19convolutional}, we evaluate on its test set.
+
+\subsection{Evaluation Protocol}
 
 Our evaluation is consistent with~\cite{kolotouros19learning,kolotouros19convolutional} - we report two metrics that compare the lifted dense 3D SMPL shape to the ground truth mesh: Mean Per Joint Position Error (\textbf{\MPJPE}), Reconstruction Error (\textbf{\RE}). 
 For H36M, all errors are computed using an evaluation scheme known as ``Protocol \#2''. Please refer to supplementary for a detailed explanation of \MPJPE and \RE.
@@ -34,7 +49,7 @@ For H36M, all errors are computed using an evaluation scheme known as ``Protocol
 % The reconstruction error is a modification of \MPJPE which consists of finding an additional rigid Procrustes alignment between the pair of assessed poses before evaluating the inter-joint distances.
 % Finally, SE comprises a dense reconstruction metric that evaluates per-vertex distance error between each of the 6890 pairs of ground truth and predicted vertices of the evaluated SMPL meshes.
 
-\paragraph{Multipose metrics.}
+\subsection{Multipose metrics.}
 
 % \MPJPE, \RE and \SE 
 \MPJPE and \RE are traditional metrics that assume a single correct ground truth prediction for a given 2D observation.
@@ -43,7 +58,7 @@ We thus also report \MPJPE-$n$/\RE-$n$ an extension of \MPJPE\RE used in~\cite{l
 In more detail, to evaluate an algorithm, we allow it to output $n$ possible predictions and, out of this set, we select the one that minimizes the \MPJPE/\RE metric.
 We report results for $n\in \{1,5,10,25\}$.
 
-\paragraph{Ambiguous H36M/3DPW (AH36M/A3DPW).}
+\subsection{Ambiguous H36M/3DPW (AH36M/A3DPW).}
 Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem.
 
 % Hence, in order to allow for a quantitative evaluation in a more noisy scenario, we construct an adapted version of H36M with synthetically-generated occlusions as follows 
@@ -64,7 +79,7 @@ While 3DPW does contain real scenes, for completeness, we also evaluate on a noi
 % \end{figure}
 
 
-\paragraph{Baselines}\label{s:exp_baselines}
+\subsection{Baselines}\label{s:exp_baselines}
 
 Our method is compared to two multi-pose prediction baselines. For fairness, both baselines extend the same (state-of-the-art) trunk architecture as we use, and all methods have access to the same training data. 
 
@@ -98,7 +113,6 @@ HMR~\cite{kanazawa18end-to-end}, GraphCMR~\cite{pavlakos18learning}, and SPIN~\c
 % This validates our intuition that conditioning the mesh predictor on 2D keypoint detections is enough for obtaining competitive results.
 % Furthermore, we noticed that our method trains significantly faster than the alternatives, reaching convergence after 24hrs, compared to 96hrs of GraphCMR on a single Tesla V100 GPU\@.
 
-\vspace{-0.25cm} % sorry Seb, I panicked.
 \subsection{Results}\label{s:exp_results}
 \Cref{tab:tab_quantitative} contains a comprehensive summary of the results on all 3 benchmarks. Our method outperforms the SMPL-CVAE and SMPL-MDN in all metrics on all datasets.
 For SMPL-CVAE, we found that the encoding network often ``cheats'' during training by transporting all information about the ground truth, instead of only encoding the modes of ambiguity.
@@ -110,7 +124,7 @@ Furthermore, it is very encouraging to observe that our method is also able to o
 This comes as a surprise since our method has not been optimized for this mode of operation.
 The difference is more significant for 3DPW which probably happens because 3DPW is not used for training and, hence, the normalizing flow prior acts as an effective filter of predicted outlier poses. Qualitiative results are shown in \cref{fig:qual_results_all}.
 
-\paragraph{Ablation study.}
+\subsubsection{Ablation study.}
 We further conduct an ablative study on 3DPW that removes components of our method and measures the incurred change in performance. More specifically, we: 1) ablate the hypothesis reprojection loss; 2) set $p(X|I)=\text{Uniform}$ in \cref{e:loss-quant}, effectively removing the normalizing flow component and executing unweighted K-Means in $n$-quantized-best-of-$M$. \Cref{tab:tab_abl} demonstrates that removing both contributions decreases performance, validating our design choices.
 % Finally, validating the contributions of our method, the ablation study in \cref{tab:abl_ambi} 
 % reports significant drops in performance after removing each of the proposed components of our approach.

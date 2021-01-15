@@ -309,5 +309,54 @@ MLQ: Medium-to-large quadrupeds. J2: 2D Joints. S2: 2D Silhouettes. T3: 3D Templ
 % \vspace{-8mm}
 \end{table}
 
+\section{CGAS Paper}
+3D animal tracking is relatively new to the computer vision literature, but animal breed identification is a well studied problem~\cite{imagenet_cvpr09}. Video tracking benchmarks often use animal sequences~\cite{DAVIS2017-1st,DAVIS2017-2nd}, although the tracking output is typically limited to 2D affine transformations rather than the detailed 3D mesh that we propose.  Although we believe our work is the first to demonstrate dense 3D tracking of animals in video without the need for user-provided keypoints, we do build on related work across computer vision:
+
+\subsubsection*{Morphable shape models.}
+Cashman and Fitzgibbon~\cite{cashman2013shape} obtained one of the first 3D morphable animal models, but their work was limited to small classes of objects (e.g. dolphins, pigeons), and did not incorporate a skeleton.  Their work also showed the use of the 2D silhouette for fitting, which is key to our method. 
+Reinert {\em et al.} \cite{reinert2016animated} meanwhile construct 3D meshes by fitting generalized cylinders to hand-drawn skeletons.
+Combined skeletal and morphable models were used by Khamis {\em et al.}~\cite{hand-shape} for modelling the human hand, and Loper {\em et al.}~\cite{loper15smpl} in the SMPL model which has been extensively used for human tracking. 
+
+The SMPL model was extended to animals by Zuffi {\em et al.}~\cite{zuffi2017menagerie}, where the lack of motion capture data for animal subjects is cleverly overcome by building the model from $41$ 3D scans of toy figurines from five quadruped families in arbitrary poses. Their paper demonstrates single-frame fits of their model to real-world animal data, showing that despite the model being built from ``artists' impressions'' it remains an accurate model of real animals. This is borne out further by our work.  Their paper did however depend on per-frame human annotated keypoint labels, which would be costly and challenging to obtain for large video sequences. This work was recently extended~\cite{zuffi_lions} with a refinement step that optimizes over model vertex positions. This can be considered independent to the initial SMAL model fit and would be trivial to add to our method.
+
+\subsubsection*{Shape from silhouette.} Silhouette images have been shown to contain sufficient shape information to enable their use in many 3D recovery pipelines. Chen {\em et al.}~\cite{chen2010inferring} demonstrate single-view shape reconstruction from such input for general object classes, by building a shape space model from 3D samples. More related to our work, Favreau {\em et al.}~\cite{favreau2004animal} apply PCA to silhouette images to extract animal gaits from video sequences. The task of predicting silhouette images from 2D input has been effectively used as a proxy for regressing 3D model parameters for humans~\cite{tan17indirect,kanazawa18end-to-end} and other 3D objects~\cite{wiles2017silnet}.
+
+\subsubsection*{Joint position prediction.} There is an extensive body of prior work related to joint position prediction for human subjects. Earlier work used graphical approaches such as pictorial structure models~\cite{andriluka2010monocular,pishchulin2013poselet,johnson2010clustered}, which have since been replaced with deep learning-based methods~\cite{cao2017realtime,bulat2016human}. Few works predict animal joint positions directly owing to the lack of annotated data, although Mathis {\em et al.}~\cite{mathis2018deeplabcut} demonstrate the effectiveness of human pose estimation architectures for restricted animal domains. Our method instead trains on silhouette input, allowing the use of synthetic training imagery. The related task of animal part segmentation~\cite{wang2015joint,wang2015semantic} has seen some progress due to general object part datasets~\cite{chen_cvpr14,zhou2017scene}.
 
 
+
+
+The closest work in terms of scale is the category-specific mesh reconstruction of Kanazawa et al.~\cite{kanazawa2018birds}, where 2850 images of birds were reconstructed.  However doing so for the complex pose and shape variations of dogs required the advances described in this paper.
+
+Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
+It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
+Thus we claim that the achievement of reconstructing a full range of dog breeds, 
+with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
+
+\section{Dog Paper}
+
+% \textbf{Monocular 3D reconstruction of human bodies}
+\subsubsection{Monocular 3D reconstruction of human bodies}
+The majority of recent work in 3D pose and shape recovery from monocular images tackles the special case of 3D \emph{human} reconstruction. As a result, the research community has collected a multitude of open source human datasets which provide strong supervisory signals for training deep neural networks. These include accurate 3D deformable template models~\cite{loper15smpl} generated from real human scans, 3D motion capture datasets~\cite{ionescu2013human3,vonmarcard2018recovering} and large 2D datasets~\cite{lin2014microsoft,johnson2010clustered,andriluka14cvpr} which provide keypoint and silhouette annotations. 
+
+The abundance of available human data has supported the development of successful monocular 3D reconstruction pipelines~\cite{kolotouros19convolutional,kanazawa18end-to-end}. Such approaches rely on accurate 3D data to build detailed priors over the distribution of human shapes and poses, and use large 2D keypoints datasets to promote generalization to ``in-the-wild'' scenarios. Silhouette data has also been shown to assist in accurate reconstruction of clothes, hair and other appearance detail~\cite{pifuSHNMKL19,alldieck2019learning}.
+While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros19learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. Inspired by this innovation, we learn an iteratively-improving shape prior by applying expectation maximization during the training process.
+
+\textbf{Monocular 3D reconstruction of animal categories.}
+While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. 
+
+A primary reason for this is absence of large scale 3D datasets\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.} stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
+On the other hand, animal silhouette data is plentiful~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}.
+
+%In part due to the practical challenges associated with motion capture of animal categories, there is a severe lack of 3D animal data which could be used to build accurate 3D deformable models or supervise 3D predictions~\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.}. 
+
+Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution to 3D animal reconstruction research by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper15smpl} for human reconstruction) from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. In this work we develop \emph{SMBLD}, an extension of SMAL that better represents the diverse dog category by adding scale parameters and refining the shape prior using our large image dataset.
+
+While there have been various ``model-free'' approaches which do not rely on an initial template model to generate the 3D animal reconstruction, these techniques often do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}. An exception is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds}, although we argue that the bird category exhibits more limited articulation than our dog category.
+
+We instead focus on model-based approaches. The SMAL authors~\cite{zuffi2017menagerie} demonstrate fitting their deformable 3D model to quadruped species using user-provided keypoint and silhouette dataset. SMALR~\cite{zuffi_lions} then demonstrated fitting to broader animal categories by incorporating multi-view constraints from video sequences. Biggs et al.~\cite{biggs2018creatures} overcame the need for hand-clicked keypoints by training a joint predictor on synthetic data. 3D-Safari~\cite{Zuffi19Safari} further improve by training a deep network on synthetic data (built using SMALR~\cite{zuffi_lions}) to recover detailed zebra shapes in the wild.
+
+A drawback of these approaches is their reliance on a test-time energy-based optimization procedure, which is susceptible to failure with poor quality keypoint/silhouette predictions and increases the computational burden. By contrast our method requires no additional energy-based refinement, and is trained purely from single in-the-wild images. The experimental section of this paper contains a robust comparison between our end-to-end method and relevant optimization-based approaches. 
+
+
+A major impediment to research in 3D animal reconstruction has been the lack of a strong evaluation benchmark, with most of the above methods showing only qualitative evaluations or providing quantitative results on fewer than 50 examples. To remedy this, we introduce \emph{StanfordExtra}, a new large-scale dataset which we hope will drive further progress in the field. 

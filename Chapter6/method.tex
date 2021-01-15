@@ -4,13 +4,13 @@
 
 Before discussing our method, we describe the necessary background, starting from SMPL\@.
 
-\paragraph{SMPL.}
+\subsection{SMPL.}
 
 SMPL is a model of the human body parameterized by axis-angle rotations $\theta \in \mathbb{R}^{69}$ of 23 body joints, the shape coefficients $\beta \in \mathbb{R}^{10}$ modelling shape variations, and a global rotation $\gamma \in \mathbb{R}^{3}$.
 SMPL defines a \emph{skinning function}  $S: (\theta, \beta, \gamma) \mapsto V$ that maps the body parameters to the vertices $V \in \mathbb{R}^{6890\times 3}$ of a 3D mesh.
 % The skinngin n itself is non-linear due to the conversion of the rotation angles into rotation matrices when the kinematic tree is assembled.
 
-\paragraph{Predicting the SMPL parameters from a single image.}
+\subsection{Predicting the SMPL parameters from a single image.}
 
 Given an image $\mathbf{I}$ containing a person, the goal is to recover the SMPL parameters $(\theta, \beta, \gamma)$ that provide the best 3D reconstruction of it.
 % Conceptually, this is an inverse problem since the image $\mathbf{I} = \Gamma(S(\theta, \beta, \gamma), \eta)$ can be thought to be generated from the SMPL parameters $(\theta, \beta, \gamma)$ plus a number of unknown factors $\eta$ capturing details of the appearance, background, etc.
@@ -22,7 +22,7 @@ Since most datasets only contain annotations for a small set of keypoints (\cite
 This mechanism is a fixed linear regressor $J : V \mapsto X$ that maps the SMPL mesh vertices $V = S(G(I))$ to the 3D locations $X = J(V) = J(S(G(I)))$ of the $K$ joints.
 Then, the projections $\pi_{t}(X)$ of the 3D joint positions into image $\mathbf{I}$ can be compared to the available 2D annotations.
 
-\paragraph{Normalizing flows.}
+\subsection{Normalizing flows.}
 
 The idea of normalizing flows (NF) is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
 The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$. Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
@@ -48,7 +48,7 @@ A more detailed explanation of NF and RealNVP has been deferred to the supplemen
 % Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
 % RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
 
-\section{Method}\label{s:method}
+\subsection{Method}\label{s:method}
 
 % \subsection{Predicting multiple hypotheses.}
 
@@ -69,7 +69,7 @@ For learning the model, we assume to have a training set of $N$ images $\{I_i\}_
 Furthermore, for each training image $I_i$ we assume to know (1) the 2D location $Y_i$ of the body joints (2) their 3D location $X_i$, and (3) the ground truth SMPL fit $(\theta_i, \beta_i, \gamma_i)$.
 Depending on the set up, some of these quantities can be inferred from the others (e.g.~we can use the function $J$ to convert the SMPL parameters to the 3D joints $X_i$ and then the camera projection to obtain $Y_i$).
 
-\paragraph{Best-of-$M$ loss.}
+\subsection{Best-of-$M$ loss.}
 Given a single input image, our network predicts a set of poses, where at least one should be similar to the ground truth annotation $X_i$.
 This is captured by the best-of-$M$ loss~\cite{guzman2012multiple}:
 \begin{equation}\label{e:loss-best}
@@ -88,7 +88,7 @@ where $\hat X^{m}(I_i) = J(G_m(V(I_i)))$ are the 3D joints estimated by the $m$-
 In this way, only the best hypothesis is steered to match the ground truth, leaving the other hypotheses free to sample the space of ambiguous solutions.
 During the computation of this loss, we also extract the best index $m^*_i$ for each training example.
 
-\paragraph{Limitations of best-of-$M$.}
+\subsection{Limitations of best-of-$M$.}
 
 As noted in~\cref{s:intro}, best-of-$M$ only guarantees that one of the $M$ hypotheses is a good solution, but says nothing about the other ones.
 Furthermore, in applications we are often interested in modulating the number of hypotheses generated, but the best-of-$M$ regressor $G(I)$ only produces a fixed number of output hypothesis $M$, and changing $M$ would require retraining from scratch, which is intractable.
@@ -98,7 +98,7 @@ Furthermore, in applications we are often interested in modulating the number of
 
 We first address these issues by introducing a method that allows us to train a best-of-$M$ model for a large $M$ once and leverage it later to generate an arbitrary number of $n < M$ hypotheses without the need of retraining, while ensuring that these are good representatives of likely body poses.
 
-\paragraph{$n$-quantized-best-of-$M$}
+\subsection{$n$-quantized-best-of-$M$}
 Formally, given a set of $M$ predictions
 $\mathcal{\hat X}^M(I) = \{\hat X^1(I), ..., \hat X^M(I)\}$ we seek to generate a smaller $n$-sized set
 $\mathcal{\bar X}^n(I) = \{\bar X^1(I), ..., \bar X^n(I)\}$ which preserves the information contained in $\mathcal{\hat X}^M$.
@@ -145,7 +145,7 @@ This can be done efficiently on GPU --- for our problem, K-Means consumes less t
 
 % Notice that, apart from the data vectors $\hat X$ and the quants $\bar X$, the quantization energy also assumes knowledge the probability density $p(\mathcal{\hat X})$ over the space of 3D skeletons $\mathcal{\hat X}$. \rk{justify that using prior $p(\mathcal{X})$ over the restricted set $\mathcal{\bar X}$ is in fact $p(\mathcal{X}|I)$}
 
-\paragraph{Learning the pose prior with normalizing flows.}
+\subsection{Learning the pose prior with normalizing flows.}
 % In order to obtain $p(X)$, we propose to learn a deep generative model.
 % While recent advances in generative modelling brought various possibilities (VAE \cite{}, GANs \cite{}), we opt for deep normalizing flows \cite{} due their intriguing property of being able to exactly maximize the data log likelihood.
 In order to obtain $p(X)$, we propose to learn a normalizing flow model in form of
@@ -172,7 +172,7 @@ the RealNVP network $f$ described in \cref{s:preliminaries} and the supplementar
 \right).
 \end{equation}
 
-\paragraph{2D re-projection loss.}
+\subsection{2D re-projection loss.}
 
 Since the best-of-$M$ loss optimizes a single prediction at a time, often some members of the ensemble $\mathcal{\hat X}(I)$ drift away from the manifold of plausible human body shapes, ultimately becoming `dead' predictions that are never selected as the best hypothesis $m^*$.
 In order to prevent this, we further utilize a re-projection loss that acts across all hypotheses for a given image.
@@ -218,7 +218,7 @@ For our method, these are only applied to the best hypothesis $m_i^*$ found abov
 Note here we use $\mathcal{L}_\text{rb}$ to refer to a 2D re-projection error between the best hypothesis and ground truth 2D points $Y_i$. This differs from the earlier loss $\mathcal{L}_\text{ri}$, which is applied across all modes to enforce consistency to the visible \emph{input} points. Note that we could have used \cref{e:smpl,e:smpl2} to select the best hypothesis $m_i^*$, but it would entail an unmanageable memory footprint due to the requirement of SMPL-meshing for every hypothesis before the best-of-$M$ selection.
 
 
-\paragraph{Overall loss.}
+\subsection{Overall loss.}
 
 The model is thus trained to minimize:
 \begin{equation}\label{e:loss-total}

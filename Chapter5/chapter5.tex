@@ -2,7 +2,7 @@
 %*******************************************************************************
 %****************************** Third Chapter **********************************
 %*******************************************************************************
-\chapter{Real-Time and Accurate Shape Recovery}
+\chapter{End-to-End and Accurate Dog Shape Recovery}
 
 % **************************** Define Graphics Path **************************
 \ifpdf
@@ -13,7 +13,9 @@
 
 
 % Plan:
-% - Introduction - discuss the dog category and how little it has been explored and why it's important.. challenging examples. Also focus on difficult categories in human reconstruction (infants, overweight individuals). We also want to make it run real-time.
+% - Introduction
+%   - discuss the dog category, its been little explored, link to human reconstruction (infants, overweight individuals)
+%   - We also want to make it run real-time.
 % - Related Work - focus on techniques which focus on challenging caetgories. Draw out the most similar work (kanazawa birds and zebras). For this work, we want to only deal with monocular input to extend applicability to multiple categories. "in-the-loop" methods.
 % - Technical related work [AWF] - Methods for adapting priors, expectation maximization etc.
 % - StanfordExtra - since in this paper we want high fidelity reconstructions for one category, it is economical to collect training data for it. 
@@ -23,9 +25,10 @@
 % - Experimentation. 
 
 
-% Additional Experiments
+% Possible Additional Experiments
 % (1) Add a model fitting stage
-% (2) In theory could also run on horses, but would take time.
+% (2) Add texture
+% (3) In theory could also run on horses, but would take time.
 
 \section{Introduction}
 We introduce an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. 
@@ -39,6 +42,25 @@ As a by-product of training, we generate a new parameterized model (including li
 % Generic math commands
 \def\E#1{E_\textrm{#1}}
 \def\L#1{L_{\textrm{#1}}}
+\def\R#1{{\mathbb{R}^{#1}}}
+\def\RR#1#2{{\mathbb{R}^{#1 \times #2}}}
+\def\posn{\phi}
+\def\pose{\theta}
+\def\npose{P}
+\def\shape{\beta}
+\def\scale{\kappa}
+\def\trans{t}
+\def\betacov{{\Sigma_{\beta}}}
+\def\posecov{{\Sigma_{\pose}}}
+\def\posemean{{\mu_{\pose}}}
+\def\betamean{{\mu_{\beta}}}
+\def\nimages{N}
+\def\nshape{B}
+\def\verts{\nu}
+\def\nverts{V}
+\def\jointselect{\mathtt{K}}
+\def\njoints{J}
+\def\f{f}
 \newcommand\inv[1]{\left.#1\right.^{-1}}
 \newcommand\transpose[1]{\left.#1\right.^{T}}
 \newcommand{\anote}[1]{{\color{red}[#1]}}
@@ -68,83 +90,18 @@ While each of these qualities exist in some existing works, we believe ours is t
 \end{enumerate}
 
 \subsection{Related work}
+We will discuss some related techniques for this paper.
 
-The closest work in terms of scale is the category-specific mesh reconstruction of Kanazawa et al.~\cite{kanazawa2018birds}, where 2850 images of birds were reconstructed.  However doing so for the complex pose and shape variations of dogs required the advances described in this paper.
+\subsubsection{Automatic 3D reconstruction approaches}
 
-Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
-It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
-Thus we claim that the achievement of reconstructing a full range of dog breeds, 
-with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
-
-
-
-% \textbf{Monocular 3D reconstruction of human bodies}
-\subsubsection{Monocular 3D reconstruction of human bodies}
-The majority of recent work in 3D pose and shape recovery from monocular images tackles the special case of 3D \emph{human} reconstruction. As a result, the research community has collected a multitude of open source human datasets which provide strong supervisory signals for training deep neural networks. These include accurate 3D deformable template models~\cite{loper15smpl} generated from real human scans, 3D motion capture datasets~\cite{ionescu2013human3,vonmarcard2018recovering} and large 2D datasets~\cite{lin2014microsoft,johnson2010clustered,andriluka14cvpr} which provide keypoint and silhouette annotations. 
-
-The abundance of available human data has supported the development of successful monocular 3D reconstruction pipelines~\cite{kolotouros19convolutional,kanazawa18end-to-end}. Such approaches rely on accurate 3D data to build detailed priors over the distribution of human shapes and poses, and use large 2D keypoints datasets to promote generalization to ``in-the-wild'' scenarios. Silhouette data has also been shown to assist in accurate reconstruction of clothes, hair and other appearance detail~\cite{pifuSHNMKL19,alldieck2019learning}.
-While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros19learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. Inspired by this innovation, we learn an iteratively-improving shape prior by applying expectation maximization during the training process.
-
-\textbf{Monocular 3D reconstruction of animal categories.}
-While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. 
-
-A primary reason for this is absence of large scale 3D datasets\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.} stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
-On the other hand, animal silhouette data is plentiful~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}.
-
-%In part due to the practical challenges associated with motion capture of animal categories, there is a severe lack of 3D animal data which could be used to build accurate 3D deformable models or supervise 3D predictions~\footnote{Released after the submission of this paper, RGBD-Dog dataset~\cite{Kearney_2020_CVPR} is the first open-source 3D motion capture dataset for dogs.}. 
-
-Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution to 3D animal reconstruction research by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper15smpl} for human reconstruction) from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. In this work we develop \emph{SMBLD}, an extension of SMAL that better represents the diverse dog category by adding scale parameters and refining the shape prior using our large image dataset.
-
-% While the authors show accurate fits (via energy minimization to hand-clicked keypoints) to a variety of quadruped species, they show few results shown on the dog category (primarily wolves). 
-
-% Compared to humans, there are also significantly fewer 2D keypoint datasets for animals. The recent Animal Pose dataset~\cite{animalpose} is one such alternative, but contains significantly fewer labelled images (4,000 compared to 20,580). On the other hand, animal silhouette data is plentiful, and can be found in MS-COCO~\cite{lin2014microsoft}, Pascal VOC~\cite{everingham2010pascal} and DAVIS~\cite{DAVIS2017-2nd} among others.
-
-
-
-% A primary reason for this is absence of large scale 3D datasets stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. 
-
-% \textbf{Model-free animal reconstruction}
-
-% There have also been a number of ``model-free'' approaches which do not rely on a initial template model. Agudo et al.~\cite{Agudo_2018_CVPR} and Novotny et al.~\cite{novotny2019c3dpo} demonstrate 3D keypoint lifting on animal categories but require adaptation to produce a mesh. Vicente et al.~\cite{vicente_3dv} and Probst et al.~\cite{Probst2018_ECCVa} produce meshes, but all techniques rely on provided 2D keypoints at test-time. An exception is Kanazawa et al. \cite{kanazawa2018birds}, which learns a 3D bird model via an end-to-end reconstruction network. However, the bird category exhibits limited articulation and is therefore a simpler category than the dog category considered here.
-
-% \textbf{Template-based 3D reconstruction of animals}.
-% \textbf{Monocular 3D reconstruction of animal categories}
-While there have been various ``model-free'' approaches which do not rely on an initial template model to generate the 3D animal reconstruction, these techniques often do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}. An exception is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds}, although we argue that the bird category exhibits more limited articulation than our dog category.
-
-%Early work fitted simple primitives such as cylinders to user-provided limb annotations. More recently, the
-We instead focus on model-based approaches. The SMAL authors~\cite{zuffi2017menagerie} demonstrate fitting their deformable 3D model to quadruped species using user-provided keypoint and silhouette dataset. SMALR~\cite{zuffi_lions} then demonstrated fitting to broader animal categories by incorporating multi-view constraints from video sequences. Biggs et al.~\cite{biggs2018creatures} overcame the need for hand-clicked keypoints by training a joint predictor on synthetic data. 3D-Safari~\cite{Zuffi19Safari} further improve by training a deep network on synthetic data (built using SMALR~\cite{zuffi_lions}) to recover detailed zebra shapes in the wild.
-
-A drawback of these approaches is their reliance on a test-time energy-based optimization procedure, which is susceptible to failure with poor quality keypoint/silhouette predictions and increases the computational burden. By contrast our method requires no additional energy-based refinement, and is trained purely from single in-the-wild images. The experimental section of this paper contains a robust comparison between our end-to-end method and relevant optimization-based approaches. 
-
-% Following recent trends in human reconstruction, Zuffi et al.\cite{Zuffi19Safari} train a deep network to recover detailed zebra shapes in the wild. Their approach relies on an energy-minization step after the initial network inference and makes use of multi-view fitting (via ~\cite{zuffi_lions}) to generate synthetic 3D training data. By contrast our method requires no additional energy-based refinement, and is trained purely from single in-the-wild images. We further argue that our selected dog category (120 breeds) contains significantly more diverse shape and poses than are handled here.
-
-A major impediment to research in 3D animal reconstruction has been the lack of a strong evaluation benchmark, with most of the above methods showing only qualitative evaluations or providing quantitative results on fewer than 50 examples. To remedy this, we introduce \emph{StanfordExtra}, a new large-scale dataset which we hope will drive further progress in the field. 
+\subsubsection{Animal datasets}
 
 \input{Chapter5/fig_system_overview2.tex}
 
-\section{Parametric animal model}
+\section{Building SMBLD: a new parametric dog model}
 
-\def\R#1{{\mathbb{R}^{#1}}}
-\def\RR#1#2{{\mathbb{R}^{#1 \times #2}}}
-\def\posn{\phi}
-\def\pose{\theta}
-\def\npose{P}
-\def\shape{\beta}
-\def\scale{\kappa}
-\def\trans{t}
-\def\betacov{{\Sigma_{\beta}}}
-\def\posecov{{\Sigma_{\pose}}}
-\def\posemean{{\mu_{\pose}}}
-\def\betamean{{\mu_{\beta}}}
-\def\nimages{N}
-\def\nshape{B}
-\def\verts{\nu}
-\def\nverts{V}
-\def\jointselect{\mathtt{K}}
-\def\njoints{J}
-\def\f{f}
+% Explain why the SMAL parameteric model is unsuitable for the dog category.
 
-%\subsection{SMAL}
 At the heart of our method is a parametric representation of a 3D animal mesh, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by~\cite{zuffi2017menagerie}. SMAL is a deformable 3D animal mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The model consists of a linear blend skinning function $F_{v}: (\pose, \shape) \mapsto V$, which generates a set of vertex positions $V \in \RR{3889}{3}$, and a joint function $F_{J}: (\pose, \shape) \mapsto J$, which generates a set of joint positions $J \in \RR{35}{3}$.
 
 \subsection{Introducing scale parameters}
@@ -154,11 +111,13 @@ We therefore introduce a simple but effective way to improve the model's represe
 
 \input{Chapter5/fig_scalingparams.tex}
 
-% \subsection{Learning a unimodal 3D prior via fitting}
+\subsection{Building a 3D shape prior via model fitting}
 
-% Another method for improving the generalizability of the SMAL model is to improve the 3D shape prior. Such priors are typically used to ensure shape deformation remain within a realistic and anatomically plausible range. Due to the limited diversity of scans used to build the SMAL model, while the shape prior does enforce realism among deformations, it does not allow for a wide enough range to cover the set of dogs in our dataset.
+Another method for improving the generalizability of the SMAL model is to improve the 3D shape prior. Such priors are typically used to ensure shape deformation remain within a realistic and anatomically plausible range. Due to the limited diversity of scans used to build the SMAL model, while the shape prior does enforce realism among deformations, it does not allow for a wide enough range to cover the set of dogs in our dataset.
 
-% We improve the quality of the prior (and learn a prior over our new scale parameters) by fitting to a set of $13$ artist-designed 3D dog meshes, which are more varied than the original set. We apply an energy minimization scheme which aligns the SMAL vertices to each scan, under smoothing regularizers. Further details left to the supplementary.
+We improve the quality of the prior (and learn a prior over our new scale parameters) by fitting to a set of $13$ artist-designed 3D dog meshes, which are more varied than the original set. We apply an energy minimization scheme which aligns the SMAL vertices to each scan, under smoothing regularizers. Further details left to the supplementary.
+
+% Way more here, and include exampels
 
 
 \section{End-to-end dog reconstruction from monocular images} 
@@ -370,14 +329,7 @@ The update equations are given as follows:
     \frac{1}{N}\sum_{i}{w_{i}^{m}}
 \end{equation}
 
-\section{Experiments}
-
-% As with other methods, we observe that introducing a silhouette term into the network loss before the model's pose has been somewhat solved can result in unsatisfactory local minima. We overcome this by using a pre-training stage with the following loss terms:
-
-
-In this section we compare our method to competitive baselines. We begin by describing our new large-scale dataset of annotated dog images, followed by a quantitative and qualitative evaluation.
-
-\subsection{StanfordExtra: A new large-scale dog dataset with 2D keypoint and silhouette annotations}
+\section{Building StanfordExtra: a new large-scale dog keypoint dataset}
 
 \begin{figure*}[h]
     \centering
@@ -390,6 +342,14 @@ In this section we compare our method to competitive baselines. We begin by desc
 In order to evaluate our method, we introduce \emph{StanfordExtra}: a new large-scale dataset with annotated 2D keypoints and binary segmentation masks for dogs. We opted to take source images from the existing Stanford Dog Dataset~\cite{StanfordDogs}, which consists of 20,580 dog images taken ``in the wild" and covers 120 dog breeds. The dataset contains vast shape and pose variation between dogs, as well as nuisance factors such as self/environmental occlusion, interaction with humans/other animals and partial views. Figure~\ref{fig:dataset} (left) shows samples from the new dataset.
 
 We used Amazon Mechanical Turk to collect a binary silhouette mask and 20 keypoints per image: 3 per leg (knee, ankle, toe), 2 per ear (base, tip), 2 per tail (base, tip), 2 per face (nose and jaw). We can approximate the difficulty of the dataset by analysing the variance between 3 annotators at both the joint labelling and silhouette task. Figure~\ref{fig:dataset} (right) illustrates typical per-joint variance in joint labelling. Further details of the data curation procedure are left to the supplementary materials. 
+
+
+\section{Experiments}
+
+% As with other methods, we observe that introducing a silhouette term into the network loss before the model's pose has been somewhat solved can result in unsatisfactory local minima. We overcome this by using a pre-training stage with the following loss terms:
+
+
+In this section we compare our method to competitive baselines. We begin by describing our new large-scale dataset of annotated dog images, followed by a quantitative and qualitative evaluation.
 
 \subsection{Evaluation protocol}
 
