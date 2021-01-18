@@ -18,6 +18,13 @@ CUED PhD thesis template
 *   Yani's: https://www.repository.cam.ac.uk/handle/1810/278976
 *   Fotios': https://www.repository.cam.ac.uk/handle/1810/292450
 
+## TODO
+
+*   [ ] Plan the Related Work section. Build a Google Docs with related work organised by section and find ways to compare them. Start with the references.
+*   [ ] Run the NeurIPS paper on [RGBD-Dog](https://github.com/CAMERA-Bath/RGBD-Dog)
+*   [ ] 
+
+
 --------------------------------------------------------------------------------
 ## Features
 
