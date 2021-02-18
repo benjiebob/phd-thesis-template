@@ -13,7 +13,7 @@
 
 \section{Introduction}
 
-This chapter discusses work related to 3D shape and pose estimation for articulated subjects -- primarily animals and humans. We focus initially on skeletal prediction techniques, which output either sets 2D or 3D keypoints. Such techniques are of value to our objective of 3D surface reconstruction, as have been employed in multi-stage pipelines where keypoints are predicted first before a subsequent model fitting stage. The chapter continues with an evaluation of so-called `model-free' techniques, which operate without an explicit template prior.
+This chapter discusses background and methods related to 3D shape and pose estimation for articulated subjects. We begin with techniques for correspondence prediction -- a classical method which discusses work focussing on 3D shape and pose estimation for animals. 3D shape and pose estimation for articulated subjects -- primarily animals and humans. We initially focus on skeletal prediction techniques, which output either sets 2D or 3D keypoints. Such techniques are of value to our objective of 3D surface reconstruction, as have been employed in multi-stage pipelines where keypoints are predicted first before a subsequent model fitting stage. The chapter continues with an evaluation of so-called `model-free' techniques, which operate without an explicit template prior.
 
 % Skeletal prediction methods
 
@@ -22,6 +22,149 @@ This chapter discusses work related to 3D shape and pose estimation for articula
 % 
 
 % Kinect Paper | 
+
+% \section{Point correspondences}
+% \section{3D Deformable Model of People and Animals}
+% \section{Methods for Single-view Reconstruction}
+
+
+\section{Predicting point correspondences}
+
+Before delving into methods for 3D reconstruction, it is first necessary to discuss techniques for identifying \emph{point correspondences}. Point correspondences have a long history in computer vision for associating the same real-world location as it is represented by multiple camera views or on a 3D model surface. In a multi-image scenario, determining reliable correspondences between image pairs can be used to greatly reduce the ambiguity when reconstructing 3D scenes from 2D images. Even with only a single image available, correspondences can be predicted between the image and a representative 3D template mesh. This 3D-to-2D correspondence type is important for constraining the class of model fitting algorithms (discussed in depth later) which operate by aligning a 3D template mesh to a given 2D image. Of course, determining point correspondences is made more difficult in the presence of particular nuisance factors. In the case of animal imagery, we must associate points on a non-rigid object with independently moving parts (articulated), deal with frequent self-occlusion in which limbs overlap each other from the perspective of the camera, occlusion caused by environmental factors (e.g. trees, fences, humans etc.), varied and unknown backgrounds and a range of complex lighting conditions (including shadows). Throughout this section, the methods highlighted will be appraised against their suitability in this complex setting.
+
+% https://link.springer.com/article/10.1007/s13735-019-00183-w
+% https://arxiv.org/pdf/1603.09114.pdf
+
+\subsection{Relating separate views of the same object}
+
+The first class of techniques focuses on classical approaches for determining corresponding image points taken of precisely the same (and almost always rigid) object. Early techniques focused on stereo~\cite{point-corres-stereo} or optical flow~\cite{point-corres-opticalflow} imagery, and matched image points based on finding regions with similar pixel intensities. Due to the adverse effects caused by changeable environmental factors (e.g. lighting) would have on the appearance of the real-world location when captured in separate images, attention moved towards designing schemes with improved robustness. Improvements were achieved when matching points based on local \emph{mid-level features} such as edges and corners, which have greater invariance to colour changes caused by lighting effects. Typical pipeliens would first identify \emph{interest points} (typically corners~\cite{corner-moravec,corner-harris,corner-susan} or blobs~\cite{sift}), from which local image patches could be compared according to either Squared Sum of Intensity Differences (SSD) or a cross-correlation (CC) scheme. Steady improvements were then made through the design of ever-improving feature descriptors, which encode local image information around points and aim for invariance against common transformations (e.g. viewpoint, rotation and scaling). Progress in this field arguably reached maturity with the advent of SIFT~\cite{sift}, which encodes points according to local histograms of graident orientations and was later speed-up by SURF~\cite{surf} and DAISY~\cite{daisy}. There have been modern attempts to learn sophisticated feature representations using convolutional neural network architectures~\cite{lift, matchnet}, which are shown to offer still further improvement.
+
+The primary aim of these systems is to derive point correspondences between multiple views of the same object, usually as depicted in stereo images or between successive frames of a video. Unfortunately, by matching points based on local geometric features learnt from few image examples, these techniques do not readily extend to identifying correspondences between different instances of the same category. For example, matching SIFT features is likely to result in poor quality correspondences if tested on two dogs of different breeds due to the differing appearance and body geometry. For similar reasons, this class of techniques tend to deteriorate when tested on articulated objects since the object's structure can change and cause self-occlusion between views. The techniques are also known to suffer in scenarios with significant viewpoint changes (e.g. image of the front/back of an animal), since there are few correpsonding points available for matching. Finally, these techniques do not directly offer a method for identifying correspondences between an image and a representative 3D mesh. Although some work exists that extends some of the aforementioned feature descriptors (e.g. 3D-SIFT~\cite{sift-3d}) to 3D, matching typically requires a photorealistic 3D scan of the 2D subject which we cannot assume as input for our problem.
+
+\subsection{Predicting keypoints with a semantic meaning}
+
+This section will explore an alternative class of methods for identifying point correspondences. So far, the approaches described do not detect correspondences with any semantic meaning; in other words, the returned points cannot truly be `named' and there is no guarantee the same points (or even the same number of points) will be identified in different test images. Instead, this section will focus on techniques which predict a set of keypoint locations which are specified in a pre-defined list (for example: nose, tail tip, toe). In general, data-driven machine learning algorithms are used in order to learn an association between image appearance information and semantic keypoint labels. The techniques fall into two general categories: the former set of \emph{supervised techniques} rely on large image datasets manually annotated with keypoint locations, and the latter set of \emph{unsupervised techniques} learn the association through other means. 
+
+\subsubsection{Supervised techniques}
+
+Early work in the supervised prediction of landmarks began through the refinement of object detection methods to predict fine-grained object part labels and eventually progressed to keypoint locations. Perhaps the earliest techniques in this category made use of face part annotations (referred to as fiducial points) to align target faces to improve the face recongition accuracy. Human detection and pose estimation methods progressed from simple bounding box representations, to object part prediction~\cite{xxx,xxx}, poselets~\cite{pose-kposelets} and subsequently 2D keypoint localization~\cite{xxx,xxx}. Most commonly, methods aim to predict the location of important 2D human joints (such as the shoulders and wrists) in order to roughly approximate the subject's skeletal pose. For this reason, this task is commonly referred to as \emph{2D human pose estimation}. The earliest techniques in this category built simple human templates out of shape primitives (e.g. cylinders~\cite{pose-hogg}) and fit them to detected edges. Later, efficient tree structured graphical models~\cite{pose-felzen} were adopted, but suffered greatly from the so-called double counting problem, in which the same body part would be detected twice leaving the opposite limb undetected. Improvements were made with the design of flexible part mixtures~\cite{yang2013articulated}, which simplified the human parameterization and thereby the inference challenge.
+
+Before the popularization of modern deep learning architectures, various methods made use of features computed underneath predicted 2D landmark locations for fine-grained image classification tasks. For this reason, there are limited examples of keypoint datasets for animal categories such as dogs~\cite{xxx} and birds~\cite{xxx}. 
+
+Yang and Ramanan demonstrate one of the early examples of a convolutional neural networks being applied to solve a human pose estimation task. Their approach... recent techniques for human pose prediction 
+
+
+made use of predicted 2D landmarks in order to Researchers found that when 
+
+the locations of p locations , also benefitted initially from full body bou on using face part developed used face part annotation The task of predicting object landmarks began in the related task of object \emph{part} detection Early work in supervised keypoint prediction began by predicting facial landmarks to improve 
+
+\subsubsection{Unsupervised techniques}
+
+
+\section{Techniques for image segmentation}
+
+
+\section{Techniques for object detection}
+
+
+\section{Modelling articulated subjects}
+
+\subsection{Mesh-deformation techniques}
+
+\subsection{Building 3D morphable models}
+
+\subsection{Modelling faces and hands}
+
+\subsection{Modelling humans}
+
+\subsection{Modelling animals}
+
+\section{Model-based methods for non-rigid reconstruction}
+
+\subsection{Model-based faces and hands}
+
+\subsection{Model-based human pose estimation}
+
+\subsection{Model-based human shape and pose}
+
+\subsection{Model-based animals}
+
+\section{Model-free methods for non-rigid reconstruction}
+
+\subsection{Shape-from-X}
+
+
+
+
+
+large dataset on large large Techniques in this section typically achieve this using data-driven machine learning algorithms, which can be trained on various  general, data-driven machine learning algorithms are used to predict an association between image pixels and locations with a semantic meaning. techniques used to achieve this techniques achieve this In general, data driven machine learning techniques are used to train an algorithm to associate image appearance features with semantically-meaningful partsIn order to teach a system to understand semantic this section, we will discuss techniques for predicting keypoints from a pre-defined list
+
+These approaches do offer some advantages; in particular, the approaches do not require a training procedure based on a labelled dataset, although the techniques cannot be used to associate image points to a representative 3D mesh. In this section, we will discuss techniques for predicting points from a pre-defined list 
+
+a labelled dataset this does offer some advantages (particularly that the approaches do not require a labelled dataset for training, data 
+
+and in general, the number of correspondences the number of detected correspondences can differ between test examples and there is no pre-determined there is no pre-determined list of detected correspondences points the methods should obtain, and in general the number of returned keypoints can differ  used for identifying 2D image points based on a pre-defined   approach to identifying image points, although this time the desired locations will are pre-defined.
+
+\begin{enumerate}
+    \item Talk about all 2D keypoint detection techniques
+    \item Talk about 
+\end{enumerate}
+
+
+
+For example, For example, techniques such as SIFT generate different feature descriptions for two points taken on different zebras, due to the different patterns. Such systems also struggle greatly under object-viewpoint, particularly for 
+
+which relies on local gradient information will generate different feature descriptions for two points taken on different zebra since the patterns may differ. The next class of techniques are designed to overcome this limitation, and offer matching based on \emph{semantic point correspondences}.
+
+
+
+
+% unfortunately, these techniques 
+
+% such as to ensure uniqueness ensure specificity and comparing feature descriptors computed from them. Early feature descriptors focus only Feature descriptors often capture local statistics related to the image location and aim to have some invariance to different lighting conditions, scales, rotations or other transforms. from which  (typically repeatible features such as edges Techniques fall into two categories: global image descriptors are calculated on the whole image, and have some advantages in that they are invariant to matching based on the whole image, and have some advantages since they are naturall invariant to invarient 
+
+% majority of techniques solve matching based on local image-features, techniques match based on local features, i.e. rely on general, techniques are used to identify so-called \emph{interest points} which have some repeatibility properties for which a \emph{feature descriptor} can be Historically, the most successful methods operate by Early techniques designed for stereo matching and for optical flow were designed to operate under small viewpoint changes, but early technique proved suitable for stereo matching under small viewpoint changes, but was not rotation invariant and for deriving point correspondences since the 1980s, echniques for deriving point correspondences between images has existed since the 1980soperated on image pixel intensity values, without much consideration for the underlying objects. Improvements were made with geometric techniques, such as edge and corner detectors, which offered some robustness to varying lighting conditions. However, the mid-level features represenations of SIFT~\cite{}, HOG~\cite{}, DAISY~\cite{}, VLAD~\cite{} etc. offered considerable improvements, allowing point matching under various object scales and camera viewpoints.
+
+% However, while suitable for processing such techniques were unfortunately unable to match semantically-meaningful keypoint locations across different object instances
+
+% the feature representations of techniques struggle with varying camera viewpoints, still typically fail when 
+
+% at some robustness to that related mid-level appearance features, such as corners 
+
+% Major imawithout consideration for the objects they purely on image pixels, with little knowledge of the objects they Of course, determine which 2D image locations are in correspondence 
+
+% The history of deriving point correspondences begins with stereo and optical flow, which use 
+
+% Even the earliest reconstruction techniques, such as in stereo or optical flow based methods, rely on point correspondences to determine 3D structure. 
+
+% to use of point correspondences to 
+
+
+% For example, imagine we have captured multiple images ${I_1, I_2, ...}$ of the same static scene containing a dog. A classical approach for recovering the 3D 3D dog For example, imagine we have various images captured of the same static scene containing a dog. In order to determine the consider a real-world point on the end of a dog's nose for which we have yet to determine the true 3D world location. To recover the 3D point, we may start by grouping together projections of this point $\{(u_i, v_i)\} \in R^2$ in various images we have captured of the scene. From these point correspondences, we could begin 
+
+
+% we may start We may start by grouping together various projections of this point in various images we have captured of the scene From various images captured of the scene, we may start by grouping together the various projections of this nose point it is useful to group together the various projections of this point . Further, we can various projections of this point in on the end of a dogs nose, scene containing a dog, we can group to group 2D image points 
+
+% points a scene containing a dog, we may wish to group , whether in related locations between two images, an image and a 3D surface or two 3D surfaces. Often, point correspondences are used to group together multiple image views of the same real-world location, or to relate an image point with a location on a representative 3D surface. 
+
+
+% Throughout the long history of 3D reconstruction, nearly all methods which focus on recovering complex 3D objects from 2D image data make use of \emph{point correspondences} to constrain the problem. By understanding which pairs of Early work focuses on \emph{image matching} to 
+
+
+% In order to reconstruct a complex 3D object from 2D image data, we typically require significant constraints from Techniques which reconstruct complex 3D subjects from 2D image data typically require 
+
+% In order to reconstruct a complex 3D subject from 2D image data, it is almost always essential to constrain  3D articulated subject from 2D image data, it is almost always image, it is alms3D reconstruction has a long history 3D reconstruction techniques have a long history in reconstruction, and nearly all require as 
+
+\begin{enumerate}
+    \item 3D reconstruction techniques rely upon point correspondences. This has a very long history:
+    \item Optical flow, mid-level discriptors (SIFT, DAISY etc.)
+    \item More recently, pose estimation techniques have found themselves useful 
+\end{enumerate}
+
+
+
+
+\section{Modelling articulated subjects}
 
 \section{Skeletal prediction}
 
