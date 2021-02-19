@@ -403,6 +403,17 @@
 	Title = {Integral Human Pose Regression},
 	Year = {2018}}
 
+@InProceedings{sun2019deep,
+  author = {Sun, Ke and Xiao, Bin and Liu, Dong and Wang, Jingdong},
+  title = {Deep High-Resolution Representation Learning for Human Pose Estimation},
+  booktitle = {CVPR 2019},
+  year = {2019},
+  month = {June},
+  abstract = {In this paper, we are interested in the human pose estimation problem with a focus on learning reliable highresolution representations. Most existing methods recover high-resolution representations from low-resolution representations produced by a high-to-low resolution network. Instead, our proposed network maintains high-resolution representations through the whole process. We start from a high-resolution subnetwork as the first
+  stage, gradually add high-to-low resolution subnetworks one by one to form more stages, and connect the mutliresolution subnetworks in parallel. We conduct repeated multi-scale fusions such that each of the high-to-low resolution representations receives information from other parallel representations over and over, leading to rich highresolution representations. As a result, the predicted keypoint heatmap is potentially more accurate and spatially more precise. We empirically demonstrate the effectiveness of our network through the superior pose estimation results over two benchmark datasets: the COCO keypoint detection dataset and the MPII Human Pose dataset. In addition, we show the superiority of our network in pose tracking on the PoseTrack dataset. The code and models have been publicly available at https://github.com/leoxiaobin/deep-high-resolution-net.pytorch.},
+  url = {https://www.microsoft.com/en-us/research/publication/deep-high-resolution-representation-learning-for-human-pose-estimation/},
+}
+
 @Article{rogez18lcr-net,
   author  = {Gr{\'{e}}gory Rogez and Philippe Weinzaepfel and Cordelia Schmid},
   journal = pami,
@@ -1284,6 +1295,66 @@
 }
 
 
+@article{pose-hogg,
+	title = {Model-based vision: a program to see a walking person},
+	volume = {1},
+	issn = {0262-8856},
+	url = {https://www.sciencedirect.com/science/article/pii/0262885683900033},
+	doi = {https://doi.org/10.1016/0262-8856(83)90003-3},
+	abstract = {For a machine to be able to ‘see’, it must know something about the object it is ‘looking’ at. A common method in machine vision is to provide the machine with general rather than specific knowledge about the object. An alternative technique, and the one used in this paper, is a model-based approach in which particulars about the object are given and this drives the analysis. The computer program described here, the WALKER model, maps images into a description in which a person is represented by the series of hierarchical levels, i.e. a person has an arm which has a lower-arm which has a hand. The performance of the program is illustrated by superimposing the machine-generated picture over the original photographic images.},
+	number = {1},
+	journal = {Image and Vision Computing},
+	author = {Hogg, David},
+	year = {1983},
+	keywords = {machine perception, vision, WALKER model},
+	pages = {5--20},
+}
+
+@article{pictorial-structures,
+author = {Fischler, M. A. and Elschlager, R. A.},
+title = {The Representation and Matching of Pictorial Structures},
+year = {1973},
+issue_date = {January 1973},
+publisher = {IEEE Computer Society},
+address = {USA},
+volume = {22},
+number = {1},
+issn = {0018-9340},
+url = {https://doi.org/10.1109/T-C.1973.223602},
+doi = {10.1109/T-C.1973.223602},
+abstract = {The primary problem dealt with in this paper is the following. Given some description of a visual object, find that object in an actual photograph. Part of the solution to this problem is the specification of a descriptive scheme, and a metric on which to base the decision of "goodness" of matching or detection.},
+journal = {IEEE Trans. Comput.},
+month = jan,
+pages = {67–92},
+numpages = {26},
+keywords = {heuristic optimization, picture processing, picture matching, representation., Dynamic programming, picture description}
+}
+
+@INPROCEEDINGS{pose-johnson-mixtureparts,
+  author={S. {Johnson} and M. {Everingham}},
+  booktitle={CVPR 2011}, 
+  title={Learning effective human pose estimation from inaccurate annotation}, 
+  year={2011},
+  volume={},
+  number={},
+  pages={1465-1472},
+  doi={10.1109/CVPR.2011.5995318}}
+
+@article{human-rep-parts,
+	title = {Description and recognition of curved objects},
+	volume = {8},
+	issn = {0004-3702},
+	url = {https://www.sciencedirect.com/science/article/pii/0004370277900066},
+	doi = {https://doi.org/10.1016/0004-3702(77)90006-6},
+	abstract = {Analysis of scenes of three-dimensional objects has, in the past, been largely limited to the world of polyhedra. Techniques for generating structured, symbolic descriptions of complex curved objects by segmenting them into simpler sub-parts are presented here. The complexity of objects used is that of toy animals and hand tools. Recognition is performed by matching these descriptions with stored descriptions of models. A laser ranging techniques is used to acquire three-dimensional position of points on the visible surfaces. Successful segmentation and recognition results have been obtained for scenes with multiple, occluding objects in various orientations and with a variety of articulations of sub-parts.},
+	number = {1},
+	journal = {Artificial Intelligence},
+	author = {Nevatia, Ramakant and Binford, Thomas O.},
+	year = {1977},
+	pages = {77--98},
+}
+
+
 @article{corres-stereo,
   author = {Hannah, Marsha Jo},
   title = {Computer Matching of Areas in Stereo Images.},
@@ -1487,20 +1558,6 @@
  Booktitle = {CVPR},
  Year = {2014}}
 
-@article{pose-hogg,
-  title = {Model-based vision: a program to see a walking person},
-  journal = {Image and Vision Computing},
-  volume = {1},
-  number = {1},
-  pages = {5-20},
-  year = {1983},
-  issn = {0262-8856},
-  doi = {https://doi.org/10.1016/0262-8856(83)90003-3},
-  url = {https://www.sciencedirect.com/science/article/pii/0262885683900033},
-  author = {David Hogg},
-  keywords = {vision, machine perception, WALKER model},
-  abstract = {For a machine to be able to ‘see’, it must know something about the object it is ‘looking’ at. A common method in machine vision is to provide the machine with general rather than specific knowledge about the object. An alternative technique, and the one used in this paper, is a model-based approach in which particulars about the object are given and this drives the analysis. The computer program described here, the WALKER model, maps images into a description in which a person is represented by the series of hierarchical levels, i.e. a person has an arm which has a lower-arm which has a hand. The performance of the program is illustrated by superimposing the machine-generated picture over the original photographic images.}
-}
 @article{pose-felzen,
   author = {Felzenszwalb, Pedro F. and Huttenlocher, Daniel P.},
   title = {Pictorial Structures for Object Recognition},
@@ -1536,6 +1593,239 @@
 	Number = {CNS-TR-2010-001},
 	Title = {{Caltech-UCSD Birds 200}},
 	Year = {2010}
+}
+
+@inproceedings{pose-embedding,
+ author = {Taylor, Graham W and Fergus, Rob and Williams, George and Spiro, Ian and Bregler, Christoph},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {J. Lafferty and C. Williams and J. Shawe-Taylor and R. Zemel and A. Culotta},
+ pages = {},
+ publisher = {Curran Associates, Inc.},
+ title = {Pose-Sensitive Embedding by Nonlinear NCA Regression},
+ url = {https://proceedings.neurips.cc/paper/2010/file/d56b9fc4b0f1be8871f5e1c40c0067e7-Paper.pdf},
+ volume = {23},
+ year = {2010}
+}
+
+@inproceedings{pose-face-earlycnn,
+author = {Sun, Yi and Wang, Xiaogang and Tang, Xiaoou},
+title = {Deep Convolutional Network Cascade for Facial Point Detection},
+year = {2013},
+isbn = {9780769549897},
+publisher = {IEEE Computer Society},
+address = {USA},
+url = {https://doi.org/10.1109/CVPR.2013.446},
+doi = {10.1109/CVPR.2013.446},
+abstract = {We propose a new approach for estimation of the positions of facial key points with three-level carefully designed convolutional networks. At each level, the outputs of multiple networks are fused for robust and accurate estimation. Thanks to the deep structures of convolutional networks, global high-level features are extracted over the whole face region at the initialization stage, which help to locate high accuracy key points. There are two folds of advantage for this. First, the texture context information over the entire face is utilized to locate each key point. Second, since the networks are trained to predict all the key points simultaneously, the geometric constraints among key points are implicitly encoded. The method therefore can avoid local minimum caused by ambiguity and data corruption in difficult image samples due to occlusions, large pose variations, and extreme lightings. The networks at the following two levels are trained to locally refine initial predictions and their inputs are limited to small regions around the initial predictions. Several network structures critical for accurate and robust facial point detection are investigated. Extensive experiments show that our approach outperforms state-of-the-art methods in both detection accuracy and reliability.},
+booktitle = {Proceedings of the 2013 IEEE Conference on Computer Vision and Pattern Recognition},
+pages = {3476–3483},
+numpages = {8},
+keywords = {Convolutional Network, Facial Point Detection},
+series = {CVPR '13}
+}
+
+@InProceedings{Pfister15,
+  author       = "Pfister, T. and Charles, J. and Zisserman, A.",
+  title        = "Flowing ConvNets for Human Pose Estimation in Videos",
+  booktitle    = "International Conference on Computer Vision",
+  year         = "2015",
+}
+
+@InProceedings{Pfister14a,
+  author       = "Pfister, T. and Simonyan, K. and Charles, J. and Zisserman, A.",
+  title        = "Deep Convolutional Neural Networks for Efficient Pose Estimation in Gesture Videos",
+  booktitle    = "Asian Conference on Computer Vision",
+  year         = "2014",
+}
+
+@InProceedings{Charles16,
+  author       = "Charles, J. and Pfister, T. and Magee, D. and Hogg, D. Zisserman, A.",
+  title        = "Personalizing Human Video Pose Estimation",
+  booktitle    = "Conference on Computer Vision and Pattern Recognition",	
+  year         = "2016",
+}
+
+@inproceedings{joint-training,
+author = {Tompson, Jonathan and Jain, Arjun and LeCun, Yann and Bregler, Christoph},
+title = {Joint Training of a Convolutional Network and a Graphical Model for Human Pose Estimation},
+year = {2014},
+publisher = {MIT Press},
+address = {Cambridge, MA, USA},
+abstract = {This paper proposes a new hybrid architecture that consists of a deep Convolu-tional Network and a Markov Random Field. We show how this architecture is successfully applied to the challenging problem of articulated human pose estimation in monocular images. The architecture can exploit structural domain constraints such as geometric relationships between body joint locations. We show that joint training of these two model paradigms improves performance and allows us to significantly outperform existing state-of-the-art techniques.},
+booktitle = {Proceedings of the 27th International Conference on Neural Information Processing Systems - Volume 1},
+pages = {1799–1807},
+numpages = {9},
+location = {Montreal, Canada},
+series = {NIPS'14}
+}
+
+@inproceedings{viewpoints-keypoints,
+  author={S. {Tulsiani} and J. {Malik}},
+  booktitle={2015 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
+  title={Viewpoints and keypoints}, 
+  year={2015},
+  volume={},
+  number={},
+  pages={1510-1519},
+  doi={10.1109/CVPR.2015.7298758}
+}
+
+@inproceedings{wei2016cpm,
+    author = {Shih-En Wei and Varun Ramakrishna and Takeo Kanade and Yaser Sheikh},
+    booktitle = {CVPR},
+    title = {Convolutional pose machines},
+    year = {2016}
+}
+
+@InProceedings{Xiao_2018_ECCV,
+author = {Xiao, Bin and Wu, Haiping and Wei, Yichen},
+title = {Simple Baselines for Human Pose Estimation and Tracking},
+booktitle = eccv,
+month = {September},
+year = {2018}
+}
+
+@article{2dpose-survey-1,
+  title = {Vision-based human motion analysis: An overview},
+  journal = {Computer Vision and Image Understanding},
+  volume = {108},
+  number = {1},
+  pages = {4-18},
+  year = {2007},
+  note = {Special Issue on Vision for Human-Computer Interaction},
+  issn = {1077-3142},
+  doi = {https://doi.org/10.1016/j.cviu.2006.10.016},
+  url = {https://www.sciencedirect.com/science/article/pii/S1077314206002293},
+  author = {Ronald Poppe},
+  keywords = {Human motion analysis, Pose estimation, Computer vision},
+  abstract = {Markerless vision-based human motion analysis has the potential to provide an inexpensive, non-obtrusive solution for the estimation of body poses. The significant research effort in this domain has been motivated by the fact that many application areas, including surveillance, Human–Computer Interaction and automatic annotation, will benefit from a robust solution. In this paper, we discuss the characteristics of human motion analysis. We divide the analysis into a modeling and an estimation phase. Modeling is the construction of the likelihood function, estimation is concerned with finding the most likely pose given the likelihood surface. We discuss model-free approaches separately. This taxonomy allows us to highlight trends in the domain and to point out limitations of the current state of the art.}
+}
+
+@article{2dpose-survey-2,
+  author={Q. {Dang} and J. {Yin} and B. {Wang} and W. {Zheng}},
+  journal={Tsinghua Science and Technology}, 
+  title={Deep learning based 2D human pose estimation: A survey}, 
+  year={2019},
+  volume={24},
+  number={6},
+  pages={663-676},
+  doi={10.26599/TST.2018.9010100}
+}
+
+@article {leap-animal-pose,
+	author = {Pereira, T. and Aldarondo, D. and Willmore, L. and Kislin, M. and Wang, S.S. and Murthy, M. and Shaevitz, J. W.},
+	title = {Fast animal pose estimation using deep neural networks},
+	elocation-id = {331181},
+	year = {2018},
+	doi = {10.1101/331181},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {Recent work quantifying postural dynamics has attempted to define the repertoire of behaviors performed by an animal. However, a major drawback to these techniques has been their reliance on dimensionality reduction of images which destroys information about which parts of the body are used in each behavior. To address this issue, we introduce a deep learning-based method for pose estimation, LEAP (LEAP Estimates Animal Pose). LEAP automatically predicts the positions of animal body parts using a deep convolutional neural network with as little as 10 frames of labeled data for training. This framework consists of a graphical interface for interactive labeling of body parts and software for training the network and fast prediction on new data (1 hr to train, 185 Hz predictions). We validate LEAP using videos of freely behaving fruit flies (Drosophila melanogaster) and track 32 distinct points on the body to fully describe the pose of the head, body, wings, and legs with an error rate of \&lt;3\% of the animal{\textquoteright}s body length. We recapitulate a number of reported findings on insect gait dynamics and show LEAP{\textquoteright}s applicability as the first step in unsupervised behavioral classification. Finally, we extend the method to more challenging imaging situations (pairs of flies moving on a mesh-like background) and movies from freely moving mice (Mus musculus) where we track the full conformation of the head, body, and limbs.},
+	URL = {https://www.biorxiv.org/content/early/2018/05/25/331181},
+	eprint = {https://www.biorxiv.org/content/early/2018/05/25/331181.full.pdf},
+	journal = {bioRxiv}
+}
+
+@article{graving2019deepposekit,
+  title={DeepPoseKit, a software toolkit for fast and robust animal pose estimation using deep learning},
+  author={Graving, Jacob M and Chae, Daniel and Naik, Hemal and Li, Liang and Koger, Benjamin and Costelloe, Blair R and Couzin, Iain D},
+  journal={eLife},
+  volume={8},
+  pages={e47994},
+  year={2019},
+  publisher={eLife Sciences Publications Limited},
+  url={https://doi.org/10.7554/eLife.47994},
+}
+
+@inproceedings{densenet,
+  author={G. {Huang} and Z. {Liu} and L. {Van Der Maaten} and K. Q. {Weinberger}},
+  booktitle={2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
+  title={Densely Connected Convolutional Networks}, 
+  year={2017},
+  volume={},
+  number={},
+  pages={2261-2269},
+  doi={10.1109/CVPR.2017.243}}
+
+@INPROCEEDINGS{mobilenetv2,
+  author={M. {Sandler} and A. {Howard} and M. {Zhu} and A. {Zhmoginov} and L. {Chen}},
+  booktitle={2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition}, 
+  title={MobileNetV2: Inverted Residuals and Linear Bottlenecks}, 
+  year={2018},
+  volume={},
+  number={},
+  pages={4510-4520},
+  doi={10.1109/CVPR.2018.00474}}
+
+@InProceedings{DenseposeEvo20,
+  title={Transferring Dense Pose to Proximal Animal Classes},
+  author={Artsiom Sanakoyeu and Vasil Khalidov and Maureen S. McCarthy
+          and Andrea Vedaldi and Natalia Neverova},
+  booktitle={CVPR},
+  year={2020},
+}
+
+@inproceedings{thewlis-unsup-sphere,
+ author = {Thewlis, James and Bilen, Hakan and Vedaldi, Andrea},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {I. Guyon and U. V. Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},
+ pages = {},
+ publisher = {Curran Associates, Inc.},
+ title = {Unsupervised learning of object frames by dense equivariant image labelling},
+ url = {https://proceedings.neurips.cc/paper/2017/file/cbcb58ac2e496207586df2854b17995f-Paper.pdf},
+ volume = {30},
+ year = {2017}
+}
+
+@inproceedings{kanazawa2016warpnet,
+  title={Warpnet: Weakly supervised matching for single-view reconstruction},
+  author={Kanazawa, Angjoo and Jacobs, David W and Chandraker, Manmohan},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  pages={3253--3261},
+  year={2016}
+}
+
+@article{siftflow,
+  added-at = {2018-11-14T00:00:00.000+0100},
+  author = {Liu, Ce and Yuen, Jenny and Torralba, Antonio},
+  biburl = {https://www.bibsonomy.org/bibtex/28c58580daa657ed11da2c37b9b4c3969/dblp},
+  ee = {https://www.wikidata.org/entity/Q46713520},
+  interhash = {2b0da35b9daf9d24d02ea6199e259d6d},
+  intrahash = {8c58580daa657ed11da2c37b9b4c3969},
+  journal = pami,
+  keywords = {dblp},
+  number = 5,
+  pages = {978-994},
+  timestamp = {2018-11-15T15:01:23.000+0100},
+  title = {SIFT Flow: Dense Correspondence across Scenes and Its Applications.},
+  url = {http://dblp.uni-trier.de/db/journals/pami/pami33.html#LiuYT11},
+  volume = 33,
+  year = 2011
+}
+
+@inproceedings{unsup-articulated-objects,
+  title     = "Unsupervised Learning of Object Landmarks through Conditional Image Generation", 
+  author    = "Tomas Jakab and Ankush Gupta and Hakan Bilen and Andrea Vedaldi",  
+  year      = "2018",  
+  language  = "English",  
+  pages     = "1--12",  
+  booktitle = nips,  
+  note      = "Thirty-second Conference on Neural Information Processing Systems, NIPS 2018 ; Conference date: 03-12-2018 Through 08-12-2018",  
+  url       = "https://nips.cc/", }
+
+@InProceedings{flowweb-efros,
+author = {Zhou, Tinghui and Jae Lee, Yong and Yu, Stella X. and Efros, Alyosha A.},
+title = {FlowWeb: Joint Image Set Alignment by Weaving Consistent, Pixel-Wise Correspondences},
+booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2015}
+}
+
+@article{Bristow2015DenseSC,
+  title={Dense Semantic Correspondence Where Every Pixel is a Classifier},
+  author={H. Bristow and Jack Valmadre and S. Lucey},
+  journal={2015 IEEE International Conference on Computer Vision (ICCV)},
+  year={2015},
+  pages={4024-4031}
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}
