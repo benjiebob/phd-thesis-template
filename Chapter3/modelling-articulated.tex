@@ -164,7 +164,7 @@ This distance function can be incorporated into an energy-based optimizer as a r
 
 Once aligned, a $d$-dimensional \emph{shape space} can then be defined (with $d << n$), where each $w \in \R^{d}$ gives rise to a vertex configuration in $\mathbb{R^3}$ (with unchanged triangulation). In this way, every plausible 3D example has a parameter vector $w \in \mathbb{R^d}$ that generates it. This construction can then be interpreted as a \emph{generative} model. However, very few selections of $w \in \mathbb{R^d}$ will generate a plausible-looking 3D mesh. This can then be interpreted probabilistically, by defining a density function $f(w)$ that defines the likelihood that a realistic 3D example would be represented by $w$ in shape space. 
 
-\subsection{Modelling faces}
+\subsection{Modelling shapes (e.g. faces)}
 
 The concepts raised above were first introduced in the seminal work of Blanz and Vetter~\cite{blanz-vetter}. They define a linear generator function based on principle component analysis (PCA) in order to map $d$-dimensional parameter vectors to the set of $n$ vertex coordinates. In particular they use the mapping:
 
@@ -200,38 +200,164 @@ A standard challenge in face modelling is towards reconstructing appearance, typ
 % Second, the interpretability of the representations would benefit from being improved. PCA is the most commonly used method to perform statistics on 3D faces, and as it is an unsupervised method, the principal components do not coincide with attributes that humans would use to describe a face
 
 
-\subsection{Modelling hands}
+\subsection{Modelling articulation (e.g. hands)}
 
 
 % Perhaps the biggest difference with hand modelling are the complex modes of articulation among subjects. 
 
 
-Data-driven statistical models have also influenced work in hand tracking. Compared to faces, hands have a simpler space of shape variation (typically restricted to palm size, finger lengths etc.) but the modes of articulation are extremely complex. In the class of 3DMMs, hand models arguably have the strongest synergy to their biological counterparts; in many cases each of the 27 hand bones (occasionally except the capal bones which join the fingers to the wrists) are explicitly represented in the model skeleton.
+3D morphable models have also influenced work in 3D hand tracking and modelling. Human hands servce multiple purposes in everyday life, serving a mechanism to handle tools/objects, expressing emotion and aiding (or even as the primary tool for) communication. As a result, hands (and particularly fingers) exhibit complex articulation patterns which are best characterized as 3D \emph{rotations}. Compared to the previous section, in which face shape variation could be represented as as an abstract linear basis learnt from scans, an advantage to modelling hands is the modes of articulation can be defined in advance. 
+
+In particular, human hand motion is controlled by a hierarchical bone structure referred to as a \emph{skeleton}. The point at which two bones meet is referred to as a \emph{joint} and can be used to define acceptable centers of articulation. The direction and magnitude of the articulation can then be neatly expressed as a 3D rotation.
+
+This formulation helps provide insight into why the abstract linear basis (shape space) introduced in the previous section would be poor choice for modelling hands. Deformation is here characterized in terms of 3D rotations, and 3D rotations are non-linear with respect to the input angle. This is easily shown: 
+
+\subsubsection{Primer on 3D rotations}
+
+The simplest kind of 3D rotation is an \emph{elementary rotation} and involves a rotation around a single axis of a coordinate system. For example, the following matrix represents a rotation by an angle $\gamma$ around the $x$ axis:
+
+\begin{equation}
+    R_{x}(\gamma) = \begin{bmatrix}
+        1 & 0 & 0 \\
+        0 & \cos(\gamma) & -\sin(\gamma) \\
+        0 & \sin(\gamma) & \cos(\gamma)
+    \end{bmatrix}
+\end{equation}
+
+One can then apply this matrix to an input point $p \in \R^{3}$ to compute the new position $p'$ after rotating $\gamma$ around the $x$ axis:
+
+\begin{equation}
+    p' = R_{x}(\theta)p
+\end{equation}
+
+This formulation can then be extended to represent any 3D rotation as the composition of elementary rotations. For example, a 3D rotation can be decomposed into a $\gamma$ rotation around the $x$-axis (pitch), followed by a $\beta$ rotation around the $y$-axis (yaw) and finally by an $\alpha$ rotation around the $z$-axis (roll). 
+
+\begin{equation}  
+    R = R_{z}(\alpha) R_{y}(\beta) R_{x}(\gamma)
+\end{equation}
+
+One can see immediately that affecting a 3D rotation (i.e. computing the new position of the points) is a non-linear function of the input angle. It is necessary, therefore to describe an alternative technique for low-dimensional and efficient mesh deformation, which relies on \emph{rigging} and \emph{linear blend skinning}. 
+
+
+
+
+
+
+% Compared to facesCompared to faces, hands have a simpler space of shape variation (typically restricted to palm size, finger lengths etc.) but the modes of articulation are extremely complex. In the class of 3DMMs, hand models arguably have the strongest synergy to their biological counterparts; in many cases each of the 27 hand bones (occasionally except the capal bones which join the fingers to the wrists) are explicitly represented in the model skeleton.
+
+\subsubsection{Skeletal Rigging and Linear Blend Skinning}
+
+In cases that the articulated object is known in advance, it is common to augment a representative 3D mesh model with an internal skeleton that approximates the biological counterpart. This is achieved through a process known as \emph{rigging}.  
+
+% In general, the mesh skeleton approximates the real, biometric skeleton by allowing the important modes of deformation but often is a rough approximation of the real, biometric skeleton be detailed enough to allow the primary modes of deformation, but often it is not necessary that the 3D mesh skeletthat the articulated object is known In cases that the mesh shape is known in advance, it is common to follow a process known as \textit{rigging}, in which the mesh is augmented with a hierarchical bone structure. The point at which two bones meet is called a \emph{joint}, and these can be used to define acceptable centres of rotation for mesh deformation. It is possible to describe a distribution of joint configurations, which could be used to constrain the mesh to (in the case of human / animal subjects) anatomically achievable poses. It is also simple to define conceptual `body parts' from a rigged mesh, by considering regions between pairs of joints; for example a lower leg region can be defined between a knee and ankle joint. A simple example of a rigged 2D mesh with joints indicated by green diamonds is shown in Figure~\ref{fig:finger_model}. Note how the mesh surface deforms naturally as the joints are displaced.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}{0.48\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{finger/finger1}
+%         \caption{Default joint positions.}
+%     \end{subfigure}
+%     \begin{subfigure}{0.48\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{finger/finger2}
+%         \caption{Right-most joint displaced.}
+%     \end{subfigure}
+%     \begin{subfigure}{0.48\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{finger/finger3}
+%         \caption{Central joint displaced and right-most joint displaced and rotated.}
+%     \end{subfigure}%
+%     \caption{Web application demonstrating LBS on a 2D finger mesh. Joints are denoted as green diamonds.}
+%     \label{fig:finger_model}
+% \end{figure}
+
+Formally, a skinned mesh consists of a set of rigged vertices $V \subseteq \mathbb{R}^3 \times \mathbb{R}^{|J|}$, a set of faces $F \subseteq V^3$ and joints $J \subseteq R^{3\times3}$. Each vertex $v = (x, s) \in V$ consists of positional coordinate $x \in \mathbb{R}^{3}$ and a weight vector $s \in \mathbb{R}^{|J|}$ which describes the level of influence each joint $j \in J$ has over its movement. Many approaches exist for assigning weights, but perhaps the simplest is to build a vector with entries corresponding to the distance from the vertex to each joint centre. Skinning weight vectors are normalized such that their entries sum to one, and for computational reasons, the number of non-zero elements is typically limited to 2 or 4. The weakness of such models is that artifacts and other unrealistic deformations can occur around the model joints, particularly for meshes that model non-linear structures such as humans. However, the technique is frequently used in computer graphics and game design when a character's shape is known ahead of time.
+
+% To assist in explanation, Figure \ref{fig:rigged_cylinder} shows skinning weight influences from three joints within a rigged cylinder mesh. Here, $|J| = 3$ and each vertex $v_{i} = (x_{i}, s_{i}) \in V$ has a skinning weight vector $s_{i} \in \mathbb{R}^{3}$. Each model joint is assigned a distinct RGB value, shown separately in (a), (b) and (c), and together in (d) by linearly combining the colours. This linear blend colorization scheme will be frequently used in later sections of this report.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}{0.25\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{wonky_pole/lower_bone}
+%         \caption{Lower joint.}
+%     \end{subfigure}%
+%     \begin{subfigure}{0.25\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{wonky_pole/middle_bone}
+%         \caption{Middle joint.}
+%     \end{subfigure}%
+%     \begin{subfigure}{0.25\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{wonky_pole/upper_bone}
+%         \caption{Upper joint.}
+%     \end{subfigure}%
+%     \begin{subfigure}{0.25\linewidth}
+%     \centering
+%         \includegraphics[width=1\linewidth]{wonky_pole/linear_blend}
+%         \caption{Linear blend.}
+%     \end{subfigure}%
+%     \caption{A rigged cylinder with $|J| = 3$ and where each vertex $v_{i} = (x_{i}, s_{i}) \in V$ has a skinning weight vector $s_{i} \in \mathbb{R}^{3}$.}
+%     \label{fig:rigged_cylinder}
+% \end{figure}
+
+% Figure \ref{fig:rigged_quadruped} shows a more complex rigged quadruped mesh with $|J| = 25$ with skinning weight influences again shown by the linear blend colorization scheme. Again, each joint is assigned a unique RGB value and a vertex's colour is calculated by linearly combining joint colours with skinning weight vectors given by the $\{s_{i}\}$. A triangle's colour is then generated by averaging the colours given for the three surrounding vertices.
+
+% \begin{figure}[H] % Example image
+%     \center{\includegraphics[width=0.5\linewidth]{linear_blend_bold_bones}}
+%     \caption{A rigged quadruped with $|J| = 25$ and where each vertex $v_{i} = (x_{i}, s_{i}) \in V$ has a skinning weight vector $s_{i} \in \mathbb{R}^{3}$. Visualization uses the linear blend colorization scheme in which each joint is assigned a unique RGB value.}
+%     \label{fig:rigged_quadruped}
+% \end{figure}
+
+Once a mesh has been suitably rigged, Linear Blend Skinning (LBS) can be used to apply the mesh deformation. Typically, a user assigns a transformation (e.g. rotation and translation) to each `joint' and LBS computes the an updated position of vertex $v = (x, s)$ where $x$ is the original location and $s = \{s_j\}$ are the skinning weight influence of joints $j$. The matrix $U_{j}$ (occasionally referred to as a the \emph{reference pose}) is the mapping from the bone's "default" coordinate system to world coordinates. As a result, it need only be computed (and inverted) once since it is invariant to changing joint angles. In general, a user will supply the matrices $D_{j}$ to define the mapping from the bone's deformed coordinate system to world coordinates.
+
+The updated position of an input point $x$ can then be calculated by LBS:
+
+\begin{equation}
+    LBS(D, x; U, s) = \sum_{j}s_{j}D_{j}U_{j}^{-1}x
+\end{equation}
+
+% TODO: Explain LBS for kinematic trees
+Note this formulation is made slightly more complicated in the case of kinematic trees, since the 
+
+Similarly to the approach mentioned above, this formulation can again be seen as a generative 3D model. In particular, an output vertex positions $v'$ can be computed from a vector of 3D joint rotations $\theta$ and input vertex position $v$ as follows:
+
+\begin{equation}
+    v' = LBS(R(\theta), v)
+\end{equation}
+
+\subsubsection{3D Deformable Hand Modeling}
+
+With the above formulation, it is now possible to give an overview of recent hand tracking literature. In many cases, 3D morphable hands models are built to reflect the 27 biological hand bones (occasionally except the capal bones which join the fingers to the wrists). Of course, while the major source of hand deformation is due to 3D pose, some sources of variation are present due to hand size and finger propotions.
+
+Allen et al~\cite{xxx} handle this variation adapting a 3D surface with displacement maps with various constraints designed to avoid self-intersections before adopting the linear blend skinning formulation defined above. Rhee et al~\cite{xxx} learn a shape deformation space (with a similar technique to that of faces) and user-specific skinning weights for LBS. Albrecht undergo a laborious process to create extremely detailed hand models through laser scanninng plaster casts~\cite{xxx}. A significant advance was presented by Taylor et al~\cite{xxx}. who presented a method to learn a personalized hand model (although not a shape basis) given an input video sequence (with depth) taken of a user slowly articulating their fingers. Ballan et al.~\cite{xxx} follow a similar process by making use of multi-view input. 
+
 
 % TODO: Allen et al. B. Allen, B. Curless, and Z. Popovic. Articulated body de-formation from range scan data. In ACM Transactions on Graphics (TOG). ACM, 2002. 2
 
-Represent the model as an adaptation of a standard subdivision surface model with linear blend skinning. Cruicially their adaptations are displacement maps on top of a base surface. The displacements must be limited in magnitude to avoid self-intersections and their shape basis is forced to coincide with the input scans.
+% Represent the model as an adaptation of a standard subdivision surface model with linear blend skinning. Cruicially their adaptations are displacement maps on top of a base surface. The displacements must be limited in magnitude to avoid self-intersections and their shape basis is forced to coincide with the input scans.
 
-% TODO: Rhee et al. T. Rhee, U. Neumann, and J. P. Lewis. Human hand modeling from surface anatomy. In Proceedings of the 2006 symposium on Interactive 3D graphics and games, pages 27–34. ACM, 2006. 2
+% % TODO: Rhee et al. T. Rhee, U. Neumann, and J. P. Lewis. Human hand modeling from surface anatomy. In Proceedings of the 2006 symposium on Interactive 3D graphics and games, pages 27–34. ACM, 2006. 2
 
-Early work included the work of Rhee et al.~\cite{xxx} who learn a 3D shape deformation space from hands by fitting 3D model with user-specific skinning. 
+% Early work included the work of Rhee et al.~\cite{xxx} who learn a 3D shape deformation space from hands by fitting 3D model with user-specific skinning. 
 
-% TODO: Albrecht et al. I. Albrecht, J. Haber, and H.-P. Seidel. Construction and animation of anatomically based human hand models. In Proc. Eurographics, 2003. 2
+% % TODO: Albrecht et al. I. Albrecht, J. Haber, and H.-P. Seidel. Construction and animation of anatomically based human hand models. In Proc. Eurographics, 2003. 2
 
-Albrecht et al. go to the other extreme creating very detailed, physically-realistic hand models. However, the process is laborious requiring plaster casting of human hands, performing laser scans, and manually creating a physics-enabled hand model.
+% Albrecht et al. go to the other extreme creating very detailed, physically-realistic hand models. However, the process is laborious requiring plaster casting of human hands, performing laser scans, and manually creating a physics-enabled hand model.
 
-% TODO: Taylor et al. J. Taylor, R. Stebbing, V. Ramakrishna, C. Keskin, J. Shotton, S. Izadi, A. Hertzmann, and A. Fitzgibbon. User-specific hand modeling from monocular depth sequences. In Proc.CVPR, 2014. 1, 2, 4, 5, 7
+% % TODO: Taylor et al. J. Taylor, R. Stebbing, V. Ramakrishna, C. Keskin, J. Shotton, S. Izadi, A. Hertzmann, and A. Fitzgibbon. User-specific hand modeling from monocular depth sequences. In Proc.CVPR, 2014. 1, 2, 4, 5, 7
 
-A more automatic technique is presented by Taylor et al., which generates personalized hand models given noisy input depth sequences where the user’s hand rotates 180 degrees whilst articulating fingers. A continuous optimization that jointly solves for correspondences and model parameters across a smooth subdivision surface with as rigid as possible (ARAP) regularization leads to high-quality userspecific rigged hand models, though not a shape basis. Whilst the process is automatic, the hands are required to cover the full range of articulations, and longer sequences are required, leading to more complex capture requirements and more costly optimization.
+% A more automatic technique is presented by Taylor et al., which generates personalized hand models given noisy input depth sequences where the user’s hand rotates 180 degrees whilst articulating fingers. A continuous optimization that jointly solves for correspondences and model parameters across a smooth subdivision surface with as rigid as possible (ARAP) regularization leads to high-quality userspecific rigged hand models, though not a shape basis. Whilst the process is automatic, the hands are required to cover the full range of articulations, and longer sequences are required, leading to more complex capture requirements and more costly optimization.
 
-% TODO: Ballan et al. L. Ballan, A. Taneja, J. Gall, L. V. Gool, and M. Pollefeys. Motion capture of hands in action using discriminative salient points. In Proc. ECCV, 2012. 1, 2
+% % TODO: Ballan et al. L. Ballan, A. Taneja, J. Gall, L. V. Gool, and M. Pollefeys. Motion capture of hands in action using discriminative salient points. In Proc. ECCV, 2012. 1, 2
 
-Ballan et al. construct a personalized hand
-mesh using a multiview camera rig and Poisson surface reconstruction, which is then manually skinned. They demonstrate high-quality results with complex two-handed and
-hand-object interactions, closely fitting the detailed mesh
-model to the data. However, this system focuses on pose
-estimation as opposed to the shape construction, which is
-performed in an time consuming manual manner.
+% Ballan et al. construct a personalized hand
+% mesh using a multiview camera rig and Poisson surface reconstruction, which is then manually skinned. They demonstrate high-quality results with complex two-handed and
+% hand-object interactions, closely fitting the detailed mesh
+% model to the data. However, this system focuses on pose
+% estimation as opposed to the shape construction, which is
+% performed in an time consuming manual manner.
 
 % TODO: Khamis et al. Learning an efficient model of hand shape variation from depth images
 
@@ -241,21 +367,20 @@ performed in an time consuming manual manner.
 
 % TODO: Taylor et al. Efficient and Precise Interactive Hand Tracking Through Joint, Continuous Optimization of Pose and Correspondences
 
-
-
 \subsection{Modelling the human body surface}
 
 % hasler et al. 2010
 
-However, of most relevance to this thesis are modelling efforts designed to represent the entire human body surface. Unlike face modface models, which must deal with models which represent the body surface must handle challenges present in thetwo representing the entire human body Early approaches 
+However, of all human categories, the works of most relevance to this thesis are those which represent the entire human body surface. It is first important to characterize these two deformation modes which must be overcome with modelling algorithms. Firstly, there is considerable variation in the \emph{shape} characteristics between different human subjects. Humans not only vary in their heights and weights, but also in their body part proportions, muscle density, fat etc. Secondly, humans exhibit significant \emph{pose} variation, characterized by the range of motion of body parts (e.g. arms and legs). In general, pose is likely to change for a individual subject over a sequence. 
 
-The earliest deformable 3D models of the human body was prseented by Allen at al~\cite{xxx} (although ~\cite{xxx} came soon after with similar ideas). Allen et al. learnt a PCA shape space model from 250 registered body scans cound in the CAESAR dataset. The model was articulated through a set of pose parameters, which use linear blend skinning to interpolate rotation matrices assigned to the joint to transform model veertices. Unfortunately, this approach suffers from artefacts around joint locations, due to a loss of volume. For this reason, it is important to note that pose and shape are not entirely independent; in fact, body shape does indeed change due to pose variation. Imagine for example, how a fatty stomach region would deform during a walking sequence. SCAPE~\cite{anguelov05scape} improved over this by introducing a model equipped with both body shape variation and pose-dependent shape changes, expressed in terms of triangle deformations (rather than vertex displacements, see~\cite{loper15smpl} for a comprehensive overview). An important advance was made by Hasler et al.~\cite{xxx}, who learn two linear blend rigs: one for pose and one for body shape. In this model, shape change was controlled through the introduction of abstract bones that further deform the vertices.
+The earliest deformable 3D models of the human body was presented by Allen at al~\cite{xxx} (although ~\cite{xxx} came soon after with similar ideas). Allen et al. learnt a PCA shape space model from 250 registered body scans cound in the CAESAR dataset. The model was articulated through a set of pose parameters, which use linear blend skinning to interpolate rotation matrices assigned to the joint to transform model veertices. Unfortunately, this approach suffers from artefacts around joint locations, due to a loss of volume. For this reason, it is important to note that pose and shape are not entirely independent; in fact, body shape does indeed change due to pose variation. Imagine for example, how a fatty stomach region would deform during a walking sequence. SCAPE~\cite{anguelov05scape} improved over this by introducing a model equipped with both body shape variation and pose-dependent shape changes, expressed in terms of triangle deformations (rather than vertex displacements, see~\cite{loper15smpl} for a comprehensive overview). An important advance was made by Hasler et al.~\cite{xxx}, who learn two linear blend rigs: one for pose and one for body shape. In this model, shape change was controlled through the introduction of abstract bones that further deform the vertices.
 
-Perhaps the most significant advance however, was the introduction of the Skinned Multi-Person Linear (SMPL) model of Loper et al.~\cite{loper15smpl}. SMPL follows a similar design philosophy to SCAPE by decomposing shape into identity-dependent and pose-dependent components. However, unlike scape, SMPL adopts a vertex-based skinning approach based on corrective blend shapes. The model's shape space is first taught how human beings deform through pose changes using 1786 high-resolution 3D scans of different subjects in a wide variety of poses. Following alignment to a template mesh, a linear model for each biological gender is created from the CAESAR dataset \cite{robinette2002civilian} using principal component analysis (PCA). 
+Perhaps the most significant advance however, was the introduction of the Skinned Multi-Person Linear (SMPL) model of Loper et al.~\cite{loper15smpl}. SMPL follows a similar design philosophy to SCAPE by decomposing shape into identity-dependent and pose-dependent components. However, unlike scape, SMPL adopts a vertex-based skinning approach based on corrective blend shapes. The model's shape space is first taught how human beings deform through pose changes using 1786 high-resolution 3D scans of different subjects in a wide variety of poses. Following alignment to a template mesh, a linear model for each biological gender is created from the CAESAR dataset \cite{robinette2002civilian} using principal component analysis (PCA). Further details on SMPL have been left to Chapter 5 of this thesis,which makes use of the model to examine uncertainty when deriving 3D reconstructions of ambiguous input imagery.
 
 % Another key ambition for the SMPL model was the motivatio to create a realistic data-driven human body model which can be rendered in real-time using standard engines, such as Unity~\cite{unity2017} or Blender~\cite{blender2017}. Having been designed for animation, SMPLs base template has a number of useful qualities for this work; the underlying mesh is a clean structure and comprises relatively few polygons. A novelty of this model is that it encodes explicit and meaningful body joint positions. Some sample SMPL meshes are shown in Figure \ref{fig:smpl_model}.
 
-Very recently, 
+% TODO: GHUML & GHUM model
+More recently, SMPL has been combined with face and hand models to add expressive capabilities~\cite{xiang19monocular, joo18total, pavlakos19expressive}. CAPE~\cite{CAPE:CVPR:20} also shows how to add a clothing parameter to effectively model humans in clothing, a challenge solved by learning a shape prior over freeform vertex deformations Techniques have also been developed to model human clothing -- a common challenge generally handled by allowing SMPL model vertices to vary independently to the provided blend shapes. SMPL has also been recently improved with STAR~\cite{STAR:2020} which constructs a part-based shape space (closely related to the local PCA space discussed in the earlier shape section of this literature review). They show this new parameterization is much more efficient (uses approximately 20\% of the model parameters of SMPL) and avoids capturing spurious long-range correlations present in the training dataset. They also show a method for learning shape-dependent pose-corrective blendshapes, that better model how individuals with different body shapes deform with motion. Tangential work of Xu et al.~\cite{ghum-ghuml} train an end-to-end network and learn 3D human body model parameters (including faces and hands) for an input artist model using variational auto-encoders and normalizing flows. This work will be further explored Chapter 5 in which these generative models will be fully examined. 
 
 \begin{figure}[H] % Example image
     \center{\includegraphics[width=0.5\linewidth]{smpl_wbg}}
@@ -307,4 +432,4 @@ A similar technique to that used to build the SMPL model has been recently used 
     \label{fig:smal_model_poses}
 \end{figure}
 
-From the paper, SMAL is defined as a function $M(\beta, \theta, \gamma)$ parameterized by pose-invariant shape $\beta$, pose $\theta$ (including global rotation) and global translation $\gamma$. The function returns a triangulated surface comprising $6890$ vertices. SMAL contains $41$ shape parameters $\beta$ which are coefficients of a low-dimensional shape space. There are three pose parameters for each of the $32$ body joints and an additional three to express the global rotation. Global translation $\gamma$ is expressed by a further three parameters.
+From the paper, SMAL is defined as a function $M(\beta, \theta, \gamma)$ parameterized by pose-invariant shape $\beta$, pose $\theta$ (including global rotation) and global translation $\gamma$. The function returns a triangulated surface comprising $6890$ vertices. SMAL contains $41$ shape parameters $\beta$ which are coefficients of a low-dimensional shape space. There are three pose parameters for each of the $32$ body joints and an additional three to express the global rotation. Global translation $\gamma$ is expressed by a further three parameters. Chapters 3 and 4 of this thesis make use of the SMAL model in order to reconstruct various quadruped categories.
