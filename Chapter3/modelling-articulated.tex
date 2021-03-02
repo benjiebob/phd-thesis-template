@@ -148,10 +148,10 @@ This section will cover methods for modelling articulated subjects, focussing pr
 A 3D morphable model can then be constructed by deforming a template mesh $M$ on $n$-vertices to a set of 3D training examples. Generally, this optimization will have a significant degrees of freedom so it is necesssary to employ techniques for regularization. One such regularizer is known as the \emph{As Rigid as Possible} scheme: 
 
 \subsubsection{As Rigid as Possible}
-As Rigid as Possible (ARAP) surface deformation~\cite{sorkine2007rigid} is a distance function that measures similarity between two meshes with corresponding vertices. For two vertex sets~$V_{1}$ and~$V_{2}$, ARAP minimizes over~$N = |V|$ rotation matrices. Note~$j \sim i$ indicates vertex indices~$j$ adjacent to vertex index~$i$:
+As Rigid as Possible (ARAP) surface deformation~\cite{sorkine2007rigid} is a distance function that measures similarity between two meshes with corresponding vertices. For two vertex sets~$V$ and~$W$, ARAP minimizes over~$N = |V|$ rotation matrices. Note~$j \sim i$ indicates vertex indices~$j$ adjacent to vertex index~$i$:
 
 \begin{equation}
-    D(V_{1}, V_{2}) = \min_{R_{1..N}}\sum_{i=1}^{N}\sum_{j \sim i}|| (V_{1i} - V_{1j}) - R_{i}(V_{2i} - V_{2j}) ||^{2}
+    D(V, W) = \min_{R_{1..N}}\sum_{i=1}^{N}\sum_{j \sim i}|| (V_{i} - V_{j}) - R_{i}(W_{i} - W_{j}) ||^{2}
 \end{equation}
 
 This distance function can be incorporated into an energy-based optimizer as a regularization function. By considering how small vertex regions overlap, the function can be used to  discourage `unnatural movement', e.g.\ shearing effects, over mesh faces. ARAP regularizers are particularly useful in cases in which there is no prior knowledge of the mesh. Figure~\ref{fig:arap_dino} shows an example of a dinosaur mesh undergoing ARAP deformation, obtained by translating the highlighted yellow vertex.
@@ -169,20 +169,20 @@ Once aligned, a $d$-dimensional \emph{shape space} can then be defined (with $d 
 The concepts raised above were first introduced in the seminal work of Blanz and Vetter~\cite{blanz-vetter}. They define a linear generator function based on principle component analysis (PCA) in order to map $d$-dimensional parameter vectors to the set of $n$ vertex coordinates. In particular they use the mapping:
 
 \begin{equation}
-    c(w) = \hat{c} + Ew
+    g(\alpha) = \bar{c} + E\alpha
 \end{equation}
 
-where $c: \R{d} -> \R{3n}$ is the generator function, $\hat{c} \in \R{3n}$ is the mean 3D face in the training dataset and $E \in \R{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \hat{c_i}$. 
+where $g: \R{d} \mapsto \R{3n}$ is the generator function, $\bar{c} \in \R{3n}$ is the mean 3D face in the training dataset and $E \in \R{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \bar{c_i}\}$. 
 
-This construction assumes 3D faces in this $d$-dimensional parameter space follow a multivariate normal distribution (a concept explored further in this thesis Chapter 4). In addition, the function $f(w)$ which defines the likelihood shape space vector $w$ represents a plausible face, is therefore given by the Mahalanbois distance of $w$ to the origin. 
+This construction assumes 3D faces in this $d$-dimensional parameter space follow a multivariate normal distribution (a concept explored further in this thesis Chapter 4). In addition, the function $f(w)$ which defines the likelihood shape space vector $\alpha$ represents a plausible face, is therefore given by the Mahalanbois distance of $\alpha$ to the origin. 
 
 Note that this formulation additionally enables the definition of facial expressions. For example, Blanz and Vetter defined an expression (e.g. surprise) according to the difference in shape space between a expressive and neural face of the same subject. This then enabled the formulation above to be factored into identity and expression components:
 
 \begin{equation}
-    c(w_{idt}, w_{exp}) = \hat{c} + E_{idt}w_{idt} + E_{exp}w_{exp}
+    g(\alpha_{idt}, \alpha_{exp}) = \bar{c} + E_{idt}\alpha_{idt} + E_{exp}\alpha_{exp}
 \end{equation}
 
-where $E_{idt}, E_{exp}$ are the basis vectors of the identity and expression space and $w_{idt}, w_{exp}$ are the coefficients. As noted by Lewis et al.~\cite{xxx}, the basis vectors of the expression space above can be interpreted as a data-driven \emph{blendshape model}: a standard approach in the animation industry for representing facial expressions as a linear combination of target faces. This concept will later reemerge in a section discussing corrective blendshapes uses in SMPL~\cite{loper15smpl}.
+where $E_{idt}, E_{exp}$ are the basis vectors of the identity and expression space and $\alpha_{idt}, \alpha_{exp}$ are the coefficients. As noted by Lewis et al.~\cite{xxx}, the basis vectors of the expression space above can be interpreted as a data-driven \emph{blendshape model}: a standard approach in the animation industry for representing facial expressions as a linear combination of target faces. This concept will later reemerge in a section discussing corrective blendshapes uses in SMPL~\cite{loper15smpl}.
 
 %Blendshape Facial Animation
 As identified by Blanz and Vetter, improved modelling of finer details (particularly around the eye or nose regions) can be obtained through local modelling. Various authors~\cite{xxx} began manually segmentating the face into parts and learning individual PCA representations for them. Later, segmentations were automatic and learned based on displacement patterns found in the training dataset. Next, approaches were adopted based on hierarchical, multi-scale frameworks~\cite{xxx, xxx}. Possibly the closest to later sections which require a focus on \emph{pose deformation}  is the work of Wu et al~\cite{xxx}. who combine a a local shape space model with an anatomical bone structure that helps regularize deformation. 
