@@ -1,4 +1,34 @@
-\section{Model-based methods for non-rigid reconstruction}
+\section{Methods for monocular reconstruction of articulated subjects}
+
+Having now discussed methods for modelling articulated subjects, the next topic for consideration is how to incorporate such models in 3D reconstruction pipelines. In general, the methods listed take as input an image or video sequence $I_{1 \dots N}$ depicting a subject, and output a set of 3D model parameters $\alpha$ (often factored into shape $\shape$ and $\pose$). These parameters can then supplied to the model's correponding generator function $g: \alpha \mapsto \R{3}$ (e.g. $\SMPL(\shape, \pose)$ or $\SMAL(\shape, \pose)$) in order to obtain the 3D model prediction $v \in \R{3}$. 
+
+Methods which attempt to align a parametric 3D model to a single image dates back as far as 1963, in a seminal paper presented by Roberts~\cite{xxx}. In this work, viewpoint and cuboidal block parameters were predicted to fit a 2D line image. Model-based methods were also applied to understand object structure captured in 2D images, beginning with geometric primitives~\cite{xxx} to Active Shape Models, which use a training data set to learn priors over a designed deformable model. These techniques inspired the work of Blanz and Vetter~\cite{blanz-vetter} who built the first 3D morphable face model by aligning 3D scans and optimized the parameters to provide a fit to a single image. We will leave further discussion on reconstructing faces and hands to the following survey papers~\cite{xxx, xxx}, and focus instead on reconstructing the full human body and animals.
+
+It is important to note that all classes of approaches must overcome significant ambiguity. Determining joint positions is a task made challenging due to large variations in visual appearence, commonly due to clothing, body shape and camera view. As explained by Toshev and Szegedy~\cite{toshev2014deeppose}, even with perfect joint locations the subsequent lifting step is also ill-posed, as the space of consistent 3D poses for given 2D landmark locations is infinite. This is typically resolved using strong prior knowledge which usually takes the form of 3D geometric pose priors and temporal or structural constraints.
+
+\subsection{3D Pose Estimation}
+
+    The first class of techniques, known as methods for 3D pose estimation output a set of 3D keypoint locations which can be combined to form a skeleton. Since only a skeleton outline is obtained, apart from basic limb measurements, no other shape detail (e.g. surface definition, object density etc.) is obtained. However, it should be noted that this output form is often perfectly satisfactory depending on the intended application. In particular, this family of techniques have found numerous applications in controllerless gaming (e.g. Microsoft Kinect~\cite{kinectpaper}), motion capture (e.g. for digital character generation~\cite{xxx}), gait analysis (e.g. identifying lameness in cattle~\cite{xxx}) and many more. 
+
+    Early approaches in this category built human stick figures with various constrained including assumptions of fixed limb lengths{xxx}, length ratios~\cite{xxx} or that limb lengths are isometric across individuals and vary only in global scaling~\cite{xxx}. More advanced techniques built statistical models of shape variation using anthropometric tables or learnt statistical models from freely available motion capture data~\cite{barron2001estimating}. The idea then is to fit such a model to each frame of an input image or video sequence. 
+
+    A notable early work in this category is that of Shotton et al.~\cite{kinectpaper} (see~\cref{fig:kinect_skeleton}) who designed a commercially available human skeletal tracking capability, albeit one that requires a depth sensor at test time. Their technique employed a generative 3D human body model to synthesize a large training dataset of depth images with corresponding body part labels. Density estimators for each body part are then used in combination to localize body joints with a calculated confidence value. Chapter 3 of this thesis demonstrates a technique for predicting keypoints by training on synthetic silhouette data rendered from an animal deformable body model.
+
+    More recent approaches typically employ a 2-stage pipeline; they begin by localizing 2D joint positions on an input image before running a subsequent optimization step that `lifts` these to a 3D pose.  Examples of such systems include DeepPose~\cite{toshev2014deeppose}, an approach which employs a CNN to reason jointly about 2D landmark detection and 3D pose estimation from single RGB images. Pishchulin et al.~\cite{pishchulin2016deepcut} later introduced DeepCut which extends DeepPose to the multi-person case. Both systems are trained on large body joint databases. 
+
+    
+    \begin{figure}[H] % Example image
+        \center{\includegraphics[width=0.25\linewidth]{human_tracking}}
+        \caption{Kinect generating per-pixel joint proposals.}
+        \label{fig:kinect_skeleton}
+    \end{figure}
+
+    \subsection{Multi-stage approaches}
+    
+
+    \subsection{Direct approaches}
+    However, some direct techniques exist which do not require an initial 2D joint prediction. These include methods that directly regress to a 3D pose~\cite{tekin2016direct}. However, these typically rely on an annotated set of 3D joint labels, which can be difficult and costly to obtain, or being able to build a representative synthetic dataset, which is non-trivial task.
+
 
 \subsection{Toolkit}
 
@@ -193,3 +223,5 @@ Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
 It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
 Thus we claim that the achievement of reconstructing a full range of dog breeds, 
 with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
+
+

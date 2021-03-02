@@ -237,4 +237,50 @@
 \usepackage{ragged2e}
 
 \newcommand{\citetodo}[2]{[TODO: #1]}
-\newcommand{\R}{\mathbb{R}}
+% \newcommand{\R}{\mathbb{R}}
+
+\def\R#1{{\mathbb{R}^{#1}}}
+\def\RR#1#2{{\mathbb{R}^{#1 \times #2}}}
+\def\posn{\phi}
+\def\pose{\theta}
+\def\npose{P}
+\def\shape{\beta}
+\def\nshape{B}
+\def\verts{\nu}
+\def\nverts{V}
+\def\jointselect{\mathtt{K}}
+\def\njoints{J}
+\def\proj{\pi}
+\def\bvec#1{\bar{#1}}
+
+\def\lterm#1{\subsubsection{$\LL{#1}$:}}
+
+% \def\E#1{{E_{\text{#1}}}}
+\def\E#1{E_\textrm{#1}}
+
+\def\ss#1{\vspace{-0ex}\subsubsection{#1}}
+
+\def\L#1{L_{\textrm{#1}}}
+% \def\LL#1{L_{\text{#1}}}
+\def\LL#1{\L{#1}}
+
+\def\R#1{{\mathbb{R}^{#1}}}
+\def\RR#1#2{{\mathbb{R}^{#1 \times #2}}}
+
+\def\scale{\kappa}
+\def\trans{t}
+\def\betacov{{\Sigma_{\beta}}}
+\def\posecov{{\Sigma_{\pose}}}
+\def\posemean{{\mu_{\pose}}}
+\def\betamean{{\mu_{\beta}}}
+\def\nimages{N}
+\def\nshape{B}
+
+\def\f{f}
+
+\DeclareMathOperator\SMPL{SMPL}
+\DeclareMathOperator\SMAL{SMAL}
+
+\newcommand\inv[1]{\left.#1\right.^{-1}}
+\newcommand\transpose[1]{\left.#1\right.^{T}}
+\newcommand{\anote}[1]{{\color{red}[#1]}}

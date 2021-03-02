@@ -162,7 +162,7 @@ This distance function can be incorporated into an energy-based optimizer as a r
     \label{fig:arap_dino}
 \end{figure}      
 
-Once aligned, a $d$-dimensional \emph{shape space} can then be defined (with $d << n$), where each $w \in \R^{d}$ gives rise to a vertex configuration in $\mathbb{R^3}$ (with unchanged triangulation). In this way, every plausible 3D example has a parameter vector $w \in \mathbb{R^d}$ that generates it. This construction can then be interpreted as a \emph{generative} model. However, very few selections of $w \in \mathbb{R^d}$ will generate a plausible-looking 3D mesh. This can then be interpreted probabilistically, by defining a density function $f(w)$ that defines the likelihood that a realistic 3D example would be represented by $w$ in shape space. 
+Once aligned, a $d$-dimensional \emph{shape space} can then be defined (with $d << n$), where each $w \in \R{d}$ gives rise to a vertex configuration in $\R{3}$ (with unchanged triangulation). In this way, every plausible 3D example has a parameter vector $w \in \R{d}$ that generates it. This construction can then be interpreted as a \emph{generative} model. However, very few selections of $w \in \R{d}$ will generate a plausible-looking 3D mesh. This can then be interpreted probabilistically, by defining a density function $f(w)$ that defines the likelihood that a realistic 3D example would be represented by $w$ in shape space. 
 
 \subsection{Modelling shapes (e.g. faces)}
 
@@ -172,7 +172,7 @@ The concepts raised above were first introduced in the seminal work of Blanz and
     c(w) = \hat{c} + Ew
 \end{equation}
 
-where $c: \R^{d} -> \R^{3n}$ is the generator function, $\hat{c} \in \R^{3n}$ is the mean 3D face in the training dataset and $E \in \R^{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \hat{c_i}$. 
+where $c: \R{d} -> \R{3n}$ is the generator function, $\hat{c} \in \R{3n}$ is the mean 3D face in the training dataset and $E \in \R{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \hat{c_i}$. 
 
 This construction assumes 3D faces in this $d$-dimensional parameter space follow a multivariate normal distribution (a concept explored further in this thesis Chapter 4). In addition, the function $f(w)$ which defines the likelihood shape space vector $w$ represents a plausible face, is therefore given by the Mahalanbois distance of $w$ to the origin. 
 
@@ -224,7 +224,7 @@ The simplest kind of 3D rotation is an \emph{elementary rotation} and involves a
     \end{bmatrix}
 \end{equation}
 
-One can then apply this matrix to an input point $p \in \R^{3}$ to compute the new position $p'$ after rotating $\gamma$ around the $x$ axis:
+One can then apply this matrix to an input point $p \in \R{3}$ to compute the new position $p'$ after rotating $\gamma$ around the $x$ axis:
 
 \begin{equation}
     p' = R_{x}(\theta)p
@@ -237,11 +237,6 @@ This formulation can then be extended to represent any 3D rotation as the compos
 \end{equation}
 
 One can see immediately that affecting a 3D rotation (i.e. computing the new position of the points) is a non-linear function of the input angle. It is necessary, therefore to describe an alternative technique for low-dimensional and efficient mesh deformation, which relies on \emph{rigging} and \emph{linear blend skinning}. 
-
-
-
-
-
 
 % Compared to facesCompared to faces, hands have a simpler space of shape variation (typically restricted to palm size, finger lengths etc.) but the modes of articulation are extremely complex. In the class of 3DMMs, hand models arguably have the strongest synergy to their biological counterparts; in many cases each of the 27 hand bones (occasionally except the capal bones which join the fingers to the wrists) are explicitly represented in the model skeleton.
 
@@ -272,7 +267,7 @@ In cases that the articulated object is known in advance, it is common to augmen
 %     \label{fig:finger_model}
 % \end{figure}
 
-Formally, a skinned mesh consists of a set of rigged vertices $V \subseteq \mathbb{R}^3 \times \mathbb{R}^{|J|}$, a set of faces $F \subseteq V^3$ and joints $J \subseteq R^{3\times3}$. Each vertex $v = (x, s) \in V$ consists of positional coordinate $x \in \mathbb{R}^{3}$ and a weight vector $s \in \mathbb{R}^{|J|}$ which describes the level of influence each joint $j \in J$ has over its movement. Many approaches exist for assigning weights, but perhaps the simplest is to build a vector with entries corresponding to the distance from the vertex to each joint centre. Skinning weight vectors are normalized such that their entries sum to one, and for computational reasons, the number of non-zero elements is typically limited to 2 or 4. The weakness of such models is that artifacts and other unrealistic deformations can occur around the model joints, particularly for meshes that model non-linear structures such as humans. However, the technique is frequently used in computer graphics and game design when a character's shape is known ahead of time.
+Formally, a skinned mesh consists of a set of rigged vertices $V \subseteq \R{3} \times \R{|J|}$, a set of faces $F \subseteq V^3$ and joint transformation matrices $J \subseteq \RR{3}{4}$. Each vertex $v = (x, s) \in V$ consists of positional coordinate $x \in \R{3}$ and a weight vector $s \in \R{|J|}$ which describes the level of influence each joint $j \in J$ has over its movement. Many approaches exist for assigning weights, but perhaps the simplest is to build a vector with entries corresponding to the distance from the vertex to each joint centre. Skinning weight vectors are normalized such that their entries sum to one, and for computational reasons, the number of non-zero elements is typically limited to 2 or 4. The weakness of such models is that artifacts and other unrealistic deformations can occur around the model joints, particularly for meshes that model non-linear structures such as humans. However, the technique is frequently used in computer graphics and game design when a character's shape is known ahead of time.
 
 % To assist in explanation, Figure \ref{fig:rigged_cylinder} shows skinning weight influences from three joints within a rigged cylinder mesh. Here, $|J| = 3$ and each vertex $v_{i} = (x_{i}, s_{i}) \in V$ has a skinning weight vector $s_{i} \in \mathbb{R}^{3}$. Each model joint is assigned a distinct RGB value, shown separately in (a), (b) and (c), and together in (d) by linearly combining the colours. This linear blend colorization scheme will be frequently used in later sections of this report.
 
@@ -375,7 +370,13 @@ However, of all human categories, the works of most relevance to this thesis are
 
 The earliest deformable 3D models of the human body was presented by Allen at al~\cite{xxx} (although ~\cite{xxx} came soon after with similar ideas). Allen et al. learnt a PCA shape space model from 250 registered body scans cound in the CAESAR dataset. The model was articulated through a set of pose parameters, which use linear blend skinning to interpolate rotation matrices assigned to the joint to transform model veertices. Unfortunately, this approach suffers from artefacts around joint locations, due to a loss of volume. For this reason, it is important to note that pose and shape are not entirely independent; in fact, body shape does indeed change due to pose variation. Imagine for example, how a fatty stomach region would deform during a walking sequence. SCAPE~\cite{anguelov05scape} improved over this by introducing a model equipped with both body shape variation and pose-dependent shape changes, expressed in terms of triangle deformations (rather than vertex displacements, see~\cite{loper15smpl} for a comprehensive overview). An important advance was made by Hasler et al.~\cite{xxx}, who learn two linear blend rigs: one for pose and one for body shape. In this model, shape change was controlled through the introduction of abstract bones that further deform the vertices.
 
-Perhaps the most significant advance however, was the introduction of the Skinned Multi-Person Linear (SMPL) model of Loper et al.~\cite{loper15smpl}. SMPL follows a similar design philosophy to SCAPE by decomposing shape into identity-dependent and pose-dependent components. However, unlike scape, SMPL adopts a vertex-based skinning approach based on corrective blend shapes. The model's shape space is first taught how human beings deform through pose changes using 1786 high-resolution 3D scans of different subjects in a wide variety of poses. Following alignment to a template mesh, a linear model for each biological gender is created from the CAESAR dataset \cite{robinette2002civilian} using principal component analysis (PCA). Further details on SMPL have been left to Chapter 5 of this thesis,which makes use of the model to examine uncertainty when deriving 3D reconstructions of ambiguous input imagery.
+Perhaps the most significant advance however, was the introduction of the Skinned Multi-Person Linear (SMPL) model of Loper et al.~\cite{loper15smpl}. SMPL follows a similar design philosophy to SCAPE by decomposing shape into identity-dependent and pose-dependent components. However, unlike scape, SMPL adopts a vertex-based skinning approach based on corrective blend shapes. The model's shape space is first taught how human beings deform through pose changes using 1786 high-resolution 3D scans of different subjects in a wide variety of poses. Following alignment to a template mesh, a linear model for each biological gender is created from the CAESAR dataset \cite{robinette2002civilian} using principal component analysis (PCA). SMPL can then be viewed as a function, which makes use of a shape basis and linear blend skinning to map a set of pose and shape parameters to a set of vertex locations. Precisely, \emph{pose} is given as a set of 3D rotations (per-joint and global) in axis-angle form $\pose \in \R{24}{3}$. \emph{Shape} is then given as coefficients for a learned shape basis $\shape \in \R{10}$. The SMPL function can then be viewed as:
+
+\begin{equation}
+    v = \SMPL(\pose, \shape) + \trans
+\end{equation}
+
+where $v \in \RR{6890}{3}$ and $\trans \in \R{3}$ is a global translation parameter. Further details on SMPL have been left to Chapter 5 of this thesis, which makes use of the model to examine uncertainty when deriving 3D reconstructions of ambiguous input imagery.
 
 % Another key ambition for the SMPL model was the motivatio to create a realistic data-driven human body model which can be rendered in real-time using standard engines, such as Unity~\cite{unity2017} or Blender~\cite{blender2017}. Having been designed for animation, SMPLs base template has a number of useful qualities for this work; the underlying mesh is a clean structure and comprises relatively few polygons. A novelty of this model is that it encodes explicit and meaningful body joint positions. Some sample SMPL meshes are shown in Figure \ref{fig:smpl_model}.
 
@@ -389,6 +390,10 @@ More recently, SMPL has been combined with face and hand models to add expressiv
 \end{figure}
 
 \subsection{Modelling animals}
+
+There is still relevatively little work specifically focusing on the 3D scanning~\cite{xxx} and modelling of animal categories. The variation in animal shape and sizes combined with the practical challenges associated with scanning live animal subjects (particularly in attaching traditional motion capture equipment) make scanning a difficult task. As a result, there is a significant lack of real 3D animal training data available in the public domain which could otherwise have been employed to build 3D deformable models. As with humans, animals deformations can again be factored into shape (e.g. variation mostly due to identity) and pose (variation due to articulated motion). However, the enormous diversity among animal species and even between individual breeds results in a much more complex shape space.
+
+Some early work by Favreau et al~\cite{xxx} describe a method for animating an artist-designed rigged 3D model, by tracking a 2D sequence. Chen et al.~\cite{xxx} learn a shape space by registering 11 3D shark models downloaded from the Internet. Cashman et al.~\cite{xxx} learn a morphable model of dolphin shapes by adapting a representative 3D model to 2D images. Ntouskos et al.~\cite{xxx} fit geometric primitives to manually-segemented animal parts generated from an input collection. Reinert et al.~\cite{xxx} demonstrates an effective method for fitting generalized cylinders to an input video sequence supplied with sketched limb tracks. They demonstrate reconstructed results with 3D texture on a few quadruped sequences. So far, none of these techniques for animal reconstruction explicitly factor shape and pose.
 
 \subsubsection{SMAL}
 A similar technique to that used to build the SMPL model has been recently used to build a Skinned Multi-Animal Linear Model (SMAL)~\cite{zuffi2017menagerie}, a generative animal model exhibiting realistic 3D shape (see Figure \ref{fig:smal_model_shape}) and pose (see Figure \ref{fig:smal_model_poses}). Due to the lack of available motion capture data for animal subjects, the SMAL model is learnt from a set of $41$ 3D scans of toy figurines in arbitrary poses. The figurines span five quadruped families, and included examples of lions, cats, tigers, dogs, horses, any many more, although notably for this work no rodent toys were included. The paper introduces a new technique to accurately align each toy scan to a common template, allowing the shape space to be learnt.
@@ -432,4 +437,4 @@ A similar technique to that used to build the SMPL model has been recently used 
     \label{fig:smal_model_poses}
 \end{figure}
 
-From the paper, SMAL is defined as a function $M(\beta, \theta, \gamma)$ parameterized by pose-invariant shape $\beta$, pose $\theta$ (including global rotation) and global translation $\gamma$. The function returns a triangulated surface comprising $6890$ vertices. SMAL contains $41$ shape parameters $\beta$ which are coefficients of a low-dimensional shape space. There are three pose parameters for each of the $32$ body joints and an additional three to express the global rotation. Global translation $\gamma$ is expressed by a further three parameters. Chapters 3 and 4 of this thesis make use of the SMAL model in order to reconstruct various quadruped categories.
+From the paper, SMAL is defined as a function $\SMAL(\pose, \shape)$ parameterized by pose-invariant shape $\shape \in \R{41}$ (again, coefficients of a low-dimensional shape space) and pose $\pose \in \RR{32}{3}$ (including global rotation). There are three pose parameters for each of the $32$ body joints and an additional three to express the global rotation. Global translation $\gamma$ is expressed by a further three parameters. The $\SMAL$ function returns a triangulated surface comprising $6890 \times 3$ vertex locations. Chapters 3 and 4 of this thesis make use of the SMAL model in order to reconstruct various quadruped categories.
