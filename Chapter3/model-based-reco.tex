@@ -1,8 +1,10 @@
 \section{Methods for monocular reconstruction of articulated subjects}
 
-Having now discussed methods for modelling articulated subjects, the next topic for consideration is how to incorporate such models in 3D reconstruction pipelines. In general, the methods listed take as input an image or video sequence $I_{1 \dots N}$ depicting a subject, and output a set of 3D model parameters $\alpha$ (often factored into shape $\shape$ and $\pose$). These parameters can then supplied to the model's correponding generator function $g: \alpha \mapsto \R{3}$ (e.g. $\SMPL(\shape, \pose)$ or $\SMAL(\shape, \pose)$) in order to obtain the 3D model prediction $v \in \R{3}$. 
+Having discussed methods for modelling articulated subjects, the next topic for consideration is how to incorporate such models in 3D reconstruction pipelines. In general, the methods listed take as input an image or video sequence $I_{1 \dots N}$ depicting a subject, and output a set of 3D model parameters $\alpha$ (often factored into shape $\shape$ and pose $\pose$). These parameters can then be supplied to the model's correponding generator function $g: \alpha \mapsto \R{3}$ (e.g. $\SMPL: (\shape, \pose) \mapsto \R{3}$ or $\SMAL: (\shape, \pose) \mapsto \R{3}$) in order to obtain the vertex positions $V \subseteq \R{3}$ for the model $M = (V, T)$ with fixed triangulation $T$. 
 
-Methods which attempt to align a parametric 3D model to a single image dates back as far as 1963, in a seminal paper presented by Roberts~\cite{xxx}. In this work, viewpoint and cuboidal block parameters were predicted to fit a 2D line image. Model-based methods were also applied to understand object structure captured in 2D images, beginning with geometric primitives~\cite{xxx} to Active Shape Models, which use a training data set to learn priors over a designed deformable model. These techniques inspired the work of Blanz and Vetter~\cite{blanz-vetter} who built the first 3D morphable face model by aligning 3D scans and optimized the parameters to provide a fit to a single image. We will leave further discussion on reconstructing faces and hands to the following survey papers~\cite{xxx, xxx}, and focus instead on reconstructing the full human body and animals.
+Methods which attempt to align a parametric 3D model to a single image date back as far as 1963, in a seminal paper presented by Roberts~\cite{xxx}. In this work, viewpoint and cuboidal block parameters were predicted to fit a 2D line image. Model-based methods were also applied to understand object structure captured in 2D images, beginning with geometric primitives~\cite{xxx} to Active Shape Models, which use a training data set to learn priors over a designed deformable model. These techniques inspired the work of Blanz and Vetter~\cite{blanz-vetter} who built the first 3D morphable face model by aligning 3D scans and optimized the parameters to provide a fit to a single image. We will leave further discussion on reconstructing faces and hands to the following survey papers~\cite{xxx, xxx}, and focus instead on reconstructing the full human body and animals.
+
+The majority of recent work in 3D pose and shape recovery from monocular images tackles the special case of 3D \emph{human} reconstruction. As a result, the research community has collected a multitude of open source human datasets which provide strong supervisory signals for training deep neural networks. These include include accurate 3D deformable template models~\cite{loper15smpl} generated from real human scans, 3D motion capture datasets~\cite{ionescu2013human3,vonmarcard2018recovering} and large 2D datasets~\cite{lin2014microsoft,johnson2010clustered,andriluka14cvpr} which provide keypoint and silhouette annotations. 
 
 It is important to note that all classes of approaches must overcome significant ambiguity. Determining joint positions is a task made challenging due to large variations in visual appearence, commonly due to clothing, body shape and camera view. As explained by Toshev and Szegedy~\cite{toshev2014deeppose}, even with perfect joint locations the subsequent lifting step is also ill-posed, as the space of consistent 3D poses for given 2D landmark locations is infinite. This is typically resolved using strong prior knowledge which usually takes the form of 3D geometric pose priors and temporal or structural constraints.
 
@@ -12,112 +14,90 @@ It is important to note that all classes of approaches must overcome significant
 
     Early approaches in this category built human stick figures with various constrained including assumptions of fixed limb lengths{xxx}, length ratios~\cite{xxx} or that limb lengths are isometric across individuals and vary only in global scaling~\cite{xxx}. More advanced techniques built statistical models of shape variation using anthropometric tables or learnt statistical models from freely available motion capture data~\cite{barron2001estimating}. The idea then is to fit such a model to each frame of an input image or video sequence. 
 
-    A notable early work in this category is that of Shotton et al.~\cite{kinectpaper} (see~\cref{fig:kinect_skeleton}) who designed a commercially available human skeletal tracking capability, albeit one that requires a depth sensor at test time. Their technique employed a generative 3D human body model to synthesize a large training dataset of depth images with corresponding body part labels. Density estimators for each body part are then used in combination to localize body joints with a calculated confidence value. Chapter 3 of this thesis demonstrates a technique for predicting keypoints by training on synthetic silhouette data rendered from an animal deformable body model.
+    A notable early work in this category is that of Shotton et al.~\cite{kinectpaper} who designed a commercially available human skeletal tracking capability, albeit one that requires a depth sensor at test time. Their technique employed a generative 3D human body model to synthesize a large training dataset of depth images with corresponding body part labels. Density estimators for each body part are then used in combination to localize body joints with a calculated confidence value. Chapter 3 of this thesis demonstrates a technique for predicting keypoints by training on synthetic silhouette data rendered from an animal deformable body model.
 
     More recent approaches typically employ a 2-stage pipeline; they begin by localizing 2D joint positions on an input image before running a subsequent optimization step that `lifts` these to a 3D pose.  Examples of such systems include DeepPose~\cite{toshev2014deeppose}, an approach which employs a CNN to reason jointly about 2D landmark detection and 3D pose estimation from single RGB images. Pishchulin et al.~\cite{pishchulin2016deepcut} later introduced DeepCut which extends DeepPose to the multi-person case. Both systems are trained on large body joint databases. 
 
     
-    \begin{figure}[H] % Example image
-        \center{\includegraphics[width=0.25\linewidth]{human_tracking}}
-        \caption{Kinect generating per-pixel joint proposals.}
-        \label{fig:kinect_skeleton}
-    \end{figure}
+    % \begin{figure}[H] % Example image
+    %     \center{\includegraphics[width=0.25\linewidth]{human_tracking}}
+    %     \caption{Kinect generating per-pixel joint proposals.}
+    %     \label{fig:kinect_skeleton}
+    % \end{figure}
 
-    \subsection{Multi-stage approaches}
-    
-
-    \subsection{Direct approaches}
     However, some direct techniques exist which do not require an initial 2D joint prediction. These include methods that directly regress to a 3D pose~\cite{tekin2016direct}. However, these typically rely on an annotated set of 3D joint labels, which can be difficult and costly to obtain, or being able to build a representative synthetic dataset, which is non-trivial task.
 
 
-\subsection{Toolkit}
-
-\subsubsection{Rendering}
-    The process of generating a 2D image from a 3D polygon mesh is known as rendering and can be achieved through a process known as raytracing. Raytracing is a rendering technique able to generate photorealistic 2D images from the scene. It can be considered the opposite process by which the human eye perceives the world, as this method involves lines being cast outwards, beginning at a point known as the \emph{camera origin}. Figure \ref{fig:raycasting} shows a typical set up, in which rays are cast from the camera origin through each pixel on the image plane. The colour for the pixel is obtained by following the ray through the scene until a light source or non-reflective surface is reached, taking into account any reflections or non-opaque scene items. Due to the considerable comptuation required, the operation is often parallelized and assigned to the GPU. However, the technique is typically considered unsuitable for real-time rendering of complex scenes (due to complex ray paths) or when high resolution images (many rays required) are needed. However, for this work, scenes are typically made up of a single non-reflective, solid mesh surface and contain no complex elements (e.g.\ shadows, non-constant lighting.
-
-    \begin{figure}[H] % Example image
-        \center{\includegraphics[width=0.5\linewidth]{ray_trace}}
-        \caption{Diagram showing raycast rendering.~\cite{rendering}.}
-        \label{fig:raycasting}
-    \end{figure}
-
-    It is also worth noting that the standard method for raycasting is not differentiable, causing problems for differentiable optimizers (including neural networks). However, alternative rendering methods~\cite{loper2014opendr} are available for these purposes.
-
-\subsubsection{Model fitting: fitting a template model to correspondences}
-    % Edit to talk about e.g. SMPLify
-
-    %  Model fitting algorithms are typically provided with point correspondences between the template mesh and input images in order to help constrain the optimization. Correspondences are either provided by a human annotator or predicted by a discriminative machine learning model.
-
-    Taylor et al. demonstrate a model fitting approach that operates on a rigged 3D human mesh~\cite{taylor2012vitruvian}. Their aim is to learn a set of pose parameters $\theta \in \mathbb{R}^{d}$ so as to explain a set of image points $D = \{x_{i}\}_{i=0}^{n}$. Data points $x_{i} \in \mathbb{R}^{3}$ are collected from a calibrated depth camera. Once these pose parameters are learnt, the mesh is deformed according to the LBS algorithm defined above.
-
-    The template mesh contains $|J| = 13$ joints, and $m$ skinned vertices ${V} = \{v_{i}\}_{i=1}^{m}$. Again, each vertex $v_{i} \in V$ is defined as:
-
-    \begin{equation}
-        v_{i} = (x_{i}, s_{i})
-    \end{equation}
-    where $x_{i} \in \mathbb{R}^{3}$ represents the base 3D vertex positions in a canonical pose $\theta_{0}$ and the $s_{i} \in \mathbb{R}^{|J|}$ are skinning weight vectors. It is possible to define a mesh induced by a pose $S(\theta) = (V, T)$ for vertices $V$ and triangles $T$. Due to the resemblance of the mesh surface induced by the canonical mesh pose $\theta_{0}$ and Da Vinci's Vitruvian man~\cite{davinci}, this surface is referred to as the \emph{Vitruvian Manifold}, and is shown in Figure~\ref{fig:vitruvian_man}. 
-
-    \begin{figure}[H] % Example image
-        \center{\includegraphics[width=0.95\linewidth]{vitruvian_man}}
-        \caption{(a) Vitruvian Man by Leonardo da Vinci~\cite{davinci} and (b) the Vitruvian Manifold reprinted from~\cite{taylor2012vitruvian}.}
-        \label{fig:vitruvian_man}
-    \end{figure}
-
-    The primary contribution of this paper is the design of a model able to predict \emph{dense correspondences} between the 3D canonical mesh and input 3D images. In other words, \emph{every} body pixel on an input image is regressed to a point on the vitruvian manifold mesh. The authors demonstrate the accuracy of these correspondences is sufficient for \emph{one-shot learning}, meaning there is no need to recalculate correspondences after a subsequent optimization step. The reason for this is the strength of the core error term which penalizes the sum of errors between image points $\{x_{i}\}_{i=0}^{n}$ and determined mesh correspondences $U = \{u_{i}\}_{i=0}^{n} \subseteq V$:
-
-    \begin{equation}
-        E_{\text{data}}(\theta,U) =\sum_{i=1}^{n}s_{i} \cdot d(x_{i}, M(u_{i}; \theta))
-    \end{equation}
-    where $M(u_{i}, \theta)$ is the position of vertex $u_{i}$ on the vitruvian manifold mesh after having been displaced by an LBS deformation with respect to the pose~$\theta$. 
-
-    The sheer quantity of correspondences greatly constrain their optimizer which works well, even on challenging input images. Much of this report focuses on how this paper can be extended to work for animal subjects, incorporating deep learning correspondence prediction and working from monocular RGB input data.
-
-\subsubsection{Model parameter regression}
-
-    This is how you do this using a deep network. 
-
-
-\subsection{Model-based faces and hands}
-
-
-\begin{figure}[H] % Example image
-    \center{\includegraphics[width=0.85\linewidth]{hand_tracking}}
-    \caption{Example of articulated hand tracking, reprinted from~\cite{taylor2016efficient}.}
-    \label{fig:hand_tracking}
-\end{figure}
+% \subsection{Toolkit}
 
 
 \subsection{Model-based human shape and pose}
 
 % only discuss dense methods -- discuss methods that do/do not explicitly model shape
 
-The majority of recent work in 3D pose and shape recovery from monocular images tackles the special case of 3D \emph{human} reconstruction. As a result, the research community has collected a multitude of open source human datasets which provide strong supervisory signals for training deep neural networks. These include accurate 3D deformable template models~\cite{loper15smpl} generated from real human scans, 3D motion capture datasets~\cite{ionescu2013human3,vonmarcard2018recovering} and large 2D datasets~\cite{lin2014microsoft,johnson2010clustered,andriluka14cvpr} which provide keypoint and silhouette annotations. 
+This section will discuss methods for reconstructing a full 3D \emph{dense} human from a monocular image or video sequence. Early work in this category fit shape primitives combined into a kinematic tree to silhouettes extracted from the input~\cite{xxx, xxx, xxx}. The introduction of 3D deformable human body model known as SCAPE~\cite{xxx} enabled various fitting approaches. Sigal et al~\cite{xxx} compute shape features from manually extracted silhouettes and use a mixture of experts formulation for predicting SCAPE model parameters. Later, Guan et al.~\cite{xxx} fit the SCAPE model to provided keypoints, extracted silhouettes, edges and shading cues. They also define an interpenetration term that penalizes self-intersecting body parts, although this does not lead to easy optimization. Hasler et al.~\cite{xxx}, Zhou et al.~\cite{xxx} and Chen et al.~\cite{xxx} present a similar approach, although show optimization only to input keypoints and manually or semi-manually (e.g. GraphCut@\cite{xxx}) extracted silhouettes.
 
-The abundance of available human data has supported the development of successful monocular 3D reconstruction pipelines~\cite{kolotouros19convolutional,kanazawa18end-to-end}. Such approaches rely on accurate 3D data to build detailed priors over the distribution of human shapes and poses, and use large 2D keypoints datasets to promote generalization to ``in-the-wild'' scenarios. Silhouette data has also been shown to assist in accurate reconstruction of clothes, hair and other appearance detail~\cite{pifuSHNMKL19,alldieck2019learning}.
-While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros19learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. Inspired by this innovation, we learn an iteratively-improving shape prior by applying expectation maximization 
-during the training process.
+Taylor et al. demonstrate a model fitting approach that operates on a rigged 3D human mesh~\cite{taylor2012vitruvian}. Their aim is to learn a set of pose parameters $\theta \in \mathbb{R}^{d}$ so as to explain a set of image points $D = \{x_{i}\}_{i=0}^{n}$. Data points $x_{i} \in \mathbb{R}^{3}$ are collected from a calibrated depth camera. The template mesh contains $|J| = 13$ joints, and $m$ skinned vertices ${V} = \{v_{i}\}_{i=1}^{m}$. Once these pose parameters are learnt, the mesh is deformed according to the linear blend skinning algorithm defined above. However, no shape parameters are learnt. The primary contribution of this paper is the design of a model able to predict \emph{dense correspondences} between the 3D canonical mesh and input 3D images. In other words, \emph{every} body pixel on an input image is regressed to a point on the vitruvian manifold mesh. The authors demonstrate the accuracy of these correspondences is sufficient for \emph{one-shot learning}, meaning there is no need to recalculate correspondences after a subsequent optimization step. This approach has been recently modernized with a deep neural network~\cite{xxx}.
 
-\subsubsection{Fitting the SMPL mesh to human images}
-SMPLify \cite{bogo16keep} is a fully-automated optimization approach that uses predicted human joint positions to constrain a optimizer that fits the aforementioned SMPL model to RGB input images. It first makes use of the DeepCut CNN to predict 2D human body joints $J_{\text{est}}$ on input frames. For each 2D joint $i$ the CNN is able to provide a confidence value $w_i$ for the joint's position. The optimization begins by first solving for global rotation (i.e. $\theta_{0..2}$) and global translation $\gamma$ by fitting a small number of 2D torso points $J_{\text{torso}} \subset J_{\text{est}}$ to the data. The user is expected to provide a value for the focal length $f$. Then, the full optimization takes place, fitting 3D pose and shape to all 2D joints by minimizing the following objective function which comprises five error terms:
+%     \begin{equation}
+%         E_{\text{data}}(\theta,U) =\sum_{i=1}^{n}s_{i} \cdot d(x_{i}, M(u_{i}; \theta))
+%     \end{equation}
+%     where $M(u_{i}, \theta)$ is the position of vertex $u_{i}$ on the vitruvian manifold mesh after having been displaced by an LBS deformation with respect to the pose~$\theta$. 
+
+%     The sheer quantity of correspondences greatly constrain their optimizer which works well, even on challenging input images. Much of this report focuses on how this paper can be extended to work for animal subjects, incorporating deep learning correspondence prediction and working from monocular RGB input data.
+
+
+\subsubsection{Fitting a 3D model to 2D keypoints}
+
+\def\J#1{J_\mathrm{#1}}
+
+A significant advance was made by the introduction of SMPLify~\cite{xxx}, the first fully-automatic method for monocular 3D human pose and shape reconstruction. SMPLify works by fitting the SMPL~\cite{loper15smpl} model to a set of 2D image locations predicted by DeepCut, a deep convolutional neural network. For an input image $I$ then, DeepCut predicts a set of image keypoint locations $\J{est} \in \RR{23}{2}$ which correspond to locations on the 3D SMPL mesh $\J{\SMPL}$. Precisely $J{\SMPL} = R_{\pose}(J(\shape))$ where $J(\shape)$ computes 3D skeleton positions from SMPL shape parameters $\shape$, and $R_{\pose}$ is the global rigid transformation effected by SMPL pose parameters $\pose$. A model fitting approach is then used to align the SMPL model to the predicted keypoint positions. This is achieved through optimizing the SMPL parameters $\shape, \pose$, global translation $\trans$ and camera parameters $K$, subject to pose, shape and interpenetration priors. 
+
+The key energy term used in the optimization (and indeed throughout this thesis) is given by $\E{J}(\shape, \pose; K, \J{est})$ which measures the weighted 2D distance between estimated keypoints $\J{est}$ and the corresponding SMPL joints $J_{\SMPL}$.
+
+% E_{J}(\shape, \pose, \trans; K, \J{est}) = \sum_{joint, i} w_{i} \rho(\Pi_{K}(\J{\SMPL, i} - \J{est, i}))
+
 
 \begin{equation}
-E(\beta, \theta) = E_{J}(\beta, \theta; K, J_{\text{est}}) + \lambda_{\theta}E_{\theta}(\theta) + \lambda_{\alpha}E_{\alpha}(\theta) + \lambda_{\text{sp}}E_{\text{sp}}(\theta; \beta) + \lambda_{\beta}E_{\beta}(\beta)
+    E_{J}(\shape, \pose, \trans; K, \J{est}) = \sum_{joint, i} w_{i} \rho(\Pi_{K}(\J{\SMPL, i} - \J{est, i}))
 \end{equation}
-where $\lambda$ terms are the scalar weights. The term $E_{J}$ is often referred to as the \textit{data} term, as it places most emphasis on constraining the model to the input sensory data. The job of this term is to penalize the weighted 2D distance between estimated joints $J_{\text{est}}$ and corresponding projected SMPL joints. In practice, this projection takes place using the OpenDR differentiable rendering framework to ensure the final formulation remains differentiable:
+
+Note that the weighted 2D distance is implemented using the Geman-McClure penalty function $\rho$ which helps deal with noisy DeepCut estimates. SMPLify implements $\Pi_{K}$ perspective camera model with known (or roughly initialized) focal length although others opt for orthographic projection. The following section will provide a quick primer for this:
+
+\subsubsection{Primer on camera geometry}
+
+Explanation around perspective / orthographic projection.
+
+
+\subsubsection{Energy minimization}
+
+The full optimization is then given as:
 
 \begin{equation}
-    E_{J}(\beta, \theta; K, J_{\text{est}}) = \sum_{joint j} w_{j} \rho(\Pi_{K}(R_{\theta}(J(\beta)_j)) - J_{\text{est}, j})
+    E(\shape, \pose) = E_{J}(\shape, \pose; K, J_{\text{est}}) + \lambda_{\pose}E_{\pose}(\pose) + \lambda_{\alpha}E_{\alpha}(\pose) + \lambda_{\text{sp}}E_{\text{sp}}(\pose; \shape) + \lambda_{\shape}E_{\shape}(\shape)
 \end{equation}
-where $J(\beta)$ is a function which predicts 3D body joints from body shape and $R_{\theta}(J(\beta))$ therefore denote posed 3D joints.
 
-The remaining terms are now briefly discussed:
-\clearpage
+Where the terms are defined as following:
+
 \begin{itemize}
-    \item $E_{\theta}(\theta)$ is referred to as a \textit{pose prior} which favours more likely poses by assigning large punishment to those that deviate from known poses collected from a large dataset.
-    \item $E_{\beta}(\beta)$ is referred to as a \textit{shape prior} which favours more likely pose-invariant shape configurations by assigning large punishment to those that deviate from known shapes collected from a large dataset. 
-    \item $E_{\alpha}(\theta)$ is a \textit{joint limit} prior which ensures particular joints remain within acceptable angle limits. For example, a knee joint in a human model should be prohibited from bending more than 5 degrees upwards.
-    \item $E_{sp}(\theta; \beta)$ is an \textit{interpenetration} term, which can only be defined in such shape modelling approaches. Using both shape and pose from the model, it is possible to determine if any limbs are self-intersecting, or intersect other parts of the body and assign appropriate penalty.
+    \item $E_{\pose}(\pose)$ is referred to as a \textit{pose prior} which favours more likely poses by assigning large punishment to those that deviate from known poses collected from a large dataset.
+    \item $E_{\shape}(\shape)$ is referred to as a \textit{shape prior} which favours more likely pose-invariant shape configurations by assigning large punishment to those that deviate from known shapes collected from a large dataset. 
+    \item $E_{\alpha}(\pose)$ is a \textit{joint limit} prior which ensures particular joints remain within acceptable angle limits. For example, a knee joint in a human model should be prohibited from bending more than 5 degrees upwards.
+    \item $E_{sp}(\pose; \shape)$ is an \textit{interpenetration} term, which can only be defined in such shape modelling approaches. Using both shape and pose from the model, it is possible to determine if any limbs are self-intersecting, or intersect other parts of the body and assign appropriate penalty.
 \end{itemize}
+
+where $\lambda$ terms are the scalar weights. 
+
+% The term $E_{J}$ is often referred to as the \textit{data} term, as it places most emphasis on constraining the model to the input sensory data. The job of this term is to penalize the weighted 2D distance between estimated joints $J_{\text{est}}$ and corresponding projected SMPL joints. In practice, this projection takes place using the OpenDR differentiable rendering framework to ensure the final formulation remains differentiable:
+
+% \begin{equation}
+%     E_{J}(\beta, \theta; K, J_{\text{est}}) = \sum_{joint j} w_{j} \rho(\Pi_{K}(R_{\theta}(J(\beta)_j)) - J_{\text{est}, j})
+% \end{equation}
+% where $J(\beta)$ is a function which predicts 3D body joints from body shape and $R_{\theta}(J(\beta))$ therefore denote posed 3D joints.
+
+% The remaining terms are now briefly discussed:
+% \clearpage
+
 
 An example result can be seen in Figure \ref{fig:smplify}:
 
@@ -126,9 +106,14 @@ An example result can be seen in Figure \ref{fig:smplify}:
     \caption{SMPLify: Fitting the SMPL model to the Leeds Sports Dataset.}
     \label{fig:smplify}
 \end{figure}
-        
+       
 \subsection{Direct regression}
+% TODO combine these paragraphs
 The most recent, and state-of-the-art approaches employ deep learning techniques to solve the entire optimization problem by directly regressing to shape and pose parameters of the template model. Tekin et al.~\cite{tekin2016direct} introduce a convolutional network trained on the Human3.6m dataset~\cite{lin2014microsoft} that directly regresses to a human pose defined in terms 3D locations $y \in \mathbb{R}^{3J}$ of $J$ body joints relative to a root joint. Tan et al.~\cite{tan17indirect} introduce an approach that directly regresses to SMPL parameters from synthetic images, ensuring suitable image jitters are applied to promote generality to real-world images. The method is termed Indirect Learning, and is trained from real human images with no known corresponding SMPL parameters. An autoencoder network is introduced, and a decoder first trained from synthetic (SMPL parameter, rendered image) pairs to construct an automatic renderer. This part of the network is then frozen, before the entire autoencoder is trained on many segmented human images that optimize the encoder to real-world examples. The end result is a process that is able to predict SMPL parameters from real-world human images. An example result is shown in Figure~\ref{fig:indirect_learning}.
+
+The abundance of available human data has supported the development of successful monocular 3D reconstruction pipelines~\cite{kolotouros19convolutional,kanazawa18end-to-end}. Such approaches rely on accurate 3D data to build detailed priors over the distribution of human shapes and poses, and use large 2D keypoints datasets to promote generalization to ``in-the-wild'' scenarios. Silhouette data has also been shown to assist in accurate reconstruction of clothes, hair and other appearance detail~\cite{pifuSHNMKL19,alldieck2019learning}.
+While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros19learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. Inspired by this innovation, we learn an iteratively-improving shape prior by applying expectation maximization 
+during the training process.
 
 \begin{figure}[H] % Example image
     \center{\includegraphics[width=0.75\linewidth]{indirect_learning}}
@@ -140,6 +125,11 @@ The most recent, and state-of-the-art approaches employ deep learning techniques
 \subsection{Model-based animals}
 
 We want to do model based reconstruction to impose a prior on the fitting and also automatically recover an interpretable fit.
+
+Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
+It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
+Thus we claim that the achievement of reconstructing a full range of dog breeds, 
+with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
 
 \subsubsection{Animals intro}
 
@@ -207,6 +197,8 @@ Cashman and Fitzgibbon~\cite{cashman2013shape} introduce an optimization techniq
 \end{figure}
 
 \subsubsection{Fitting the SMAL mesh to animal images}
+% Draw out the silhouette term as important here
+% Talk about subsequent SMALR + SMALST in the same section
 The SMAL paper briefly discusses a modification to the SMPLify approach in order to fit the SMAL model to RGB animal input images. The terms are largely the same, although the interpenetration term is omitted and joint positions are provided manually, rather than being predicted by a CNN. Finally, the optimizer requires a pre-segmented (i.e.\ silhouette) image which is also supplied by a user. An approach discussed in Chapter 4 builds on this work, so an in-depth description of this method is ommited here. However, an example result showing the result of the optimizer fitting the SMAL mesh to an RGB image of a fox can be seen in Figure \ref{fig:smalify}. Note that the whole optimization process takes around 1 minute per frame.
 
 \begin{figure}[H] % Example image
@@ -215,13 +207,21 @@ The SMAL paper briefly discusses a modification to the SMPLify approach in order
     \label{fig:smalify}
 \end{figure}
 
-\subsubsection{Literature review tables}
 
-The closest work in terms of scale is the category-specific mesh reconstruction of Kanazawa et al.~\cite{kanazawa2018birds}, where 2850 images of birds were reconstructed.  However doing so for the complex pose and shape variations of dogs required the advances described in this paper.
+\subsubsection{Rendering}
+    The process of generating a 2D image from a 3D polygon mesh is known as rendering and can be achieved through a process known as raytracing. Raytracing is a rendering technique able to generate photorealistic 2D images from the scene. It can be considered the opposite process by which the human eye perceives the world, as this method involves lines being cast outwards, beginning at a point known as the \emph{camera origin}. Figure \ref{fig:raycasting} shows a typical set up, in which rays are cast from the camera origin through each pixel on the image plane. The colour for the pixel is obtained by following the ray through the scene until a light source or non-reflective surface is reached, taking into account any reflections or non-opaque scene items. Due to the considerable comptuation required, the operation is often parallelized and assigned to the GPU. However, the technique is typically considered unsuitable for real-time rendering of complex scenes (due to complex ray paths) or when high resolution images (many rays required) are needed. However, for this work, scenes are typically made up of a single non-reflective, solid mesh surface and contain no complex elements (e.g.\ shadows, non-constant lighting.
 
-Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
-It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
-Thus we claim that the achievement of reconstructing a full range of dog breeds, 
-with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
+    \begin{figure}[H] % Example image
+        \center{\includegraphics[width=0.5\linewidth]{ray_trace}}
+        \caption{Diagram showing raycast rendering.~\cite{rendering}.}
+        \label{fig:raycasting}
+    \end{figure}
+
+    It is also worth noting that the standard method for raycasting is not differentiable, causing problems for differentiable optimizers (including neural networks). However, alternative rendering methods~\cite{loper2014opendrm} are available for these purposes.
+
+% \subsubsection{Literature review tables}
+
+% The closest work in terms of scale is the category-specific mesh reconstruction of Kanazawa et al.~\cite{kanazawa2018birds}, where 2850 images of birds were reconstructed.  However doing so for the complex pose and shape variations of dogs required the advances described in this paper.
+
 
 
