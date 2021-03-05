@@ -235,6 +235,7 @@
 \usepackage{cuted}
 \usepackage{array}
 \usepackage{ragged2e}
+\usepackage{amsthm}
 
 \newcommand{\citetodo}[2]{[TODO: #1]}
 % \newcommand{\R}{\mathbb{R}}
@@ -284,3 +285,9 @@
 \newcommand\inv[1]{\left.#1\right.^{-1}}
 \newcommand\transpose[1]{\left.#1\right.^{T}}
 \newcommand{\anote}[1]{{\color{red}[#1]}}
+
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+\newtheorem{theorem}{Theorem}[section]

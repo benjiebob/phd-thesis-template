@@ -59,17 +59,26 @@ The key energy term used in the optimization (and indeed throughout this thesis)
 
 
 \begin{equation}
-    E_{J}(\shape, \pose, \trans; K, \J{est}) = \sum_{joint, i} w_{i} \rho(\Pi_{K}(\J{\SMPL, i} - \J{est, i}))
+    E_{J}(\shape, \pose, \trans; K, \J{est}) = \sum_{\mathrm{joint}, i} w_{i} \rho(\Pi_{K}(\J{\SMPL, i} - \J{est, i}))
 \end{equation}
 
 Note that the weighted 2D distance is implemented using the Geman-McClure penalty function $\rho$ which helps deal with noisy DeepCut estimates. SMPLify implements $\Pi_{K}$ perspective camera model with known (or roughly initialized) focal length although others opt for orthographic projection. The following section will provide a quick primer for this:
 
-\subsubsection{Primer on camera geometry}
+\begin{definition}[Primer on camera geometry]
 
-Explanation around perspective / orthographic projection.
+Perspective projection is a function which maps a 3D structure to blah blah.
 
+\begin{equation}
+    2X = Y
+\end{equation}
 
-\subsubsection{Energy minimization}
+Orthographic projection is the following:
+
+\begin{equation}
+    3X = Z
+\end{equation}
+
+\end{definition}
 
 The full optimization is then given as:
 
@@ -129,6 +138,8 @@ Talk about PiFu + animals + articulated Nerf.
 \subsection{Model-based animals}
 
 We want to do model based reconstruction to impose a prior on the fitting and also automatically recover an interpretable fit.
+
+\input{Chapter3/lit-review-tbl.tex}
 
 Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
 It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
@@ -208,7 +219,7 @@ Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution to 3D ani
 \end{figure}
 
 
-\subsubsection{Differentiable Rendering}
+\begin{definition}[Differentiable Rendering]
     The process of generating a 2D image from a 3D polygon mesh is known as rendering and can be achieved through a process known as raytracing. Raytracing is a rendering technique able to generate photorealistic 2D images from the scene. It can be considered the opposite process by which the human eye perceives the world, as this method involves lines being cast outwards, beginning at a point known as the \emph{camera origin}. Figure \ref{fig:raycasting} shows a typical set up, in which rays are cast from the camera origin through each pixel on the image plane. The colour for the pixel is obtained by following the ray through the scene until a light source or non-reflective surface is reached, taking into account any reflections or non-opaque scene items. Due to the considerable comptuation required, the operation is often parallelized and assigned to the GPU. However, the technique is typically considered unsuitable for real-time rendering of complex scenes (due to complex ray paths) or when high resolution images (many rays required) are needed. However, for this work, scenes are typically made up of a single non-reflective, solid mesh surface and contain no complex elements (e.g.\ shadows, non-constant lighting.
 
     \begin{figure}[H] % Example image
@@ -218,7 +229,7 @@ Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution to 3D ani
     \end{figure}
 
     It is also worth noting that the standard method for raycasting is not differentiable, causing problems for differentiable optimizers (including neural networks). However, alternative rendering methods~\cite{loper2014opendr} are available for these purposes.
-    % PyTorch3D, 
+\end{definition}
 
 The SMAL authors~\cite{zuffi2017menagerie} demonstrate fitting their deformable 3D model to quadruped species using user-provided keypoint and silhouette dataset. SMALR~\cite{zuffi_lions} then demonstrated fitting to broader animal categories by incorporating multi-view constraints from video sequences. 3D-Safari~\cite{Zuffi19Safari} further improve by training a deep network on synthetic data (built using SMALR~\cite{zuffi_lions}) to recover detailed zebra shapes in the wild. Chapter 4 of this this will present a method that overcomes the need for hand-clicked keypoints by training a joint predictor on synthetic data. 
 

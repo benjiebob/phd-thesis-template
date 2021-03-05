@@ -147,7 +147,7 @@ This section will cover methods for modelling articulated subjects, focussing pr
 
 A 3D morphable model can then be constructed by deforming a template mesh $M$ on $n$-vertices to a set of 3D training examples. Generally, this optimization will have a significant degrees of freedom so it is necesssary to employ techniques for regularization. One such regularizer is known as the \emph{As Rigid as Possible} scheme: 
 
-\subsubsection{As Rigid as Possible}
+\begin{definition}[As Rigid as Possible]
 As Rigid as Possible (ARAP) surface deformation~\cite{sorkine2007rigid} is a distance function that measures similarity between two meshes with corresponding vertices. For two vertex sets~$V$ and~$W$, ARAP minimizes over~$N = |V|$ rotation matrices. Note~$j \sim i$ indicates vertex indices~$j$ adjacent to vertex index~$i$:
 
 \begin{equation}
@@ -161,6 +161,8 @@ This distance function can be incorporated into an energy-based optimizer as a r
     \caption{Dinosaur mesh undergoing ARAP deformation, obtained by translating the highlighted yellow vertex. Reprinted from~\cite{sorkine2007rigid}.}
     \label{fig:arap_dino}
 \end{figure}      
+
+\end{definition}
 
 Once aligned, a $d$-dimensional \emph{shape space} can then be defined (with $d << n$), where each $w \in \R{d}$ gives rise to a vertex configuration in $\R{3}$ (with unchanged triangulation). In this way, every plausible 3D example has a parameter vector $w \in \R{d}$ that generates it. This construction can then be interpreted as a \emph{generative} model. However, very few selections of $w \in \R{d}$ will generate a plausible-looking 3D mesh. This can then be interpreted probabilistically, by defining a density function $f(w)$ that defines the likelihood that a realistic 3D example would be represented by $w$ in shape space. 
 
@@ -212,7 +214,8 @@ In particular, human hand motion is controlled by a hierarchical bone structure 
 
 This formulation helps provide insight into why the abstract linear basis (shape space) introduced in the previous section would be poor choice for modelling hands. Deformation is here characterized in terms of 3D rotations, and 3D rotations are non-linear with respect to the input angle. This is easily shown: 
 
-\subsubsection{Primer on 3D rotations}
+\begin{definition}[3D Rotations]
+    
 
 The simplest kind of 3D rotation is an \emph{elementary rotation} and involves a rotation around a single axis of a coordinate system. For example, the following matrix represents a rotation by an angle $\gamma$ around the $x$ axis:
 
@@ -238,10 +241,12 @@ This formulation can then be extended to represent any 3D rotation as the compos
 
 One can see immediately that affecting a 3D rotation (i.e. computing the new position of the points) is a non-linear function of the input angle. It is necessary, therefore to describe an alternative technique for low-dimensional and efficient mesh deformation, which relies on \emph{rigging} and \emph{linear blend skinning}. 
 
+\end{definition}
+
 % Compared to facesCompared to faces, hands have a simpler space of shape variation (typically restricted to palm size, finger lengths etc.) but the modes of articulation are extremely complex. In the class of 3DMMs, hand models arguably have the strongest synergy to their biological counterparts; in many cases each of the 27 hand bones (occasionally except the capal bones which join the fingers to the wrists) are explicitly represented in the model skeleton.
 
-\subsubsection{Skeletal Rigging and Linear Blend Skinning}
-
+\begin{definition}[Skeletal Rigging and Linear Blend Skinning (LBS)]
+    
 In cases that the articulated object is known in advance, it is common to augment a representative 3D mesh model with an internal skeleton that approximates the biological counterpart. This is achieved through a process known as \emph{rigging}.  
 
 % In general, the mesh skeleton approximates the real, biometric skeleton by allowing the important modes of deformation but often is a rough approximation of the real, biometric skeleton be detailed enough to allow the primary modes of deformation, but often it is not necessary that the 3D mesh skeletthat the articulated object is known In cases that the mesh shape is known in advance, it is common to follow a process known as \textit{rigging}, in which the mesh is augmented with a hierarchical bone structure. The point at which two bones meet is called a \emph{joint}, and these can be used to define acceptable centres of rotation for mesh deformation. It is possible to describe a distribution of joint configurations, which could be used to constrain the mesh to (in the case of human / animal subjects) anatomically achievable poses. It is also simple to define conceptual `body parts' from a rigged mesh, by considering regions between pairs of joints; for example a lower leg region can be defined between a knee and ankle joint. A simple example of a rigged 2D mesh with joints indicated by green diamonds is shown in Figure~\ref{fig:finger_model}. Note how the mesh surface deforms naturally as the joints are displaced.
@@ -322,7 +327,7 @@ Similarly to the approach mentioned above, this formulation can again be seen as
     v' = LBS(R(\theta), v)
 \end{equation}
 
-\subsubsection{3D Deformable Hand Modeling}
+\end{definition}
 
 With the above formulation, it is now possible to give an overview of recent hand tracking literature. In many cases, 3D morphable hands models are built to reflect the 27 biological hand bones (occasionally except the capal bones which join the fingers to the wrists). Of course, while the major source of hand deformation is due to 3D pose, some sources of variation are present due to hand size and finger propotions.
 
