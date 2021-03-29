@@ -1,0 +1,23 @@
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+\begin{table}[]
+    \begin{tabular}{@{}lllll@{}}
+    \toprule
+    Dataset & Modality & Annotation & Subject & Num. Examples \\ 
+    \midrule
+    MSCOCO & Image (RGB) & S2, BB2 & DCaHoZSECoBG & 23,467 \\
+    PascalVOC & Image (RGB) & S2, BB2 & xxx & xxx \\
+    StanfordDogs & Image (RGB) & BB2 & D (120 breeds) & 20,580 \\
+    AnimalPose & Image (RGB) & J2 & xxx & xxx \\
+    SMAL & N/A & MM3 & DCaHoZCoTLHi & 47 \\
+    \textbf{StanfordExtra} & Image (RGB) & J2, S2 & D (120 breeds) & 12,000 \\
+    \bottomrule
+    \end{tabular}
+    \caption{Dataset summary: analysis of available datasets
+        S2: 2D Silhouettes, BB2: 2D bounding boxes, J2: 2D Joints. 
+        MM3: 3D Morphable Model. P3: 3D Priors. M3: 3D Model.
+        D: dog, Ca: cat, Ho: horse, Z: zebra, S: sheep, 
+        E: elephant, Co: cow, B: bear, G: giraffe,
+        T: tiger, L: lion: Ch: cheetah, Hi: hippo}
+    \label{tab:animal-dsets}
+\end{table}

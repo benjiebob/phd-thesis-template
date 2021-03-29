@@ -177,9 +177,8 @@
     \end{figure}
         
     \subsubsection{Direct regression}
-    % TODO combine these paragraphs. There's too much Indirect learning here.
     The most recent, and state-of-the-art approaches employ deep learning techniques to solve the entire optimization problem by directly regressing shape and pose parameters of the template model. An early approach by Tan et al.~\cite{tan17indirect} used deep neural networks to learn an encoding $f: \RR{H}{W} \mapsto (\pose, \shape, \trans, K)$ of input images to SMPL pose and shape, translation and camera parameters. Their method makes use of a \emph{silhouette renderer} $R : (V, T) \mapsto \{0,1\}^{H \times W}$ (learnt using synthetic data) capable of producing a binary silhouette from a predicted SMPL mesh. In this way, $R$ allows the network's SMPL predictions to be supervised to ensure generated silhouettes match ground-truth annotations. 
-    Improvements were realised by incoporating an abudance of available human data into the training pipeline. Apart from 3D morphable models (e.g. SMPL~\cite{loper15smpl}), methods use paired 3D motion capture data (e.g. Human3.6M~\cite{ionescu2013human3,IonescuSminchisescu11}, 3DPW~\cite{vonmarcard2018recovering}) to help relate 2D appearance and the underlying 3D structure, unpaired 3D motion capture data (e.g. CMU~\lazycite{CMU}{CMU}) for learning detailed priors over the distribution of human shapes and poses, and large 2D keypoint datasets (e.g. MSCOCO~\lazycite{COCO}{COCO}, LSP~\lazycite{LSP}{LSP}, MPI~\lazycite{MPI}{MPI}) which help promote generalization to `in-the-wild' scenarios. A notable work in this category is Human Mesh Recovery (HMR) of Kanazawa et al.~\cite{kanazawa18end-to-end}, although multiple concurrent works exist\lazycite{https://proceedings.neurips.cc/paper/2017/file/ab452534c5ce28c4fbb0e102d4a4fb2e-Paper.pdf}{Hsiao-Yu Fish Tung}, \lazycite{https://www.seas.upenn.edu/~pavlakos/projects/humanshape/}{pavlakos}, \lazycite{http://virtualhumans.mpi-inf.mpg.de/papers/omran2018NBF/omran2018NBF.pdf}{neural body fitting} and \lazycite{DenseRaC}{DenseRaC}. 
+    Improvements were realised by incoporating an abudance of available human data into the training pipeline. Apart from 3D morphable models (e.g. SMPL~\cite{loper15smpl}), methods use paired 3D motion capture data (e.g. Human3.6M~\cite{ionescu2013human3,IonescuSminchisescu11}, 3DPW~\cite{vonmarcard2018recovering}) to help relate 2D appearance and the underlying 3D structure, unpaired 3D motion capture data (e.g. CMU~\lazycite{CMU}{CMU}) for learning detailed priors over the distribution of human shapes and poses, and large 2D keypoint datasets (e.g. MSCOCO~\lazycite{COCO}{COCO}, LSP~\lazycite{LSP}{LSP}, MPI~\lazycite{MPI}{MPI}) which help promote generalization to `in-the-wild' scenarios. A notable work in this category is Human Mesh Recovery (HMR) of Kanazawa et al.~\cite{kanazawa18end-to-end}, although multiple concurrent works exist\lazycite{https://proceedings.neurips.cc/paper/2017/file/ab452534c5ce28c4fbb0e102d4a4fb2e-Paper.pdf}{Hsiao-Yu Fish Tung}, \lazycite{https://www.seas.upenn.edu/~pavlakos/projects/humanshape/}{pavlakos}, \lazycite{http://virtualhumans.mpi-inf.mpg.de/papers/omran2018NBF/omran2018NBF.pdf}{neural body fitting} and \lazycite{DenseRaC}{DenseRaC}. Chapter 6 of this thesis will explore a method for modelling uncertainty in 3D reconstruction, by exploring extensions to the aforementioned architectures.
 
     % Show the basic structure of these networks in a picture
     
@@ -189,26 +188,26 @@
 
     % https://openaccess.thecvf.com/content_ICCV_2019/papers/Xu_DenseRaC_Joint_3D_Pose_and_Shape_Estimation_by_Dense_Render-and-Compare_ICCV_2019_paper.pdf
     
-    % Of course, these techniques are typically data hungry, requiring not only 3D morphable models but also 3D supervision per training image and large 
-
-    % % \begin{figure}[H] % Example image
-    %     \center{\includegraphics[width=0.75\linewidth]{indirect_learning}}
-    %     \caption{Indirect learning method regressing to SMPL parameters from an RGB video sequence. Reprinted from~\cite{tan17indirect}.}
-    %     \label{fig:indirect_learning}
-    % \end{figure}
-
-    % https://arxiv.org/abs/2004.04572, ARCH: Animatable reconstruction of clothed humans
-    % 
-
-    % Here are related works: https://github.com/facebookresearch/pifuhd 
-
     There have also been a few recent works that reconstruct 3D humans without an explicit template prior. The general idea is to interpret a neural network as an implicit representation of the 3D surface. In particular, the network $f$ is trained to map sampled 3D locations $(x,y,z) \in \R{3}$ to an occupancy value $\{0,1\}$ (and optionally a texture value $(r,g,b) \in \R{3}$). This results in a memory efficient representation of the 3D surface as the space used to embed the surface does not need to be explicitly stored. Saito et al.~\cite{pifuSHNMKL19,saito2020pifuhd} present an example of such an architecture. Their network maps 3D locations with ResNet~\lazycite{Resnet}{Resnet} features sampled at coordinates projected with a known weak-perpective camera to occupancy and texture values. Li et al.\lazycite{https://project-splinter.github.io/monoport/}{MonoPort} later sped up reconstruction and rendering to allow real-time inference. Neural Radiance Fields (NeRF) capture high resolution details of static scenes by mapping 3D coordinates $(x,y,z)$ and viewing directions $(\theta, \phi)$ to volume density and view-dependent emitted radiances. The work was adapted to articulated structures~\lazycite{ANerf}{ANerf} by learning new skin for the SMPL model, using SPIN~\cite{kolotouros19learning} as a basic 3D skeleton predictor. A current downside of these techniques is the need to train a separate model per scene/subject and the slow inference time. However, these works do demonstrate high quality results and are a worthy direction for future research.
 
     % Show the basic structure of these networks in a picture
 
 \subsection{Model-based animals}
 
-    We want to do model based reconstruction to impose a prior on the fitting and also automatically recover an interpretable fit.
+    Having discussed reconstruction methods for other articulated subjects, this section will move on work related to the main topic of this thesis: 3D reconstruction of animal subjects. As summarized above, there are multiple challenges associated with animals which are not present with humans. Firstly, the general class of animal subjects is significantly more diverse in appearance and structure than the human category. This even holds (although to a lesser extent) with various important animal subcategorizations, such as the class of medium-to-large quadrupeds, dog breeds, or birds. This diversity leads to challenges when designing 3D morphable models, since extreme deformations must allowed while penalizing even subtle adapations deemed unnatural. Also of concern are the significant variations in animal motion patterns (causing complex self-occlusion), body textures including fur (which vary even within breeds) and difficult environmental conditions. An interesting advantageous aspect to reconstructing animals is that they are less frequently clothed; a common nusiance factor for human reconstruction. These factors combined with practical challenges associated with capturing and annotating images has also led to a lack of open-source datasets which depict animal subjects. Of particular concern to this thesis is the lack of 3D training data captured from real animal subjects (typically using motion capture or static scans). Equivalent resources made available for humans have been used as a basis for building 3D morphable models (e.g. SMPL~\cite{loper15smpl}, FAUST~\lazycite{FAUST}{FAUST}), for learning priors over human shape and pose~\lazycite{learning priors}{learning priors}, and to provide per-image 3D supervisation when training deep neural networks~\cite{kanazawa18end-to-end}. Despite being a relatively young research field, there are a number of works which specifically target 3D animal reconstruction which make a formal review of the literature worthwhile.
+    
+    \subsubsection{Animal datasets}
+    
+    Due to the contrast in the availability of open source datasets for animlas compared with human categories, this section provides an overview of the available resources. Table 10 provides a formal review.
+
+    \input{Chapter3/animal-dsets-tbl.tex}
+
+    \subsubsection{}
+
+
+
+    (eitherdepicting animal subjects. large scale 3D datasets stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
+    On the other hand, animal silhouette data is plentiful~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}.
 
     \input{Chapter3/lit-review-tbl.tex}
 
@@ -217,12 +216,11 @@
     Thus we claim that the achievement of reconstructing a full range of dog breeds, 
     with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
 
-    A major impediment to research in 3D animal reconstruction has been the lack of a strong evaluation benchmark, with most of the above methods showing only qualitative evaluations or providing quantitative results on fewer than 50 examples. To remedy this, we introduce \emph{StanfordExtra}, a new large-scale dataset which we hope will drive further progress in the field. 
+
 
     While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. 
 
-    A primary reason for this is the lack of large scale 3D datasets stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
-    On the other hand, animal silhouette data is plentiful~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}.
+    
 
     % \subsubsection{Animals intro}
 
