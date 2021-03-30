@@ -139,7 +139,7 @@ This section will cover methods for modelling articulated subjects, focussing pr
 
 3D deformable models are typically represented by a polygon mesh. A polygon mesh $M = (V, T)$ is a collection of vertices, edges bound by vertex pairs, and polygons bound by sequences of edges and vertices~\cite{smith2006vertex}. Although other convex shapes are allowed, this thesis only has need to discuss triangular mesh polygons, which henceforth will be referred to as \emph{triangles}. An example mesh is shown in Figure~\ref{fig:polygon_mesh}. 
 
-\begin{figure}[H] % Example image
+\begin{figure}[t] % Example image
     \center{\includegraphics[width=0.5\linewidth]{dolphin_mesh}}
     \caption{A polygon mesh~\cite{polygon_mesh}.}
     \label{fig:polygon_mesh}
@@ -156,7 +156,7 @@ As Rigid as Possible (ARAP) surface deformation~\cite{sorkine2007rigid} is a dis
 
 This distance function can be incorporated into an energy-based optimizer as a regularization function. By considering how small vertex regions overlap, the function can be used to  discourage `unnatural movement', e.g.\ shearing effects, over mesh faces. ARAP regularizers are particularly useful in cases in which there is no prior knowledge of the mesh. Figure~\ref{fig:arap_dino} shows an example of a dinosaur mesh undergoing ARAP deformation, obtained by translating the highlighted yellow vertex.
 
-\begin{figure}[H] % Example image
+\begin{figure}[t] % Example image
     \center{\includegraphics[width=0.35\linewidth]{dino_arap}}
     \caption{Dinosaur mesh undergoing ARAP deformation, obtained by translating the highlighted yellow vertex. Reprinted from~\cite{sorkine2007rigid}.}
     \label{fig:arap_dino}
@@ -388,7 +388,7 @@ where $v \in \RR{6890}{3}$ and $\trans \in \R{3}$ is a global translation parame
 % TODO: GHUML & GHUM model
 More recently, SMPL has been combined with face and hand models to add expressive capabilities~\cite{xiang19monocular, joo18total, pavlakos19expressive}. CAPE~\cite{CAPE:CVPR:20} also shows how to add a clothing parameter to effectively model humans in clothing, a challenge solved by learning a shape prior over freeform vertex deformations Techniques have also been developed to model human clothing -- a common challenge generally handled by allowing SMPL model vertices to vary independently to the provided blend shapes. SMPL has also been recently improved with STAR~\cite{STAR:2020} which constructs a part-based shape space (closely related to the local PCA space discussed in the earlier shape section of this literature review). They show this new parameterization is much more efficient (uses approximately 20\% of the model parameters of SMPL) and avoids capturing spurious long-range correlations present in the training dataset. They also show a method for learning shape-dependent pose-corrective blendshapes, that better model how individuals with different body shapes deform with motion. Tangential work of Xu et al.~\cite{ghum-ghuml} train an end-to-end network and learn 3D human body model parameters (including faces and hands) for an input artist model using variational auto-encoders and normalizing flows. This work will be further explored Chapter 5 in which these generative models will be fully examined. 
 
-\begin{figure}[H] % Example image
+\begin{figure}[t] % Example image
     \center{\includegraphics[width=0.5\linewidth]{smpl_wbg}}
     \caption{SMPL model showing pose-invariant shape changes, reprinted from~\cite{loper15smpl}.}
     \label{fig:smpl_model}
@@ -403,7 +403,7 @@ Some early work by Favreau et al~\cite{xxx} describe a method for animating an a
 \subsubsection{SMAL}
 A similar technique to that used to build the SMPL model has been recently used to build a Skinned Multi-Animal Linear Model (SMAL)~\cite{zuffi2017menagerie}, a generative animal model exhibiting realistic 3D shape (see Figure \ref{fig:smal_model_shape}) and pose (see Figure \ref{fig:smal_model_poses}). Due to the lack of available motion capture data for animal subjects, the SMAL model is learnt from a set of $41$ 3D scans of toy figurines in arbitrary poses. The figurines span five quadruped families, and included examples of lions, cats, tigers, dogs, horses, any many more, although notably for this work no rodent toys were included. The paper introduces a new technique to accurately align each toy scan to a common template, allowing the shape space to be learnt.
 
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
     \begin{subfigure}{0.3\linewidth}
     \centering
@@ -424,7 +424,7 @@ A similar technique to that used to build the SMPL model has been recently used 
     \label{fig:smal_model_shape}
     \end{figure}
 
-    \begin{figure}[H]
+    \begin{figure}[t]
     \centering
     \begin{subfigure}{0.3\linewidth}
     \centering

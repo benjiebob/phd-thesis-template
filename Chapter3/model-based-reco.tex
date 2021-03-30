@@ -213,21 +213,23 @@
 
     % The SMPL model was extended to animals by Zuffi {\em et al.}~\cite{zuffi2017menagerie}, where the lack of motion capture data for animal subjects is cleverly overcome by building the model from $41$ 3D scans of toy figurines from five quadruped families in arbitrary poses. Their paper demonstrates single-frame fits of their model to real-world animal data, showing that despite the model being built from ``artists' impressions'' it remains an accurate model of real animals. This is borne out further by our work.  Their paper did however depend on per-frame human annotated keypoint labels, which would be costly and challenging to obtain for large video sequences. This work was recently extended~\cite{zuffi_lions} with a refinement step that optimizes over model vertex positions. This can be considered independent to the initial SMAL model fit and would be trivial to add to our method.
 
-    % \subsubsection{Learning animal shape from unrelated 2D images}
+    \subsubsection{Learning animal shape from 2D image collections}
     % Early work in reconstructing animals includes Chen et al.~\lazycite{chensharks}{chensharks} who learn a simple shape space by registering 11 3D shark models. 
-    Early work in animals focuses on learning 3D animal shape spaces by registering an input 3D model to image collections. Examples include Chen et al.\lazycite{chensharks}{chensharks} who learn a shark model and Cashman et al.~\cite{cashman2013shape} who recover a parameterized, morphable 3D model from unrelated 2D images depicting examples of the target class. Their method requires user-supplied 2D object outlines and point constraints for each image, and a single rigid mesh for the entire object class. The authors demonstrate recovering an 8-parameter morphable dolphin model from 32 images sourced from the Internet. To reduce required user activity, it is reasonable to assume that given sufficient labelled training data, it would be simple to manipulate a convolutional network architecture able to perform foreground / background segmentation and identify key points (say, joints) for the desired object class. The system achieves impressive results when optimizing over both pose and shape parameters across a range of object classes, but suffers from an overly smooth shape representation which causes trouble for strongly articulated classes such as polar bears.
+    
+    Early work in animals focuses on learning 3D animal shape spaces by registering an input 3D model to image collections. Examples include Chen et al.\lazycite{chensharks}{chensharks} who learn a shark model and Cashman et al.~\cite{cashman2013shape} who recover a parameterized, morphable 3D model from unrelated 2D images depicting examples of the target class. Their method requires user-supplied 2D object outlines and point constraints for each image, and a single rigid mesh for the entire object class. The authors demonstrate recovering an 8-parameter morphable dolphin model from 32 images sourced from the Internet. To reduce required user activity, it is reasonable to assume that given sufficient labelled training data, it would be simple to manipulate a convolutional network architecture able to perform foreground / background segmentation and identify key points (say, joints) for the desired object class. The system achieves impressive results when optimizing over both pose and shape parameters across a range of object classes, but suffers from an overly smooth shape representation which causes trouble for strongly articulated classes such as polar bears. Related is the work of Ntouskos et al.\lazycite{ntouskos}{ntouskos} who use an optimization scheme to combine geometric primitives fit to segmented animal parts.
 
-    \begin{figure}[H] % Example image
+    \begin{figure}[t] % Example image
         \center{\includegraphics[width=0.7\linewidth]{dolphins}}
         \caption{8-parameter dolphin model with annotated contour (left) and contour generators (middle and right).}
         \label{fig:cashman_fitzgibbon}
     \end{figure}
 
-    % \subsubsection{Fitting to animal video sequences (Stebbing)}
+    
+    \subsubsection{Reconstructing animals with unknown skeleton}
 
-    The approach was later extended to articulated classes in work by Stebbing et al.~\cite{arap_stebbing}, who optimize a 3D template model to animal video sequences. In this work, rather than defining an inner skeleton, the template model is rigged with virtual markers, which assign each mesh vertex $v_i$ to one of $M$ groups that share a set of basis rotations $B_{m}$. User interaction is again reuqired to segement the animal from the background and to provide mesh-to-image keypoint correspondences.
+    The approach was later extended to articulated classes in work by Stebbing et al.~\cite{arap_stebbing}, who optimize a 3D template model to animal video sequences. In this work, rather than defining an internal skeleton, the template model is rigged with virtual markers, which assign each mesh vertex $v_i$ to one of $M$ groups that share a set of basis rotations $B_{m}$. User interaction is again reuqired to segement the animal from the background and to provide mesh-to-image keypoint correspondences.
 
-    \begin{figure}[H]
+    \begin{figure}[t]
         \centering
         \begin{subfigure}{0.5\textwidth}
         \centering
@@ -245,22 +247,20 @@
 
     Through reasonably accurate pose fitting and by allowing some pose-invariant shape deformation, this work produces smooth meshes which match the input video. Moreover, experimentation demonstrates that ARAP is a useful prior for reconstructing articulated, non-rigid motion in instances that an internal skeleton is a priori unknown. However, the shape attributes for the reconstructed model are not particularly accurate, which results in frequent errors appearing at internal occluding contours. In addition, the large non-convex optimization algorithm is an expensive operation, taking around 1 minute per video frame on a standard Linux workstation. Results are shown on 11 sequences.
 
-    Results showing this work fitting a crude dog template mesh to a sample video obtained from YouTube are shown previously in Figure \ref{fig:intro_arap_output}. Figure \ref{fig:arap_output} shows another example, which operates on a template impala mesh.
+    Results showing this work fitting a crude dog template mesh to a sample video obtained from YouTube are shown previously in Figure \ref{fig:intro_arap_output}. Figure \ref{fig:arap_output} shows another example, which operates on a template impala mesh. Similar is the technique of Favreau et al.~\lazycite{favreau}{favreau}, who fitting geometric primitives to a 2D video sequence with manually sketched body part labels. % TODO
 
-    \begin{figure}[H]
-        \center{\includegraphics[width=0.95\linewidth]{arapsfm/arap_impala}}
-        \caption{Example of an impala template being fit to input video sequence, reprinted from~\cite{arap_stebbing}}
+    \begin{figure}[t]
+        \center{\includegraphics[width=0.95\linewidth]{arapsfm/arapsfm_output.png}}
+        \caption{Example of an dog template being fit to input video sequence, reprinted from~\cite{arap_stebbing}}
         \label{fig:arap_output}
     \end{figure}
 
-    Related is the work of Ntouskos et al.\lazycite{ntouskos}{ntouskos} who use an optimization scheme to combine geometric primitives fit to segmented animal parts. Favreau et al.~\lazycite{favreau}{favreau} follow a similar approach, fitting geometric primitives to a 2D video sequence with manually sketched body part labels. 
-
-    \subsubsection{Fitting the SMAL mesh to animal images}
+    \subsubsection{Fitting a morphable animal mesh to images}
     % Draw out the silhouette term as important here
     % Talk about subsequent SMALR + SMALST in the same section
     Unfortunately, none of the techniques above are suitable for reconstructing an animal category with significant shape diversity.     Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper15smpl} for human reconstruction) build from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. The authors also discuss a small modification to the SMPLify~\lazycite{smplify}{smplify} approach in order to fit the SMAL model to RGB animal input images. However, an example result showing the result of the optimizer fitting the SMAL mesh to an RGB image of a fox can be seen in Figure \ref{fig:smalify}. The whole optimization process takes around 1 minute per frame. 
 
-    \begin{figure}[H] % Example image
+    \begin{figure}[t] % Example image
         \center{\includegraphics[width=0.95\linewidth]{fitting_smal}}
         \caption{Fitting SMAL to a hand segmented animal, reprinted from~\cite{zuffi2017menagerie}.}
         \label{fig:smalify}
