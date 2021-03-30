@@ -194,33 +194,16 @@
 
 \subsection{Model-based animals}
 
-    Having discussed reconstruction methods for other articulated subjects, this section will move on work related to the main topic of this thesis: 3D reconstruction of animal subjects. As summarized above, there are multiple challenges associated with animals which are not present with humans. Firstly, the general class of animal subjects is significantly more diverse in appearance and structure than the human category. This even holds (although to a lesser extent) with various important animal subcategorizations, such as the class of medium-to-large quadrupeds, dog breeds, or birds. This diversity leads to challenges when designing 3D morphable models, since extreme deformations must allowed while penalizing even subtle adapations deemed unnatural. Also of concern are the significant variations in animal motion patterns (causing complex self-occlusion), body textures including fur (which vary even within breeds) and difficult environmental conditions. An interesting advantageous aspect to reconstructing animals is that they are less frequently clothed; a common nusiance factor for human reconstruction. These factors combined with practical challenges associated with capturing and annotating images has also led to a lack of open-source datasets which depict animal subjects. Of particular concern to this thesis is the lack of 3D training data captured from real animal subjects (typically using motion capture or static scans). Equivalent resources made available for humans have been used as a basis for building 3D morphable models (e.g. SMPL~\cite{loper15smpl}, FAUST~\lazycite{FAUST}{FAUST}), for learning priors over human shape and pose~\lazycite{learning priors}{learning priors}, and to provide per-image 3D supervisation when training deep neural networks~\cite{kanazawa18end-to-end}. Despite being a relatively young research field, there are a number of works which specifically target 3D animal reconstruction which make a formal review of the literature worthwhile.
+    Having discussed reconstruction methods for other articulated subjects, this section will move on work related to the main topic of this thesis: 3D reconstruction of animal subjects. As summarized above, there are multiple challenges associated with animals which are not present with humans. Firstly, the general class of animal subjects is significantly more diverse in appearance and structure than the human category. This holds (although to a lesser extent) with various important animal subcategorizations, such as the class of medium-to-large quadrupeds, dog breeds, or birds. This diversity leads to challenges when designing 3D morphable models, since extreme deformations must allowed while penalizing even subtle adapations deemed unnatural. Also of concern are the significant variations in animal motion patterns (causing complex self-occlusion), body textures including fur (which vary even within breeds) and difficult environmental conditions. An interesting advantageous aspect to reconstructing animals is that they are less frequently clothed; a common nusiance factor for human reconstruction. These factors combined with practical challenges associated with capturing and annotating images has also led to a lack of open-source datasets which depict animal subjects. Of particular concern to this thesis is the lack of 3D training data captured from real animal subjects (typically using motion capture or static scans). Equivalent resources made available for humans have been used as a basis for building 3D morphable models (e.g. SMPL~\cite{loper15smpl}, FAUST~\lazycite{FAUST}{FAUST}), for learning priors over human shape and pose~\lazycite{learning priors}{learning priors}, and to provide per-image 3D supervisation when training deep neural networks~\cite{kanazawa18end-to-end}. Thankfully, online animal imagery which could serve as the basis for future datasets is plentiful, as are datasets with 2D silhouette data~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}. A formal comparison is given in \Cref{tab:animal-dsets}.  While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. However, the creative approaches used in these methods makes a formal review worthwhile. A summary of recent approaches is tabulated in \Cref{tab:literature}.
     
-    \subsubsection{Animal datasets}
-    
-    Due to the contrast in the availability of open source datasets for animlas compared with human categories, this section provides an overview of the available resources. Table 10 provides a formal review.
-
     \input{Chapter3/animal-dsets-tbl.tex}
-
-    \subsubsection{}
-
-
-
-    (eitherdepicting animal subjects. large scale 3D datasets stemming from the practical challenges associated with 3D motion capture, as well as a lack of 2D data which captures a wide variety of animals. The recent Animal Pose dataset~\cite{animalpose} is one such 2D alternative, but contains significantly fewer labelled images than our new StanfordDogs dataset (4,000 compared to 20,580 in ). 
-    On the other hand, animal silhouette data is plentiful~\cite{lin2014microsoft,everingham2010pascal,DAVIS2017-2nd}.
 
     \input{Chapter3/lit-review-tbl.tex}
 
-    Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
-    It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
-    Thus we claim that the achievement of reconstructing a full range of dog breeds, 
-    with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
-
-
-
-    While animals are often featured in computer vision literature, there are still relatively few works that focus on accurate 3D animal reconstruction. 
-
-    
+    % Table~\ref{tab:literature} summarizes previous work on animal reconstruction.
+    % It is interesting to note that while several papers demonstrate reconstruction across species, which {\em prima facie} is a richer class than just dogs, the test-time requirements (e.g. manually-clicked keypoints/silhouette segmentations, input image quality etc.) are considerably higher for those systems.
+    % Thus we claim that the achievement of reconstructing a full range of dog breeds, 
+    % with variable fur length, varying shape and pose of ears, and with considerable occlusion, is a significant contribution.
 
     % \subsubsection{Animals intro}
 
@@ -230,8 +213,9 @@
 
     % The SMPL model was extended to animals by Zuffi {\em et al.}~\cite{zuffi2017menagerie}, where the lack of motion capture data for animal subjects is cleverly overcome by building the model from $41$ 3D scans of toy figurines from five quadruped families in arbitrary poses. Their paper demonstrates single-frame fits of their model to real-world animal data, showing that despite the model being built from ``artists' impressions'' it remains an accurate model of real animals. This is borne out further by our work.  Their paper did however depend on per-frame human annotated keypoint labels, which would be costly and challenging to obtain for large video sequences. This work was recently extended~\cite{zuffi_lions} with a refinement step that optimizes over model vertex positions. This can be considered independent to the initial SMAL model fit and would be trivial to add to our method.
 
-    \subsubsection{Learning animal shape from unrelated 2D images}
-    Cashman and Fitzgibbon~\cite{cashman2013shape} introduce an optimization technique able to recover a parameterized, morphable 3D model from unrelated 2D images depicting examples of the target class. The method requires user-supplied 2D object outlines and point constraints for each image, and a single rigid mesh for the entire object class. The authors demonstrate recovering an 8-parameter morphable dolphin model from 32 images obtained from Google. To reduce required user activity, it is reasonable to assume that given sufficient labelled training data, it would be simple to manipulate a convolutional network architecture able to perform foreground / background segmentation and identify human key points (say, joints) for the desired object class. The system achieves impressive results when optimizing over both pose and shape parameters across a range of object classes, but struggles for articulated models such as polar bears.
+    % \subsubsection{Learning animal shape from unrelated 2D images}
+    % Early work in reconstructing animals includes Chen et al.~\lazycite{chensharks}{chensharks} who learn a simple shape space by registering 11 3D shark models. 
+    Early work in animals focuses on learning 3D animal shape spaces by registering an input 3D model to image collections. Examples include Chen et al.\lazycite{chensharks}{chensharks} who learn a shark model and Cashman et al.~\cite{cashman2013shape} who recover a parameterized, morphable 3D model from unrelated 2D images depicting examples of the target class. Their method requires user-supplied 2D object outlines and point constraints for each image, and a single rigid mesh for the entire object class. The authors demonstrate recovering an 8-parameter morphable dolphin model from 32 images sourced from the Internet. To reduce required user activity, it is reasonable to assume that given sufficient labelled training data, it would be simple to manipulate a convolutional network architecture able to perform foreground / background segmentation and identify key points (say, joints) for the desired object class. The system achieves impressive results when optimizing over both pose and shape parameters across a range of object classes, but suffers from an overly smooth shape representation which causes trouble for strongly articulated classes such as polar bears.
 
     \begin{figure}[H] % Example image
         \center{\includegraphics[width=0.7\linewidth]{dolphins}}
@@ -239,10 +223,9 @@
         \label{fig:cashman_fitzgibbon}
     \end{figure}
 
+    % \subsubsection{Fitting to animal video sequences (Stebbing)}
 
-    \subsubsection{Fitting to animal video sequences (Stebbing)}
-
-    Stebbing et al.~\cite{arap_stebbing} introduce a technique capable of fitting a template mesh to live video sequences for a range of different animal species. Some user interaction is required in order to segment the animal from the background and to provide sparse 3D-mesh-to-2D-image key point correspondences. This work only operates on input video sequences (rather than single frames), so a number of temporal terms are incorporated that encourage sensible inter-frame model deviation. The system requires an annotated input template mesh representative of the target animal species. Note that this work does not require the template mesh to have an inner skeletal structure. However, the user assists an ARAP-style term by assigning each mesh vertex $v_i$ to one of $M$ groups which share a set of basis rotations $B_{m}$. 
+    The approach was later extended to articulated classes in work by Stebbing et al.~\cite{arap_stebbing}, who optimize a 3D template model to animal video sequences. In this work, rather than defining an inner skeleton, the template model is rigged with virtual markers, which assign each mesh vertex $v_i$ to one of $M$ groups that share a set of basis rotations $B_{m}$. User interaction is again reuqired to segement the animal from the background and to provide mesh-to-image keypoint correspondences.
 
     \begin{figure}[H]
         \centering
@@ -260,7 +243,7 @@
         \label{fig:arap_user}
     \end{figure} 
 
-    Through reasonably accurate pose fitting and by allowing some pose-invariant shape deformation, this work produces smooth meshes which are often a good match to the input video. Moreover, their experimentation shows that ARAP is a useful prior for reconstructing articulated, non-rigid motion in instances that an internal skeleton is a priori unknown. However, the shape attributes for the reconstructed model are not particularly accurate, which results in frequent errors appearing at internal occluding contours. In addition, the large non-convex optimization algorithm is an expensive operation, taking around 1 minute per video frame on a standard Linux workstation.
+    Through reasonably accurate pose fitting and by allowing some pose-invariant shape deformation, this work produces smooth meshes which match the input video. Moreover, experimentation demonstrates that ARAP is a useful prior for reconstructing articulated, non-rigid motion in instances that an internal skeleton is a priori unknown. However, the shape attributes for the reconstructed model are not particularly accurate, which results in frequent errors appearing at internal occluding contours. In addition, the large non-convex optimization algorithm is an expensive operation, taking around 1 minute per video frame on a standard Linux workstation. Results are shown on 11 sequences.
 
     Results showing this work fitting a crude dog template mesh to a sample video obtained from YouTube are shown previously in Figure \ref{fig:intro_arap_output}. Figure \ref{fig:arap_output} shows another example, which operates on a template impala mesh.
 
@@ -270,14 +253,12 @@
         \label{fig:arap_output}
     \end{figure}
 
+    Related is the work of Ntouskos et al.\lazycite{ntouskos}{ntouskos} who use an optimization scheme to combine geometric primitives fit to segmented animal parts. Favreau et al.~\lazycite{favreau}{favreau} follow a similar approach, fitting geometric primitives to a 2D video sequence with manually sketched body part labels. 
 
     \subsubsection{Fitting the SMAL mesh to animal images}
     % Draw out the silhouette term as important here
     % Talk about subsequent SMALR + SMALST in the same section
-    The SMAL paper briefly discusses a modification to the SMPLify approach in order to fit the SMAL model to RGB animal input images. The terms are largely the same, although the interpenetration term is omitted and joint positions are provided manually, rather than being predicted by a CNN. Finally, the optimizer requires a pre-segmented (i.e.\ silhouette) image which is also supplied by a user. An approach discussed in Chapter 4 builds on this work, so an in-depth description of this method is ommited here. However, an example result showing the result of the optimizer fitting the SMAL mesh to an RGB image of a fox can be seen in Figure \ref{fig:smalify}. Note that the whole optimization process takes around 1 minute per frame.
-
-    Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution to 3D animal reconstruction research by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper15smpl} for human reconstruction) from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. In this work we develop \emph{SMBLD}, an extension of SMAL that better represents the diverse dog category by adding scale parameters and refining the shape prior using our large image dataset.
-
+    Unfortunately, none of the techniques above are suitable for reconstructing an animal category with significant shape diversity.     Zuffi et al.~\cite{zuffi2017menagerie} made a significant contribution by releasing SMAL, a deformable 3D quadruped model (analagous to SMPL~\cite{loper15smpl} for human reconstruction) build from $41$ scans of artist-designed toy figurines. The authors also released shape and pose priors generated from artist data. The authors also discuss a small modification to the SMPLify~\lazycite{smplify}{smplify} approach in order to fit the SMAL model to RGB animal input images. However, an example result showing the result of the optimizer fitting the SMAL mesh to an RGB image of a fox can be seen in Figure \ref{fig:smalify}. The whole optimization process takes around 1 minute per frame. 
 
     \begin{figure}[H] % Example image
         \center{\includegraphics[width=0.95\linewidth]{fitting_smal}}
@@ -285,6 +266,7 @@
         \label{fig:smalify}
     \end{figure}
 
+    The terms of the optimization largely mirror the work of SMALify, although the interpenetration term is ommited and joints are provided manually rather than by a CNN. Importantly, the optimization incoporates an additional \emph{silhouette} term which aligns the 3D model shape to a binary silhouette image extracted by a user. Chapter 4 of this thesis shows silhouette terms are of particular importance when reconstructing accurate animal shape. The following definition describes the process for differentiably rendering a 3D model to form a silhouette image which can then be compared to the provided 2D silhouette:
 
     \begin{definition}[Differentiable Rendering]
         The process of generating a 2D image from a 3D polygon mesh is known as rendering and can be achieved through a process known as raytracing. Raytracing is a rendering technique able to generate photorealistic 2D images from the scene. It can be considered the opposite process by which the human eye perceives the world, as this method involves lines being cast outwards, beginning at a point known as the \emph{camera origin}. Figure \ref{fig:raycasting} shows a typical set up, in which rays are cast from the camera origin through each pixel on the image plane. The colour for the pixel is obtained by following the ray through the scene until a light source or non-reflective surface is reached, taking into account any reflections or non-opaque scene items. Due to the considerable comptuation required, the operation is often parallelized and assigned to the GPU. However, the technique is typically considered unsuitable for real-time rendering of complex scenes (due to complex ray paths) or when high resolution images (many rays required) are needed. However, for this work, scenes are typically made up of a single non-reflective, solid mesh surface and contain no complex elements (e.g.\ shadows, non-constant lighting.
@@ -298,13 +280,20 @@
         It is also worth noting that the standard method for raycasting is not differentiable, causing problems for differentiable optimizers (including neural networks). However, alternative rendering methods~\cite{loper2014opendr} are available for these purposes.
     \end{definition}
 
-    The SMAL authors~\cite{zuffi2017menagerie} demonstrate fitting their deformable 3D model to quadruped species using user-provided keypoint and silhouette dataset. SMALR~\cite{zuffi_lions} then demonstrated fitting to broader animal categories by incorporating multi-view constraints from video sequences. 3D-Safari~\cite{Zuffi19Safari} further improve by training a deep network on synthetic data (built using SMALR~\cite{zuffi_lions}) to recover detailed zebra shapes in the wild. Chapter 4 of this this will present a method that overcomes the need for hand-clicked keypoints by training a joint predictor on synthetic data. 
+    The SMAL authors~\cite{zuffi2017menagerie} demonstrate their system by fitting their deformable 3D model to quadruped species. Subsequent work includes SMALR~\cite{zuffi_lions}, who fit to multiple images of an animal and incoporate similar freeform deformation term used to model clothing in 3D human pipelines. They show their technique, which takes advantage of multi-view constraints afforded by fitting to video sequences, allows high-quality reconstructions of more exotic animal categories with details not covered in the original SMAL 3D model training set. 
+    
+    A common property of techniques discussed so far is the reliance on manual annotations (commonly 2D silhouettes and keypoint correspondences) at test time. 3D-Safari~\cite{Zuffi19Safari} overcome this by training a deep network on synthetic data (generated by applying SMALR~\cite{zuffi_lions} on a large input dataset) to recover detailed zebra shapes in the wild. Chapter 4 of this thesis demonstrates a technique which overcomes the need for a large input dataset of joint annotations by training on synthetic data generated from the graphics model alone. 
+    
+    A further drawback of the approaches is their reliance on a test-time energy-based optimization procedure, which is susceptible to failure with poor quality keypoint/silhouette predictions and increases the computational burden. Chapter 5 of this method presents an automatic reconstruction method that overcomes the need for additional energy-based refinement, and is trained purely from single in-the-wild images. 
+    
+    Tangential to these approaches is the work of Kulkarni et al.\lazycite{Canonical Surface Mapping}{Canonical Surface Mapping} who reconstruct pose (although not shape) parameters for an rigged mesh using a deep network, learning from geometry cycle consistency terms rather than annotated keypoints. However, the shape is fixed to the input mesh and pose is also often confused, particularly determining the difference between the legs. The results appear of significantly poorer quality than the work in Chapter 5 of this thesis. Also of consideration is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds} and subsequent paper which overcomes the need for keypoints by capturing uncertainty in camera viewpoints. In addition, their network does not require an input 3D morphable model, although they do initialize a sphere model to a mean bird. In addition, the bird category exhibits more limited articulation than our dog category. 
+    
+    
+    % TODO:
+    %Finally, there are techniques which do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}.
+    % Unsupervised Learning of Probably Symmetric Deformable 3D Objects from Images in the Wild
+    % Canonical Surface Mapping via Geometric Cycle Consistency https://arxiv.org/abs/1907.10043
 
-    A drawback of these approaches is their reliance on a test-time energy-based optimization procedure, which is susceptible to failure with poor quality keypoint/silhouette predictions and increases the computational burden. Chapter 5 of this method presents an automatic reconstruction method that overcomes the need for additional energy-based refinement, and is trained purely from single in-the-wild images.
-
-    \subsubsection{Model-free techniques}
-
-    While there have been various ``model-free'' approaches which do not rely on an initial template model to generate the 3D animal reconstruction, these techniques often do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}. An exception is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds}, although we argue that the bird category exhibits more limited articulation than our dog category.
 
 
 % \subsubsection{Literature review tables}
