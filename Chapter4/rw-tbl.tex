@@ -1,0 +1,121 @@
+
+
+% \newcommand{\awfhang}[1]{
+%     \begin{minipage}[t]{\textwidth}% Top-hanging minipage, will align on
+%                                    % bottom of first line
+%     \begin{tabbing} % tabbing so that minipage shrinks to fit
+%     \\[-\baselineskip] % Make first line zero-height
+%     #1 % Include user's text
+%     \end{tabbing}
+%     \end{minipage}} % can't allow } onto next line, as {WIDEBOX}~x will not tie.
+    
+    \newcolumntype{L}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
+    \newcolumntype{R}[1]{>{\RaggedLeft\hspace{0pt}}p{#1}}
+    
+    \begin{table}[t!]
+    {\sffamily
+    \scriptsize
+    \def\hd#1{\awfhang{#1}}
+    \begin{tabular}{@{}L{20mm}%Paper
+    L{10mm}%Year
+    |L{12mm}%Class
+    L{15mm}%Train
+    |L{15mm}%Template
+    L{17mm}%Video
+    L{17mm}%Test
+    |L{9mm}%Model
+    L{5mm}%Size
+    @{}}
+    \hd{Paper}%
+    &\hd{Release\\Year}%
+    &\hd{Animal\\Class}%
+    &\hd{Training\\requirements}%
+    &\hd{Template\\Model}%
+    &\hd{Video\\required}%
+    &\hd{Test Time\\Annotation}%
+    &\hd{Model\\Fitting}%
+    &\hd{Test\\Size}%
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    What Shape are Dolphins~\cite{cashman2013shape}
+    & 2013
+    & Dolphins, Pigeons 
+    & Not trained
+    & Dolphin Template
+    & 25 frames / category & J2, S2 & Yes & 25
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    Animated 3D Creatures~\cite{reinert2016animatedsketching}
+    & 2016
+    & MLQ
+    & Not trained
+    & Generalized Cylinders
+    & Yes & J2, S2 & Yes & 15
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    3D Menagerie (SMAL)~\cite{zuffi2017menagerie}       
+    & 2017         
+    & MLQ 
+    & Not trained
+    & SMAL
+    & No & J2, S2 & Yes & 48 
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    Category Specific Mesh Reconstructions~\cite{kanazawa2018birds}
+    & 2018
+    & Birds
+    & J2, S2
+    & Bird convex hull
+    & No & None & No & 2850          
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    Lions, Tigers and Bears (SMALR)~\cite{zuffi_lions} 
+    & 2018
+    & MLQ
+    & Not trained
+    & SMAL
+    & 3-7 frames / animal & J2, S2 & Yes & 14
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    This paper
+    & 2018
+    & MLQ
+    & Not trained
+    & SMAL
+    & Yes & S2 (for best results shown) & Yes & 9
+    \\\hline 
+    %%%%%%%%%%%%%%%%%%%%%%
+    Who Left the Dogs Out?
+    & 2018
+    & Dogs  % 2D Joints, Silhouettes, 3D Template, 3D Priors
+    & J2, S2, T3, P3
+    & SMAL
+    & No & None & No & 1703
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    3D-Safari~\cite{Zuffi19Safari}        
+    & 2019
+    & Zebras, horses
+    % 3D models (albeit synthetic), 2D Joints,  Silhouettes,  3D Priors
+    & M3 (albeit synthetic), J2, S2, P3
+    & SMAL
+    & 3-7 frames / animal & None & Yes & 200
+    \\\hline
+    %%%%%%%%%%%%%%%%%%%%%%
+    U-CMR~\cite{Zuffi19Safari}        
+    & 2020
+    & Birds
+    % 3D models (albeit synthetic), 2D Joints,  Silhouettes,  3D Priors
+    & M3 (albeit synthetic), J2, S2, P3
+    & Bird convex hull
+    & 3-7 frames / animal & None & Yes & 200
+    \\\hline
+    \end{tabular}
+    }
+    \caption{Literature summary: Analysis of required input annotations.
+    MLQ: Medium-to-large quadrupeds. J2: 2D Joints. S2: 2D Silhouettes. T3: 3D Template. P3: 3D Priors. M3: 3D Model.}
+    \label{tab:animal-annot-tab}
+    % \vspace{-8mm}
+    \end{table}
+    
+    
