@@ -36,37 +36,52 @@
 
 \section{Introduction}
 
-This chapter introduces a system for recovering the 3D shape and motion of a wide variety of quadrupedial animals from video. Inspired by the techniques from the recent human body and hand tracking literature (most notably SMPLify~\cite{bogo16keep}), the system comprises a machine learning front-end which predicts candidate 2D joint positions, a discrete optimization which finds kinematically plausible joint correspondences, and an energy minimization stage which fits a detailed 3D model to the image. However, the transfer from reconstructing 3D human subjects to animal subjects reveals a number of key challenges which transferring from reconstructing 3D human subjects to animal subjects is non-trivial and gives rise to a number of challenges. 
+    This chapter introduces a system for recovering the 3D shape and motion of a wide variety of quadrupedial animals from video. Inspired by techniques from the recent human body and hand tracking literature (most notably SMPLify~\cite{bogo16keep}), the system comprises a machine learning front-end for predicting 2D joint positions followed by an energy minimization stage which fits a detailed 3D model to the image. However, this chapter will discuss a number of key challenges which arise when reconstructing animal subjects compared with humans and methods to overcome them.
 
-For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species. In the case of SMPLify, the network is trained on large-scale human keypoint datasets, including MPII~\cite{andriluka14cvpr} (approx. 40,000 people) and the Leeds Sport Dataset~\cite{johnson2010clustered}. Unfortunately, there is no keypoint dataset for animals that cover even a small fraction of the quadruped types that we aim to reconstruct. 
+\subsection{Limited animal training data}
+    For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species. In the case of SMPLify, the network is trained on large-scale human keypoint datasets, including MPII~\cite{andriluka14cvpr} (approx. 40,000 people) and the Leeds Sport Dataset~\cite{johnson2010clustered}. Unfortunately, there is no keypoint dataset for animals that cover even a small fraction of the quadruped types that we aim to reconstruct. 
 
-Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities. For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+    Of greater concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities. For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
 
-These dataset challenges have, at least in part, resulted in the lack of \emph{automatic} approaches for 3D animal reconstruction. Precisely, prior to the design of the system discussed in this chapter, 3D animal reconstruction techniques relied on at least one of manually provided silhouettes, keypoint locations or limb tracks. The techniques are summarized in \Cref{tab:animal-annot-tab} and discussed in depth in \Cref{chap:relwork}. 
+    These dataset challenges have, at least in part, resulted in the lack of \emph{automatic} approaches for 3D animal reconstruction. Precisely, prior to the design of the system discussed in this chapter, 3D animal reconstruction techniques relied on at least one of manually provided silhouettes, keypoint locations or limb tracks. The techniques are summarized in \Cref{tab:animal-annot-tab} and discussed in depth in \Cref{chap:relwork}. 
 
-\input{Chapter4/rw-tbl.tex}
+    \input{Chapter4/rw-tbl.tex}
 
 
 \subsection{Synthetic image generation}
 
-In the absence of real-world motion capture data then, the system incoporates as data generation method which allows training from synthetically generated images. Here, humans and animals share an advantage in the availability of parameterized 3D models of shape and pose.  The recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} can generate a wide range of quadruped species, although is far less detailed than the human counterpart and comes without surface texture maps.The use of synthetic images to train 3D reconstruction systems has been previously explored in the literature. The general approach is to capture training images by randomly sampling a camera viewpoint and rendering a representative 3D model. A machine learning model is then trained on these synthetic images and later tested on the real-world examples. This procedure offers an important practical advantage; the training images can be automatically generated with correponding annotations. Depending on the task, this can overcome a lengthy and complex process of sourcing manual annotations from users. However, designing a generation pipeline $G: (V, T) \mapsto \RRR{H}{W}{3}$ which can be applied to produce a synthetic dataset $D_{synth}$ with sufficient realism to be representative of the test image dataset $D_{real}$ is challenging. The underlying differences between datasets $D_{synth}$ and $D_{real}$ is often described as the \emph{domain gap} which must be bridged in order to achieve a successful predictor. 
+    In the absence of real-world motion capture data, the recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} offers a method for \emph{synthetic} data generation. Analogous in design to the popular SMPL~\cite{loper15smpl} parametric human model, SMAL can generate a wide range of quadruped species. As discussed in \Cref{chap:relwork}, SMAL overcomes the lack of 3D animal training data by instead learning from 41 scans of toy figurines. This results in SMAL being of considerably lower fidelity than the SMPL, which was constructed from 1786 3D human scans. However, the model's PCA shape space offers a mechanism for sampling potentially infinite quadruped animals of satisfactory realism which can form a valuable training dataset.
+    
+    % comes without surface texture maps. 
+    The use of synthetic images to train 3D reconstruction systems has been attempted in recent computer vision literature. The general approach is to capture training images by capturing multiple images of a representative 3D model (or scene) by randomly sampling camera and environmental parameters. A machine learning model is then trained on this dataset $D_{synth}$ of synthetic images and later tested on a dataset $D_{real}$ of real-world examples. This procedure offers an important practical advantage; the training images can be automatically generated with correponding annotations. Depending on the task, this can overcome a lengthy and complex process of sourcing manual annotations from users. However, designing a data pipeline which can generate synthetic images with sufficient realism to be representative of real test images $D_{real}$ is challenging. A common pitfall of such approaches is the tendancy to train machine learning models that perform well on unseen synthetic images but poorly on real world examples. This phenomenon is often caused by systematic differences between the $D_{synth}$ and $D_{real}$, resulting in the model becoming overreliant on features present only in $D_{synth}$ or unfamiliar with features present only in $D_{real}$. The differences between datasets is often described as the \emph{domain gap} which must be bridged in order to achieve a successful predictor. 
 
-Fortunately, there are a number of available methodologies for approaching this. One popular strategy is to ensure the generation pipeline $G$ is of extremely high quality. SURREAL\lazycite{SURREAL}{SURREAL} is a method which learns from synthetic human images rendered from the popular SMPL~\cite{loper15smpl} parametric model. In this work, the authors go to significant effort to source realistic UV texture maps for SMPL and apply a high quality rendering engine complete with a lighting and reflectance model to generate their training images. A similar approach is followed by SMALST, who follow a multi-view optimization pipeline to construct a synthetic zebra dataset complete with realistic textures. Related also is the work of \lazycite{GTA-Cars}{GTA-Cars} who use a images rendered from a popular video game engine to teach an automous agent to drive with reinforcement learning. 
+    %Review paper: https://arxiv.org/pdf/1909.11512.pdf?fbclid=IwAR2FuZvNAlIGuyh2wtVEmj_rLzjaJvCjMNWP_svBqhMtnXcEX-NV9z8rR7g
+    Fortunately, there are a number of options for tackling this problem. A popular strategy is to ensure the generation pipeline is of extremely high quality. SURREAL\lazycite{SURREAL}{SURREAL} is a method which learns from synthetic human images rendered using the popular SMPL~\cite{loper15smpl} parametric model. In this work, the authors go to significant effort to source realistic UV texture maps for SMPL and apply a high quality rendering engine complete with a lighting and reflectance model to generate their training images. A similar approach is followed by SMALST \lazycite{SMALST}{SMALST}, who follow a multi-view optimization pipeline to construct a synthetic zebra training dataset complete with realistic textures. Related also are autonomous driving systems that train (or pre-train) on synthetic `virtual worlds' \lazycite{https://arxiv.org/pdf/1605.06457.pdf?fbclid=IwAR0RtcIEKYgghwD5uo_TSwesiD2XuhqaQtuoTaQe2omp-QCdzJv4O3PjBjU}{Virtual Worlds}. An alternative option is to process the test image dataset to find a representation which is easier to synthesise. For 3D human skeleton prediction, Shotton et al.~\cite{shotton-kinect} synthetise a set of depth images used to train a keypoint regressor. An unfortunate byproduct of this training style however is that it necessitates a depth sensor at test time. 
 
-An alternative option is to process the test images to find a representation which is easier to synthesise. In the case of humans, Shotton et al.~\cite{shotton-kinect} synthetise a training set of depth images which is then used to learn a keypoint regressor. An unfortunate byproduct of this training style however is the reliance on a depth sensor at test time. Another category of approaches are found in optical flow. Optical flow is an example of a dense point correspondence task: given two frames $I_{i}, I_{i+1}$ a model should predict a \emph{flow field} $f: \RR{H}{W} \mapsto \RR{H}{W}$. Of course, for this task the most important learning signal is obtained through observing object and camera \emph{motion}. For this reason, multiple models are trained using the FlyingChairs dataset: since natural scenes are complex to generate, models can just learn from flow directly. % Tidy up this argument
+    %Related also is the work of \lazycite{GTA-Cars}{GTA-Cars} who use a images rendered from a popular video game engine to teach an automous agent to drive with reinforcement learning. 
+    %Another category of approaches are found in optical flow. Optical flow is an example of a dense point correspondence task: given two frames $I_{i}, I_{i+1}$ a model should predict a \emph{flow field} $f: \RR{H}{W} \mapsto \RR{H}{W}$. Of course, for this task the most important learning signal is obtained through observing object and camera \emph{motion}. For this reason, multiple models are trained using the FlyingChairs dataset: since natural scenes are complex to generate, models can just learn from flow directly. % Tidy up this argument
 
-The alternative, used in this work, is to generate 2D silhouette images so that machine learning will predict joint heatmaps from silhouettes only.
+    A significant advance has been made recently with the introduction of generative adversarial networks (GANs). The idea of a GAN is to train two `competing' networks: the \emph{generator} is tasked with producing synthetic images and the \emph{discriminator} determines if a given input image originated in a real-world dataset or was instead synthesized by the generator. These two networks are given opposite goals: the generator is penalized if it fails to `fool' the discriminator, and the discriminator is penalized if it fails to recognize a synthesized image. By training these networks jointly, the generator eventually learns to produce synthetic images of extremely high quality, since the discriminator provides feedback on even subtle aspects of the synthetic images which are unreaslistic. Despite the remarkable quality of `GANerated' images, the challenge of conditioning GANs to generate \emph{structured} images is still an evolving field. For example, a sensible challenge might be to train a GAN to generate UV texture maps for the SMAL model. 
+    
+    
+    of this is that there should be an analoug% TODO: Justify why GANs are a bad idea...
+    % Mode collapse
+    % With GANs, there should be an anology between shapes in the real and synthetic set. However, it's difficult to render synthetic shapes which match shapes in an unlabelled test dataset. 
+    
+    The system presented in this section adopts an alternative (and much simpler) approach for synthetic image generation. The idea builds on the realisation that a 2D silhouette image encodes a significant amount of the object's shape features, and by virtue of being textureless and having no background detail is much simpler to synthesise. As previously discussed, there are also a great number of `off-the-shelf' image segmentation engines which can produce accurate animal silhouettes of a high quality. 
 
-A recent option for synthetic image generation is that of generative adversarial networks. 
+    The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
+
 
 \subsection{Handling silhouette ambiguity}
 
-An unfortunate drawback of using silhouette images (for example, when compared to RGB or depth counterparts) is the missing interior contours leads to a source of reconstruction ambiguity. An example of this is shown in Figure 6 in which two distinct 3D reconstructions are shown to yield similar 2D silhouette reprojections. Clearly, a naive joint predictor which regreses a single set of 2D coordinates from an input silhouette would perform suboptimally, since the silhouette alone contains insufficient information to resolve such cases. For this reason, 
+    An unfortunate drawback of using silhouette images (for example, when compared to RGB or depth counterparts) is that missing interior contours leads to a source of reconstruction ambiguity. An example of this is shown in Figure 6 in which two distinct 3D reconstructions are shown to yield similar 2D silhouette reprojections. Clearly, a naive joint predictor which regreses a single set of 2D coordinates from an input silhouette would perform suboptimally, since the silhouette alone contains insufficient information to resolve such cases. 
+
+    However, the fact that the system is designed to accept a video sequence as input (rather than a single frame) provides additional information which can be used to resolve per-frame ambiguities. This section describes a method for incoporating temporal knowledge in order to obtain a reliable set of predicted 2D joint coordinates that later form the basis for the 3D model fitting stage. The key insight is to modify a standard joint heatmap predictor~\lazycite{hourglassnet} {hourglassnet} in order to encourage multi-modal outputs, both when trained on synthetic data and later tested on real world frames. A novel discrete optimization stage is then used to recover the skeleton trajectory of maximal likelihood from the sequence of multi-modal predictions. This section will explore two methods for achieving this: the first frames the problem as a quadratic program and the later provides achieves a significant efficiency improvement by using a genetic algorithm. 
 
 
 %The system comprises a machine learning front-end which predicts candidate 2D joint positions, a discrete optimization which finds kinematically plausible joint correspondences, and an energy minimization stage which fits a detailed 3D model to the image. 
 
-The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
 
 % The core methodologies are inspired by techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting. A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
 
@@ -103,7 +118,8 @@ Alternative view shown in (f).
 \label{fig:overview}
 \end{figure}
 
-Taking into account the above constraints, this work applies a novel strategy to animal tracking, which assumes a machine-learning approach to extraction of animal silhouettes from video, and then fits a parameterized 3D model to silhouette sequences.  We make the following contributions:
+\subsection{Contributions}
+Taking into account the above constraints, this work applies a novel strategy to animal tracking, which assumes a machine-learning approach to extraction of animal silhouettes from video, and then fits a parameterized 3D model to silhouette sequences.  The system exhibits the following contributions:
 \begin{itemize}
 \item A machine-learned mapping from silhouette data of a large class of quadru\-peds to generic 2D joint positions.
 \item A novel optimal joint assigment (OJA) algorithm extending the bipartite matching of Cao {\em et al.}~\cite{cao2017realtime} in two ways, one which can be cast as a quadratic program (QP), and an extension optimized using a genetic algorithm (GA).
@@ -112,7 +128,7 @@ Taking into account the above constraints, this work applies a novel strategy to
 Previous work in 3D animal reconstruction has relied on bespoke hand-clicked keypoints~\cite{zuffi2017menagerie,zuffi_lions} and little quantitative evaluation of performance could be given.
 The sequences exhibit a range of animals, are selected to capture a variety of animal movement and include some challenging visual scenarios such as occlusion and motion blur.
 \end{itemize}
-The system is outlined in \figref{overview}.  The remainder of the paper describes related literature before a detailed description of system components.  Joint accuracy results at multiple stages of the pipeline are reported on the new BADJA dataset, which contains ground truths for real animal subjects. We also conduct experiments on synthetic animal videos to produce joint accuracy statistics and full 3D mesh comparisons. A qualitative comparison is given to recent work~\cite{zuffi2017menagerie} on the related single-frame 3D shape and pose recovery problem. The paper concludes with an assessment of strengths and limitations of the work.
+The system is outlined in \figref{overview}.  The remainder of the paper provides a detailed description of system components.  Joint accuracy results at multiple stages of the pipeline are reported on the new BADJA dataset, which contains ground truths for real animal subjects. Experiments are also conducted on synthetic animal videos to produce 3D joint accuracy statistics and full mesh comparisons. A qualitative comparison is given to recent work~\cite{zuffi2017menagerie} on the related single-frame 3D shape and pose recovery problem. The paper concludes with an assessment of strengths and limitations of the work.
 
 % \subsection{Related Work}
 % In this section, we will discuss work specifically related to this paper. The broad 
@@ -157,39 +173,38 @@ The system is outlined in \figref{overview}.  The remainder of the paper describ
 
 \subsection{Deformable 3D quadruped model}
 
-This section will formally define the deformable 3D model that is used to generate synthetic training data and will also be used in the model fitting stage to obtain the final mesh. We are given a deformable 3D model such as SMAL~\cite{zuffi2017menagerie} which parametrizes a 3D mesh as a function of {\em pose} parameters~$\pose \in \R\npose$ (e.g.\ joint angles) and {\em shape} parameters~$\shape \in \R\nshape$. 
-In detail, a 3D mesh is an array of vertices $\verts \in \RR 3\nverts$ (the vertices are columns of a $3 \times \nverts$ matrix) and a set of triangles represented as integer triples $(i,j,k)$, which are indices into the vertex array.
-A deformable model such as SMPL or SMAL may be viewed as supplying a set of triangles, and a function
+This section provides a formal definition for the deformable 3D model that is used to generate synthetic training data and in the model fitting stage to obtain the final mesh. Our system assumes a deformable 3D model such as SMAL~\cite{zuffi2017menagerie} which parametrizes a 3D mesh as a function of {\em pose} parameters~$\pose \in \R\npose$ (e.g.\ joint angles) and {\em shape} parameters~$\shape \in \R\nshape$. 
+As discussed in \Cref{chap:relwork}, a 3D mesh is an array of vertices $\verts \in \RR 3\nverts$ (the vertices are columns of a $3 \times \nverts$ matrix) and a set of triangles represented as integer triples $(i,j,k)$, which are indices into the vertex array.
+A deformable model such as SMAL may be viewed as supplying a set of triangles, and a function
 \begin{equation}
 \verts(\pose, \shape) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
 \end{equation}
 which generates the 3D model for a given pose and shape.
-The mesh topology (i.e.~the triangle vertex indices) is provided by the deformable model, and is the same for all shapes and poses we consider, so in the sequel we shall consider a mesh to be defined only by the 3D positions of its vertices.
+The mesh topology (i.e.~the triangle vertex indices) is provided by the deformable model, and is the same for all shapes and poses we consider, so in the sequel a mesh will be defined only by the 3D positions of its vertices.
 
-In any given image, the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation as a unit quaternion. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
+In any given image, the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation in axis angle form. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
 \begin{equation}
 \posn * \verts(\pose, \shape)
 \end{equation}
 represents a 3D model of given pose and shape transformed to its 3D position.
 
-We will also have occasion to talk about model {\em joints}.  These appear naturally in models with an explicit skeleton, but more generally they can be defined as some function mapping from the model parameters to an array of 3D points analogous to the vertex transformation above.  We consider the joints to be defined by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices (this is quite general, as $\verts$ may include vertices not mentioned in the triangulation).  
+It is also necessary to define a model's {\em joints}.  These appear naturally in models with an explicit skeleton, but more generally they can be defined as some function mapping from the model parameters to an array of 3D points analogous to the vertex transformation above. Note that even in the case of rigged models, this provides a mechanism to add additional joints beyond the ones required to drive model deformation. In any case, joints are defined by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices (this is quite general, as $\verts$ may include vertices not mentioned in the triangulation).  
 
 \subsection{Camera model, joint reprojection and silhouette rendering}
-A general camera model is described by a function $\proj: \R 3 \mapsto \R 2$.  This function incorporates details of the camera intrinsics such as focal length, which are assumed known.  
+For both synthetic image generation and the later model fitting stage, it is necessary to be able to \emph{render} the 3D model. A general camera model is described by a function $\proj: \R{3} \mapsto \R{2}$.  This function incorporates details of the camera intrinsics such as focal length, which are assumed known.  
 Thus 
-\begin{equation}
+\begin{equation} \label{eq:project_joints}
 \kappa(\posn, \pose, \shape) := \proj(\posn * \verts(\pose, \shape) \jointselect)
 \end{equation}
 is the $2\times \njoints$ matrix whose columns are 2D joint locations corresponding to a 3D model specified by (position, pose, shape) parameters $(\posn, \pose, \shape)$.
 
 The model is also assumed to be supplied with a rendering function $R$ which takes a vertex array in camera coordinates, and generates a 2D binary image of the model silhouette.  That is,
-\begin{equation}
+\begin{equation} \label{eq:render_sil}
 R\bigl(\posn * \verts(\pose, \shape)\bigr) \in \mathbb{B}^{W\times H}
 \end{equation}
-for an image resolution of $W \times H$.  We use the differentiable renderer of Loper {\em et al.}~\cite{loper2014opendr} to allow derivatives to be propagated through $R$.  
+for an image resolution of $W \times H$.  In order to allow derivatives to be propagated through $R$ (essential for the silhouette term in the model fitting stage), the \emph{differentiable renderer} of Loper et al.~\cite{loper2014opendr} is used. Please see the relevant section in \Cref{chap:relwork} for further details.
 
-
-\section{Joint prediction using synthetic data}
+\subsection{System overview}
 
 % Try to reframe this such that we input a set of pose, shape etc. parameters and then we need to render an image which will bridge the domain gap.
 
@@ -203,43 +218,81 @@ for an image resolution of $W \times H$.  We use the differentiable renderer of 
 % \mathcal S = \seq S t1T.
 % $
 
-The computational task is to output for each image the shape, pose, and position parameters describing the animal's motion.
+The computational task is to output for each input image the shape, pose, and position parameters describing the animal's motion. Inspired by recent work in human 3D reconstruction, this objective can be broken down into a multiple stage pipeline. 
 
-As outlined above, the method has three parts.  
-(1.) The discriminative front-end extracts silhouettes from video, and then uses the silhouettes to predict 2D joint positions, with multiple candidates per joint. 
-(2.) Optimal joint assignment (OJA) corrects confused or missing skeletal predictions by finding an optimal assignment of joints from a set of network-predicted proposals. Finally, (3.) a generative deformable 3D model is fitted to the silhouettes and joint candidates as an energy minimization process.
+The core components are as follows:
 
-\subsection{Prediction of 2D joint locations}
+\begin{enumerate}
+    \item The discriminative front-end extracts silhouettes from video, and then uses the silhouettes to predict multi-modal heatmaps, from which 2D joint positions are obtained with multiple candidates per joint. 
+    \item Optimal joint assignment (OJA) corrects confused or missing skeletal predictions by finding an optimal assignment of joints from a set of network-predicted proposals. 
+    \item Generative deformable 3D model is fitted to the silhouettes and joint candidates as an energy minimization process.
+\end{enumerate}
+
+These stages are described in detail over the following three sections.
+
+\section{Predicting 2D joint candidate locations}
 
 % Explain hourglass network, it's structure and why it's good.
-The goal of the first stage is to take, for each video frame, an image reperesenting the animal and to output a $W \times H \times \njoints$ tensor of heatmaps. The network architecture is standard: a stacked hourglass network~\cite{newell2016stacked} using synthetically generated training data, but the training procedure is augmented using ``multi-modal'' heatmaps.
+The goal of the first stage is to take, for each video frame, an image reperesenting the animal and to output a $W \times H \times \njoints$ tensor of heatmaps. To achieve this, we train the stacked hourlgass network~\cite{newell2016stacked} of Newell et al. to a large dataset of synthetically generated quadruped images. 
+
+\subsection{Generating synthetic quadruped images}
+
+In order to render a synthetic quadruped image, a set of pose $\pose$, shape $\shape$ and position $\posn$ parameters are required. With these parameters, a (textureless) training image can be generated by applying \Cref{eq:render_sil} and corresponding ground truth 2D joints locations can be generated via \Cref{eq:project_joints}. What remains is to ensure a model trained on the synthetic images generalizes to the real-world test images. To achieve this, it is important that the training dataset captures the modes of variation by appropriately sampling the model parameters. 
+
+\subsubsection{Sampling model parameters}
+
+Given that the real-world test images exhibit multiple quadruped species, a primary mode of variation is the animal's \emph{shape} characterisitics. Naively, generating a dataset large enough to capture possible test animal shapes would be a challenging task, since it would require access to multiple real or artist-generated 3D scans. Fortunately, the SMAL model defines a linear shape space which allows repeated sampling of different (and realistic) quadruped shapes. Of course, having been built from only toy figurines, the variation is still somewhat limited, but as the later experimental section will show, the model is fit for purpose. Synthetic shape parameters $\shape$ are obtained by sampling from a Gaussian prior:
+
+\begin{equation}\label{eq:sampling_shape}
+X = Y
+\end{equation}
+
+Another mode of variation in test images is the various animal limb positions. These can again be synthetised by sampling from a gaussian prior constructed from a dataset of animal poses. Since no such dataset exists for real animals, a prior is instead built from a small set of artist-generated poses, originally provided by the SMAL model authors. The sampling strategy is therefore given by:
 
 
-\subsection{Bridging the domain gap}
+\begin{equation}\label{eq:sampling_pose}
+    X = y
+\end{equation}
 
-We begin with a set of pose, shape and position parameters sampled according to the following procedure. 
 
-\subsubsection{Sampling}. The random camera positions are generated as follows: the orientation of the camera relative to the animal is uniform in the range $[0, 2\pi]$, the distance from the animal is uniform in the range 1 to 20 meters and the camera height is in the range $[0,\frac{\pi}{2}]$. This smaller range is chosen to restrict unusual camera elevation. Finally, the camera ``look" vector is towards a point uniformly in a 1m cube around the animal's center, and the ``up" vector is Gaussian around the model Y axis.  
+\subsubsection{Sampling camera parameters}
 
-\subsubsection{What about texture?} Unfortunately, the application of texture is not entirely clear. 
+The random camera positions are generated as follows: the orientation of the camera relative to the animal is uniform in the range $[0, 2\pi]$, the distance from the animal is uniform in the range 1 to 20 meters and the camera height is in the range $[0,\frac{\pi}{2}]$. This smaller range is chosen to restrict unusual camera elevation. Finally, the camera ``look" vector is towards a point uniformly in a 1m cube around the animal's center, and the ``up" vector is Gaussian around the model Y axis.  
 
-We can try and follow a similar process such as SURREAL and access a dataset of textures drawn from real images. % This could be explained in depth. Not sure where to put the experiment because it needs the datasets defined.
+\subsubsection{What about textures and backgrounds?} 
+
+At this point, the synthetic test images have plausible shape, pose and positional parameters but are lacking in realistic texture. Furthermore, it is not clear how to render plausible background scenes, nor how to convincingly place the 3D animal in such a scene. This challenge allows for a primary contribution of this work: using the silhouette domain as a representation much easier to synthetise (since surface texture maps and background textures are lost) and can be obtained from real-world test images. Another important characteristic of the mapping between real-world images and silhouette counterparts is that the shape and pose information is mostly preserved, apart from a few ambiguities (e.g. limb ordering due to lacking interior contours). 
+
+To summarise, training data comprises $(S, \kappa)$ pairs, that is pairs of binary silhouette images, and the corresponding 2D joint locations as a $2\times J$ matrix.  To generate each image, a random shape vector $\shape$, pose parameters $\pose$ and camera position $\posn$ are drawn, and used to render a silhouette $R\bigl(\posn * \verts(\pose, \shape)\bigr)$ and 2D joint locations $\kappa(\posn,\pose,\shape)$.
 
 
 \subsection{Prediction of 2D joint locations using multimodal heatmaps}
 
 % explain that the quality of the joint prediction, while good still leaves unsatisfactory predictions which can cause problems to the later energy minimization steps. To overcome this, 
 
-For standard unimodal heatmaps, training data comprises $(S, \kappa)$ pairs, that is pairs of binary silhouette images, and the corresponding 2D joint locations as a $2\times J$ matrix.  To generate each image, a random shape vector $\shape$, pose parameters $\pose$ and camera position $\posn$ are drawn, and used to render a silhouette $R\bigl(\posn * \verts(\pose, \shape)\bigr)$ and 2D joint locations $\kappa(\posn,\pose,\shape)$, which are encoded into a $W \times H \times \njoints$ tensor of heatmaps, blurring with a Gaussian kernel of radius $\sigma$. 
 
+Armed with a dataset of binary silhouette images $S$ and corresponding 2D joint locations $\kappa(\posn,\pose,\shape)$, a pose estimation network can be trained to predict 2D joint locations. The core network architecture used for this task is the stacked hourglass network~\cite{newell2016stacked} of Newell et al., with an adaptation to produce multi-modal outputs. The stacked hourglass network is now briefly described:
+
+\subsubsection{Stacked hourglass network}
+
+A stacked hourglass network is a convolutional neural network specifically designed for the task of pose estimation. \emph{TODO: Explain stacked hourglass networks in detail.}
+
+2D joint coordinates are first encoded into a $W \times H \times \njoints$ tensor of heatmaps, blurring with a Gaussian kernel of radius $\sigma$. The network is pretrained using weights optimized on a 2D human pose estimation network. The class weights are modified to TODO. balance the higher probability of background. 
+
+The final 2D joint positions is obtained using non-maximum suppression.
+
+\subsubsection{Adapting stacked hourglass network for multi-output learning}
 
 This training process generalizes well from synthetic to real images due to the use of the silhouette, but the lack of interior contours in silhouette input data often results in confusion between joint ``aliases'': left and right or front and back legs.  When these predictions are wrong and of high confidence, little probability mass is assigned to the area around the correct leg, meaning no available proposal is present after non-maximal suppression.
 
-We overcome this by explicitly training the network to assign some probability mass to the ``aliased'' joints. For each joint, we define a list of potential aliases as weights $\lambda_{j,j'}$ and linearly blend the unimodal heatmaps $G$ to give the final training heatmap $H$:
+This is handled with a further contribution of this work, adapting the stacked hourglass network to produce multiple outputs. This is achieved by explicitly training the network to assign some probability mass to the ``aliased'' joints. For each joint, a list of potential aliases is defined as weights $\lambda_{j,j'}$ and linearly blend the unimodal heatmaps $G$ to give the final training heatmap $H$:
 \begin{equation}
     H_{j}(p) = \sum_{j'} \lambda_{j,j'} G(p; \kappa_{j'}, \sigma)
 \end{equation}
-For non-aliased joints $j$ (all but the legs), we simply set $\lambda_{j,j} = 1$ and $\lambda_{j,j'} = 0$, yielding the unimodal maps, and for legs, we use 0.75 for the joint, and 0.25 for the alias.  We found this ratio sufficient to ensure opposite legs have enough probability mass to pass through a modest non-maximal suppression threshold without overly biasing the skeleton with maximal predicted confidence. An example of a heatmap predicted by a network trained on multimodal training samples is illustrated in \figref{single_multi}. 
+
+For non-aliased joints $j$ (all but the legs), $\lambda_{j,j} = 1$ and $\lambda_{j,j'} = 0$, yielding the unimodal maps. For aliased joints, the joint is assigned a weight $\lambda_{j,j} = 0.75$ and aliases are assigned a weight $\lambda_{j,j'} = 0.25$. Per joint weights are shown in \Cref{tab:alias-weights}. This ratio is shown to ensure opposite legs have sufficient probability mass to pass through a modest non-maximal suppression threshold without overly biasing the skeleton with maximal predicted confidence. An example of a heatmap predicted by a network trained on multimodal training samples is illustrated in \figref{single_multi}. 
+
+\input{Chapter4/multimodal-weights.tex}
 
 \begin{figure}[t]
 \begin{floatrow}
@@ -269,8 +322,8 @@ For non-aliased joints $j$ (all but the legs), we simply set $\lambda_{j,j} = 1$
 \end{floatrow}
 \end{figure}
 
-\section{Optimal joint assignment (OJA)}
-\label{sec:qp}
+\section{Optimal joint assignment (OJA)}\label{sec:qp}
+
 Since heatmaps generated by the joint predictor are multi-modal, the non-maximum suppression procedure yields multiple possible locations for each joint. We represent the set of joint proposals $X = \{x_{jp}\}$, where $x_{jp}$ indicates the 2D position of proposal $p \in \{1,...,N_j\}$ associated with joint $j \in J$.
 Before applying the optimizer, we must select a subset of proposals $X^* \subseteq X$ which form a complete skeleton, i.e. precisely one proposal is selected for every joint. In this section we consider how to choose the optimal subset by formulating the problem as an extended optimal assignment problem.
 
@@ -281,7 +334,7 @@ Optimal assignment minimizes the function
 \begin{equation}
 L(A) = \LL{prior}(A) + \LL{conf}(A) + \LL{temp}(A) + \LL{cov-sil}(A) + \LL{cov-bone}(A)
 \end{equation}
-which balances agreement of the joint configuration with a learned {\em prior}, the network-supplied {\em confidences}, {\em temporal} coherence, and {\em coverage} terms which encourage the  model to correctly project over the silhouette.   Without the coverage terms, this can be optimized as a quadratic program, but we obtain better results by using the coverage terms, and using a genetic algorithm.  In addition, the parameters $A$ must satisfy the $J$ constraints $\sum_{p=1}^{N_j+1} a_{jp} = 1$, that exactly one joint proposal (or the null proposal) must be selected for each joint.
+which balances agreement of the joint configuration with a learned {\em prior}, the network-supplied {\em confidences}, {\em temporal} coherence, and {\em coverage} terms which encourage the model to correctly project over the silhouette.   Without the coverage terms, this can be optimized as a quadratic program, but we obtain better results by using the coverage terms, and using a genetic algorithm.  In addition, the parameters $A$ must satisfy the $J$ constraints $\sum_{p=1}^{N_j+1} a_{jp} = 1$, that exactly one joint proposal (or the null proposal) must be selected for each joint.
 
 
 \lterm{prior} We begin by defining the prior probability of a particular skeletal configuration as a multivariate Gaussian distribution over selected joint positions.
