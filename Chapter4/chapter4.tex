@@ -271,85 +271,191 @@ To summarise, training data comprises $(S, \kappa)$ pairs, that is pairs of bina
 % explain that the quality of the joint prediction, while good still leaves unsatisfactory predictions which can cause problems to the later energy minimization steps. To overcome this, 
 
 
-Armed with a dataset of binary silhouette images $S$ and corresponding 2D joint locations $\kappa(\posn,\pose,\shape)$, a pose estimation network can be trained to predict 2D joint locations. The core network architecture used for this task is the stacked hourglass network~\cite{newell2016stacked} of Newell et al., with an adaptation to produce multi-modal outputs. The stacked hourglass network is now briefly described:
+A pose estimation network can now be trained on a dataset of binary silhouette images $S$ with corresponding 2D joint locations $\kappa(\posn,\pose,\shape)$. The core network architecture used for this task is the stacked hourglass network~\cite{newell2016stacked} of Newell et al., with an adaptation to produce multi-modal outputs. The stacked hourglass network is now briefly described:
 
 \subsubsection{Stacked hourglass network}
 
-A stacked hourglass network is a convolutional neural network specifically designed for the task of pose estimation. \emph{TODO: Explain stacked hourglass networks in detail.}
+A stacked hourglass network is a convolutional neural network specifically designed for the task of pose estimation. Hourglass allows inference to take place across multiple scales; an important advantage allowing the network to reason about global information (such as the full body) and local information (such as face features). This is achieved using a repeated bottom-up, top-down modules which each produce a $W \times H \times \njoints$ heatmap tensor. Supervision is applied to each of these heatmaps, which are then passed to ths subsequent block, allowing high level features to be reevaluated for higher order spatial relationships (generally only present at low resolutions). The network's architecture can be seen in detail in Figure XXX. Hourglass uses a mean squared error loss against a ground truth heatmap tensor, which is applied to the network's final output and all intermediatary hetamaps. Therefore, ground truth joint coordinates $\kappa(\posn,\pose,\shape)$ must first be encoded into a $W \times H \times \njoints$ tensor of heatmaps. The original authors find that the network has better convergence properties if the ground truth heatmaps are blurred slightly, since a gradient is then provided to predicted ``near misses''. This is achieved by blurring ground truth heatmaps with a Gaussian kernel of radius $\sigma$. The final 2D joint positions are then obtained using non-maximum suppression on the output heatmaps
 
-2D joint coordinates are first encoded into a $W \times H \times \njoints$ tensor of heatmaps, blurring with a Gaussian kernel of radius $\sigma$. The network is pretrained using weights optimized on a 2D human pose estimation network. The class weights are modified to TODO. balance the higher probability of background. 
+\begin{equation}\label{non-max-suppression}
+    A = B    
+\end{equation}
 
-The final 2D joint positions is obtained using non-maximum suppression.
+\subsubsection{Adaptations for training on synthetic data}
+
+This setup is mostly suitable for training on synthetic quadruped data, subject to a couple of adaptations. Firstly, the silhouette training images differ considerably in appearance to the RGB images used by the original Hourglass authors. A common difficulty for training pose estimation networks on full RGB images is in trying to distinguish between objects and the background class. With binary silhouette images, this distinction is made trivial as background and foreground are assigned values $0$ or $1$ respectively. Unfortunately, this causes a problem when naively training HourglassNet on the generated synthetic images as the network can greatly minimize the loss by simply predicting `background' for every image pixel (since background pixels tend to outnumber foreground pixels). The fact that `background' is a much simpler class to predict than the other joint classes causes a training instability which is challenging to overcome by adjusting the learning rate. Instead, the loss function is replaced with a \emph{weighted} version of the mean squared error loss. This modification encourages the network to devote it's attention to all classes equally. The precise formulation for this is given as follows:
+
+\begin{equation}\label{weighted-mse}
+    A = B
+\end{equation}
+
 
 \subsubsection{Adapting stacked hourglass network for multi-output learning}
 
-This training process generalizes well from synthetic to real images due to the use of the silhouette, but the lack of interior contours in silhouette input data often results in confusion between joint ``aliases'': left and right or front and back legs.  When these predictions are wrong and of high confidence, little probability mass is assigned to the area around the correct leg, meaning no available proposal is present after non-maximal suppression.
+As detailed in the later experimental section, the network trained using this process generalizes well from synthetic to real images due to the use of the silhouette, and produces accurate predictions for most joints. However, the predictor performs poorly on some joints due to ambiguities which result from the lack of interior contours in the silhouette input data. These missing details cause often result in confusion between joint ``aliases'': left and right or front and back legs.  When these predictions are wrong and are represented by high confidence heatmap regions, little probability mass is assigned to the area around the correct leg, meaning no available proposal is present after non-maximal suppression.
 
-This is handled with a further contribution of this work, adapting the stacked hourglass network to produce multiple outputs. This is achieved by explicitly training the network to assign some probability mass to the ``aliased'' joints. For each joint, a list of potential aliases is defined as weights $\lambda_{j,j'}$ and linearly blend the unimodal heatmaps $G$ to give the final training heatmap $H$:
+This is handled with a further technical contribution; handling the prediction uncertainty by adapting the stacked hourglass network to produce multiple outputs. This is achieved by explicitly training the network to assign some probability mass to the ``aliased'' joints. For each joint, a list of potential aliases are defined as weights $\lambda_{j,j'}$ and linearly blend the unimodal heatmaps $G$ to give the final training heatmap $H$:
+
 \begin{equation}
     H_{j}(p) = \sum_{j'} \lambda_{j,j'} G(p; \kappa_{j'}, \sigma)
 \end{equation}
 
-For non-aliased joints $j$ (all but the legs), $\lambda_{j,j} = 1$ and $\lambda_{j,j'} = 0$, yielding the unimodal maps. For aliased joints, the joint is assigned a weight $\lambda_{j,j} = 0.75$ and aliases are assigned a weight $\lambda_{j,j'} = 0.25$. Per joint weights are shown in \Cref{tab:alias-weights}. This ratio is shown to ensure opposite legs have sufficient probability mass to pass through a modest non-maximal suppression threshold without overly biasing the skeleton with maximal predicted confidence. An example of a heatmap predicted by a network trained on multimodal training samples is illustrated in \figref{single_multi}. 
+For non-aliased joints $j$ (all but the legs), $\lambda_{j,j} = 1$ and $\lambda_{j,j'} = 0$, yielding the unimodal maps. For aliased joints, the joint is assigned a weight $\lambda_{j,j} = 0.75$ and aliases are assigned a weight $\lambda_{j,j'} = 0.25$. This ratio is shown to ensure opposite legs have sufficient probability mass to pass through a modest non-maximal suppression threshold without overly biasing the skeleton with maximal predicted confidence. An example of a heatmap predicted by a network trained on multimodal training samples is illustrated in \figref{single_multi}. Note that the construction of at most bi-modal ground truth heatmaps sets a practical constraint on the number of output modes. In other words, the loss is minimized if the network produces one output mode for non-aliased joints and two output modes for aliased joints. 
 
-\input{Chapter4/multimodal-weights.tex}
+% \input{Chapter4/multimodal-weights.tex}
 
 \begin{figure}[t]
-\begin{floatrow}
-\ffigbox{%%%%%%%%%%%%
+% \begin{floatrow}
+% \ffigbox{%%%%%%%%%%%%
 \centering
-\begin{tabular}{c}
-\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.6\linewidth]{single_vs_multi_new/left_heatmap_single.png}\\
-\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.6\linewidth]{single_vs_multi_new/left_heatmap_multi.png}
+\begin{tabular}{cc}
+\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.5\linewidth]{single_vs_multi_new/left_heatmap_single.png} &
+\includegraphics[trim={4cm 10cm 4cm 10cm},clip,width=0.5\linewidth]{single_vs_multi_new/left_heatmap_multi.png} \\
 \end{tabular}
-}{
+% }
+{
 \caption{Example predictions from a network trained on unimodal (top) and multi-modal (bottom) ground-truth  for front-left leg joints.}
 \label{fig:single_multi}
 }
-\ffigbox{
+% \end{floatrow}
+\end{figure}
+
+\begin{figure}[t]
+% \begin{floatrow}
+% \ffigbox{
 \centering
-\def\lp#1#2{\labelledpic{\includegraphics[height=19mm]{#2}}{#1}}
-\begin{tabular}{cc}
+\def\lp#1#2{\labelledpic{\includegraphics[width=0.20\linewidth]{#2}}{#1}}
+\begin{tabular}{cccc}
 \lp a{skeletons_new/skeleton_rgb_dog_cropped.jpg}&
-\lp b{skeletons_new/skeleton_rgb_impala_cropped.jpg}\\
+\lp b{skeletons_new/skeleton_rgb_impala_cropped.jpg}&
 \lp c{skeletons_new/skeleton_rgb_rhino_cropped.jpg}&
-\lp d{skeletons_new/skeleton_rgb_horsejump-high_cropped.jpg}
+\lp d{skeletons_new/skeleton_rgb_horsejump-high_cropped.jpg}\\
 \end{tabular}
-}{
+% }
+{
 \caption{Example outputs from the joint prediction network, with maximum likelihood predictions linked into skeleton.}
 \label{fig:exp-network}
 }
-\end{floatrow}
+% \end{floatrow}
 \end{figure}
 
 \section{Optimal joint assignment (OJA)}\label{sec:qp}
 
-Since heatmaps generated by the joint predictor are multi-modal, the non-maximum suppression procedure yields multiple possible locations for each joint. We represent the set of joint proposals $X = \{x_{jp}\}$, where $x_{jp}$ indicates the 2D position of proposal $p \in \{1,...,N_j\}$ associated with joint $j \in J$.
-Before applying the optimizer, we must select a subset of proposals $X^* \subseteq X$ which form a complete skeleton, i.e. precisely one proposal is selected for every joint. In this section we consider how to choose the optimal subset by formulating the problem as an extended optimal assignment problem.
+Since heatmaps generated by the joint predictor are multi-modal, the non-maximum suppression procedure yields multiple possible locations for each joint. The set of joint proposals is represented as $X = \{x_{jp}\}$, where $x_{jp}$ indicates the 2D position of proposal $p \in \{1,...,N_j\}$ associated with joint $j \in J$.
+Before applying the optimizer, a subset of proposals $X^* \subseteq X$ should be selected in order to form a complete skeleton, i.e. precisely \emph{one proposal is selected for every joint}. This section will consider how to choose the optimal subset by formulating the problem as an extended optimal assignment problem.
 
-In order to select a complete skeleton proposal from the set of joint proposals $\{x_{jp}\}$, we introduce a binary indicator vector $\bvec a_j = \{a_{jp}\} \in \{0, 1\}^{N_j+1}$, where $a_{jp} = 1$ indicates that the $p^\text{th}$ proposal for joint $j$ is a correct assignment, and the $p = N_j+1$ position corresponds to a {\em null proposal}, indicating that joint $j$ has no match in this image.
+In order to select a complete skeleton proposal from the set of joint proposals $\{x_{jp}\}$, a binary indicator vector $\bvec a_j = \{a_{jp}\} \in \{0, 1\}^{N_j+1}$ is introduced, where $a_{jp} = 1$ indicates that the $p^\text{th}$ proposal for joint $j$ is a correct assignment, and the $p = N_j+1$ position corresponds to a {\em null proposal}, indicating that joint $j$ has no match in this image.
 The null proposals are handled as described in each of the energy terms below.
-Let $A$ be the jagged array $[\bvec a_j]_{j=1}^J$ containing all assignment variables (for the current frame), and let $X^* = X(A)$ denote the subset of points selected by the binary array $A$.   
+Let $A$ be the jagged array $[\bvec a_j]_{j=1}^J$ containing all assignment variables (for the current frame), and let $X^* = X(A)$ denote the subset of points selected by the binary array $A$.
+
+
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+% \usepackage{multirow}
+\begin{table}
+    \RawFloats
+    \parbox{.48\linewidth}{
+        \strut
+        \centering
+        \begin{tabular}{@{}llll@{}}
+        \toprule
+        Joint $j$               & Proposal $p$ & $x_{jp}$ & $a_{jp}$ \\ 
+        \midrule
+        \multirow{3}{*}{Nose} & 0          & $(0, 2) $   & 1 \\
+                            & 1          & $(4, 2) $   & 0 \\
+                            & NULL       & ---         & 0 \\
+        \midrule
+        Upper Leg             & NULL       & ---         & 1 \\
+        \midrule
+        \multirow{3}{*}{Paw}  & 0          & $(4, 2)$    & 0 \\
+                            & 1          & $(8, 10)$   & 1 \\
+                            & NULL       & ---         & 0 \\
+        \midrule
+        \multirow{4}{*}{Tail} & 0          & $(4, 2)$    & 0 \\
+                            & 1          & $(8, 10)$   & 0 \\
+                            & 2          & $(4, 2)$    & 1 \\
+                            & NULL       & ---         & 0 \\
+        \bottomrule
+        \end{tabular}
+        \caption{Example inputs and output to the joint assignment problem. Non maximum suppression applied to predicted heatmap tensors yields a set of proposals $p$ for each each skeleton joint $j$ at 2D location $x_{jp}$. $a_{jp}$ is an illustrative assignment vector which is predicted by the OJA algorithm.}
+        \label{tab:oja-example-inputs}
+    }
+    \hfill
+    \parbox{.48\linewidth}{
+        \strut
+        \centering
+        \parbox{\linewidth}{
+            \strut
+            \centering
+            \begin{tabular}{@{}lllll@{}}
+            \toprule
+            Joint $j$ & \multicolumn{4}{l}{Proposal $p$}                                                 \\
+            \midrule
+            Nose      & 1 & 0                        & 0                        & \cellcolor[HTML]{808080} \\
+            Upper Leg & 1 & \cellcolor[HTML]{808080} & \cellcolor[HTML]{808080} & \cellcolor[HTML]{808080} \\
+            Paw       & 0 & 1                        & 0                        & \cellcolor[HTML]{808080} \\
+            Tail      & 0 & 0                        & 1                        & 0                        \\
+            \bottomrule
+            \end{tabular}
+            \caption{Assignment variables $A = \bvec a_j = \{a_{jp}\} \in \{0, 1\}^{N_j+1}$ for the current frame stored as a jagged array.}
+            \label{tab:oja-proposals}
+        }
+        \bigskip
+        \parbox{\linewidth}{
+            \strut
+            \centering
+            \begin{tabular}{@{}ll@{}}
+                \toprule
+                Joint $j$ & $X^* = X(A)$ \\
+                \midrule
+                Nose      & $(0, 2)$     \\
+                Upper Leg & ---          \\
+                Paw       & $(8, 10)$    \\
+                Tail      & $(4, 2)$     \\
+                \bottomrule
+            \end{tabular}
+            \caption{2D joint locations $X^* = X(A)$ selected by the assignment variable $A$}
+            \label{tab:oja-selected}
+        }
+    }
+\end{table}        
+        
+
 Optimal assignment minimizes the function
 \begin{equation}
-L(A) = \LL{prior}(A) + \LL{conf}(A) + \LL{temp}(A) + \LL{cov-sil}(A) + \LL{cov-bone}(A)
+L(A) = \LL{conf}(A) + \LL{prior}(A) + \LL{temp}(A) + \LL{cov-sil}(A) + \LL{cov-bone}(A)
 \end{equation}
-which balances agreement of the joint configuration with a learned {\em prior}, the network-supplied {\em confidences}, {\em temporal} coherence, and {\em coverage} terms which encourage the model to correctly project over the silhouette.   Without the coverage terms, this can be optimized as a quadratic program, but we obtain better results by using the coverage terms, and using a genetic algorithm.  In addition, the parameters $A$ must satisfy the $J$ constraints $\sum_{p=1}^{N_j+1} a_{jp} = 1$, that exactly one joint proposal (or the null proposal) must be selected for each joint.
+which balances agreement of the joint configuration with the network-supplied {\em confidences}, a learned {\em prior}, {\em temporal} coherence, and {\em coverage} terms which encourage the model to correctly project over the silhouette. Without the coverage terms, this can be optimized as a quadratic program, but better results are obtained by including the coverage terms, and using a genetic algorithm. In addition, the parameters $A$ must satisfy the $J$ constraints $\sum_{p=1}^{N_j+1} a_{jp} = 1$, that exactly one joint proposal (or the null proposal) must be selected for each joint.
 
+\lterm{conf}
+The first energy term comes from the output of the joint prediction network, which provides a confidence score $y_{jp}$ associated with each joint proposal~$x_{jp}$.  Then $\LL{conf}(A) = \sum_j\sum_p -\lambda\log(y_{jp}) a_{jp}$ is a linear function of $A$, 
+and $\lambda_{\text{conf}}$ is a tunable parameter to control the relative contribution of the network confidences compared with that of the skeleton prior.
+Null proposals pay a fixed cost $\lambda_{null}$, effectively acting as a threshold whereby the null proposal will be selected if no other proposal is of sufficient likelihood. Note that if only this term is included, the OJA would simply produce the result of the standard non-maximal suppresion algorithm, selecting the heatmap location with highest network confidence.
 
-\lterm{prior} We begin by defining the prior probability of a particular skeletal configuration as a multivariate Gaussian distribution over selected joint positions.
+\lterm{prior} The next energy term defines the prior probability of a particular skeletal configuration as a multivariate Gaussian distribution over selected joint positions.
 
-The mean $\mu \in \R{2J}$ and covariance $\Sigma \in \R{2J\times 2J}$ terms are obtained from the training examples generated as above. The objective of OJA is to select a configuration $X^*$ which maximizes the prior, which is equivalent to minimizing the Mahalanobis distance
+The mean $\mu \in \R{2J}$ and covariance $\Sigma \in \R{2J\times 2J}$ terms are obtained from the synthetic training examples generated earlier. Precisely, 
+
+% TODO
+\begin{equation}
+    \mu = \frac{1}{N} \sum_{i} \kappa(\posn, \pose, \shape)
+\end{equation}
+
+The objective of OJA is to select a configuration $X^*$ which maximizes the prior, which is equivalent to minimizing the Mahalanobis distance
 $(x^*-\mu)^T\Sigma^{-1}(x^*-\mu)$, which is given by the summation
 \begin{equation}
 \LL{prior}(A) = \sum_j^J\sum_p^{N_j}\sum_k^J\sum_q^{N_k}a_{jp}a_{kq}(x_{jp} - \mu_j)\Sigma_{jk}^{-1}(x_{kq}-\mu_k)
 \end{equation}
 This is a quadratic function of $A$, so $\LL{prior}(A) = \text{vec}(A)^\top Q \text{vec}(A)$ for a fixed matrix $Q$, and can be formulated as a quadratic program (QP).  Null proposals are simply excluded from the sum, equivalent to marginalizing over their position. 
 
-\lterm{conf}
-The next energy term comes from the output of the joint prediction network, which provides a confidence score $y_{jp}$ associated with each joint proposal~$x_{jp}$.  Then $\LL{conf}(A) = \sum_j\sum_p -\lambda\log(y_{jp}) a_{jp}$ is a linear function of $A$, 
-and $\lambda_{\text{conf}}$ is a tunable parameter to control the relative contribution of the network confidences compared with that of the skeleton prior.
-Null proposals pay a fixed cost $\lambda_{null}$, effectively acting as a threshold whereby the null proposal will be selected if no other proposal is of sufficient likelihood. 
+\begin{equation}
+    Q = \begin{bmatrix}
+        2 & 3 & 4 \\
+        2 & 3 & 5
+    \end{bmatrix}
+\end{equation}
+
+% TODO: Much more in the QP formulation
 
 \lterm{temp}
 A common failure case of the joint prediction network is in situations where a joint position is highly ambiguous, for example between the left and right legs. In such cases, the algorithm will commonly alternate between two equally likely predictions. This leads to large displacements in joint positions between consecutive frames which are difficult for the later model fitting stage to recover from. This can be addressed by introducing a temporal term into the OJA. We impose a prior on the distance moved by each joint between frame $t_0$ and $t_1$, which is given by a normal distribution with zero mean and variance $\sigma^{2} =e^{\tau|t_1 - t_0 - 1|}$. 
