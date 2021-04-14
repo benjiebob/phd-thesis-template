@@ -1,0 +1,19 @@
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}cccccccccc@{}}
+
+\toprule
+        \multirow{2}{*}{Seq.}  & \multirow{2}{*}{Family} & \multicolumn{2}{c}{PCK (\%)} &   \multirow{2}{*}{Mesh}  & \multirow{2}{*}{Seq.} & \multirow{2}{*}{Family} & \multicolumn{2}{c}{PCK (\%)} &   \multirow{2}{*}{Mesh} \\
+&  & Raw                  & OJA-GA &  &&& Raw                  & OJA-GA           \\ \midrule
+01 & Felidae         & 91.8     & 91.9  & 38.2   &  06 & Equidae         & 84.4     & 84.8  & 19.2     \\
+02 & Felidae         & 94.7     & 95.0  & 42.4   &  07 & Bovidae         & 94.6     & 95.0  & 40.6     \\
+03 & Canidae         & 87.7     & 88.0  & 27.3   &  08 & Bovidae        & 85.2     & 85.8  & 41.5     \\  
+04 & Canidae         & 87.1     & 87.4  & 22.9   &  09 & Hippopotamidae  & 90.5     & 90.6  & 11.8     \\
+05 & Equidae         & 88.9     & 89.8  & 51.6   &  10 & Hippopotamidae  & 93.7     & 93.9  & 23.8     \\    
+\bottomrule
+\end{tabular}%
+
+\caption{Quantitative evaluation on synthetic test sequences. The performance of the raw network outputs and OJA methods are evaluated using the probability of correct keypoint (PCK) metric. Mesh fitting accuracy is evaluated by computing the mean distance between the predicted and ground truth vertices.}
+\label{tab:synthetic}
+\end{table}

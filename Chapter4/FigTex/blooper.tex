@@ -1,0 +1,16 @@
+
+\begin{figure}[h!]
+\centering
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {dog_agility_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {elephant_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+\def\p#1{\includegraphics[trim={0 1cm 0 1cm},clip,height=0.12\linewidth] {rhino_blooper/#1.jpg}}
+\p{target}
+\p{3d_fit_overlay_rgb}
+
+\caption{Failure modes of the proposed system. \emph{Left}: Missing interior contours prevent the optimizer from identifying which way the dog is facing. \emph{Middle}: The model has never seen an elephant, so assumes the trunk is the tail. \emph{Right}: Heavy occlusion. The model interprets the tree as background and hence the silhouette term tries to minimize coverage over this region.}
+\label{fig:blooper}
+\end{figure}

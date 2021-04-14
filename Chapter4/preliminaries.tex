@@ -1,0 +1,57 @@
+\section{Preliminaries}
+
+\subsection{Deformable 3D quadruped model}
+
+This section provides a formal definition for the deformable 3D model that is used to generate synthetic training data and in the model fitting stage to obtain the final mesh. Our system assumes a deformable 3D model such as SMAL~\cite{zuffi2017menagerie} which parametrizes a 3D mesh as a function of {\em pose} parameters~$\pose \in \R\npose$ (e.g.\ joint angles) and {\em shape} parameters~$\shape \in \R\nshape$. 
+As discussed in \Cref{chap:relwork}, a 3D mesh is an array of vertices $\verts \in \RR 3\nverts$ (the vertices are columns of a $3 \times \nverts$ matrix) and a set of triangles represented as integer triples $(i,j,k)$, which are indices into the vertex array.
+A deformable model such as SMAL may be viewed as supplying a set of triangles, and a function
+\begin{equation}
+\verts(\pose, \shape) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
+\end{equation}
+which generates the 3D model for a given pose and shape.
+The mesh topology (i.e.~the triangle vertex indices) is provided by the deformable model, and is the same for all shapes and poses we consider, so in the sequel a mesh will be defined only by the 3D positions of its vertices.
+
+In any given image, the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation in axis angle form. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
+\begin{equation}
+\posn * \verts(\pose, \shape)
+\end{equation}
+represents a 3D model of given pose and shape transformed to its 3D position.
+
+It is also necessary to define a model's {\em joints}.  These appear naturally in models with an explicit skeleton, but more generally they can be defined as some function mapping from the model parameters to an array of 3D points analogous to the vertex transformation above. Note that even in the case of rigged models, this provides a mechanism to add additional joints beyond the ones required to drive model deformation. In any case, joints are defined by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices (this is quite general, as $\verts$ may include vertices not mentioned in the triangulation).  
+
+\subsection{Camera model, joint reprojection and silhouette rendering}
+For both synthetic image generation and the later model fitting stage, it is necessary to be able to \emph{render} the 3D model. A general camera model is described by a function $\proj: \R{3} \mapsto \R{2}$.  This function incorporates details of the camera intrinsics such as focal length, which are assumed known.  
+Thus 
+\begin{equation} \label{eq:project_joints}
+\kappa(\posn, \pose, \shape) := \proj(\posn * \verts(\pose, \shape) \jointselect)
+\end{equation}
+is the $2\times \njoints$ matrix whose columns are 2D joint locations corresponding to a 3D model specified by (position, pose, shape) parameters $(\posn, \pose, \shape)$.
+
+The model is also assumed to be supplied with a rendering function $R$ which takes a vertex array in camera coordinates, and generates a 2D binary image of the model silhouette.  That is,
+\begin{equation} \label{eq:render_sil}
+R\bigl(\posn * \verts(\pose, \shape)\bigr) \in \mathbb{B}^{W\times H}
+\end{equation}
+for an image resolution of $W \times H$.  In order to allow derivatives to be propagated through $R$ (essential for the silhouette term in the model fitting stage), the \emph{differentiable renderer} of Loper et al.~\cite{loper2014opendr} is used. Please see the relevant section in \Cref{chap:relwork} for further details.
+
+\subsection{System overview}
+
+The test-time problem to be solved is to take a sequence of input images
+\[
+\mathcal{I} = \seq{I}{t}{1}{T}
+\]
+which are segmented to the silhouette of a single animal (i.e.~a video with multiple animals is segmented multiple times), producing a sequence of binary silhouette images 
+\[
+\mathcal{S} = \seq{S}{t}{1}{T}.
+\]
+
+The computational task is to output for each input image the shape, pose, and position parameters describing the animal's motion. Inspired by recent work in human 3D reconstruction, this objective can be broken down into a multiple stage pipeline. 
+
+The core components are as follows:
+
+\begin{enumerate}
+    \item The discriminative front-end extracts silhouettes from video, and then uses the silhouettes to predict multi-modal heatmaps, from which 2D joint positions are obtained with multiple candidates per joint. 
+    \item Optimal joint assignment (OJA) corrects confused or missing skeletal predictions by finding an optimal assignment of joints from a set of network-predicted proposals. 
+    \item Generative deformable 3D model is fitted to the silhouettes and joint candidates as an energy minimization process.
+\end{enumerate}
+
+These stages are described in detail over the following three sections.

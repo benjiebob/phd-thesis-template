@@ -1,0 +1,48 @@
+
+\section{3D model fitting}
+The model optimization stage refines model parameters to match the silhouette sequence $\mathcal S$. The procedure defined here is inspired by the human reconstruction method of SMALify~\cite{bogo16keep} (defined in detail in \Cref{chap:relwork}) and the non-automatic quadruped fitting method presented in 3D Menagerie (3DM) ~\cite{zuffi2017menagerie}. The technique presented in this section can be viewed as an extension of these approaches to input video sequences. 
+
+% SMALR exploited this fact (simultaneous fitting) in tangential work to ours.
+A naive 3D model fitting implementation would be to simple apply 3DM independently to each of the $N$ video frame to yield a set of pose parameters $\seq{\pose}{t}{1}{N}$, shape parameters $\seq{\shape}{t}{1}{N}$ and position parameters $\seq{\posn}{t}{1}{N}$. However, fitting to a video sequence rather than single frames offers additional opportunities to constrain the challenging monocular 3D reconstruction task. For example, video sequences typically offer multiple views of the animal subject, although the animal's limb positions often change between frames. However, the animal's \emph{shape} characteristics (such as height, body proportions etc.) can be relied upon to remain largely consistent between frames. This fact is exploited through an extension that learns a single set of \emph{global} shape parameters $\shape$ and is assigned to across all frames $\shape_{t} := \shape$. Another benefit offered by video is the opportunity to constrain inter-frame subject motion. Assuming a reasonable framerate, it is expected that the animal's pose and position parameters should vary only slightly between successive frames. This intuition is characterized in \Cref{eq:temporal-energy}.
+
+The following section defines the 4 energy terms used in the optimization: 
+
+\ss{Silhouette energy.}
+The silhouette energy $\E{sil}$ compares the 3D animal model to the silhouette image according to the L2 distance between the OpenDR rendered binary image and the input silhouette:
+
+\begin{equation}
+\E{sil}(\posn_{t}, \pose_{t}, \shape; S_{t}) = \lVert S_{t} - R\bigl(\posn_{t} * \verts(\pose_{t}, \shape)\bigr) \rVert
+\end{equation}
+
+\ss{Unimodal Prior energy.}
+The prior term $\E{prior}$ encourages the regressed shape and pose parameters to remain close to a those in the combined artist traininthose in our set of artist 3D dog meshes.
+
+% \begin{equation}
+%     \L{pose}(\pose) = (\pose - \meanpose)^T \pose_cov^{-1} (\pose - \meanpose)
+% \end{equation}
+
+% \begin{equation}
+%     \L{uni-shape}(\beta) = (\beta - \meanbeta)^T \beta_cov^{-1} (\beta - \meanbeta)
+% \end{equation}
+
+The Mahalanobis distance is used to encourage the model to remain close to: (1) a distribution over shape coefficients given by the mean and covariance of SMAL training samples of the relevant animal family, (2) a distribution of pose parameters built over a walking sequence. The final term ensures the pose parameters remain within set limits.
+\begin{equation}
+\E{lim}(\pose_{t}) = \max\{\pose_{t} - \pose_{\text{max}}, 0\} + \max\{\pose_{\text{min}} - \pose_{t}, 0\}.
+\end{equation}
+
+\ss{Joints energy.}
+The joints energy $\E{joints}$ compares the rendered model joints to the OJA predictions, and therefore must account for missing and incorrect joints.  It is used primarily to stabilize the nonlinear optimization in the initial iterations, and its importance is scaled down as the silhouette term begins to enter its convergence basin.
+
+\begin{equation}
+\E{joints}(\posn_{t}, \pose_{t}, \shape; X^{*}) = 
+\lVert X^{*} - \posn_{t} * \verts(\pose_{t},\shape)\jointselect_{t}(:,j) \rVert
+\end{equation}
+
+\ss{Temporal energy.}
+The optimizer for each frame is initialized to the result of that previous. In addition, a simple temporal smoothness term is introduced to penalize large inter-frame variation:
+\begin{equation}
+\E{temp}(\posn_{t}, \pose_{t}) = (\posn_{t} - \posn_{t+1})^2 + (\pose_{t} - \pose_{t+1})^2
+\end{equation}\label{eq:temporal-energy}
+
+% TODO: Maybe some more here?
+The optimization is via a second order dogleg method~\cite{lourakis2005levenberg}.

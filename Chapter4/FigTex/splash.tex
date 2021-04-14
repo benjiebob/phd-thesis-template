@@ -1,0 +1,16 @@
+
+\begin{figure}[t]
+\def\p#1#2{\parbox{0.32\linewidth}{
+\labelledpic{\includegraphics[trim={4cm 7cm 4cm 7cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+{\scriptsize #1}}}
+\def\ps#1#2{\parbox{0.32\linewidth}{
+\labelledpic{\includegraphics[trim={0cm 2cm 0cm 2cm},clip,width=\linewidth]{sys_overview_pred_2/#2.jpg}}
+{\scriptsize #1}}}
+\p a{rgb}             \p b{target}         \p c{heatmap}
+\p d{skeleton_sil}    \p e{00048_overlay}  \ps f{00048_alternative}
+\caption{{\bf System overview}: input video (a) is automatically processed using DeepLabv3+~\cite{deeplabv3plus} to produce silhouettes (b), from which 2D joint predictions are regressed in the form of heatmaps (c).  Optimal joint assignment (OJA) finds kinematically coherent 2D-to-3D correspondences~(d), 
+which initialize a 3D shape model, optimized to match the silhouette~(e). 
+Alternative view shown in (f).
+}
+\label{fig:overview}
+\end{figure}

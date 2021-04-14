@@ -299,3 +299,16 @@
 \newtheorem{definition}{Definition}[section]
 
 \newtheorem{theorem}{Theorem}[section]
+
+\newfloatcommand{capbtabbox}{table}[][\FBwidth]
+
+\def\bb{\rule{2in}{0pt}\rule{0pt}{1in}}
+\def\labelledpic#1#2{
+\begin{tikzpicture}
+\node (pic) {#1};
+\path[fill=white,draw=gray,thick] (pic.south west) +(3ex,3ex) circle (2ex)
+node {#2};
+\end{tikzpicture}
+}
+
+\def\seq#1#2#3#4{\left[{#1_{#2}}\right]_{#2=#3}^{#4}}

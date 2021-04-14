@@ -1,0 +1,111 @@
+
+\section{Introduction}
+
+This chapter introduces a system for recovering the 3D shape and motion of a wide variety of quadrupedial animals from video. Inspired by techniques from the recent human body and hand tracking literature (most notably SMPLify~\cite{bogo16keep}), the system comprises a machine learning front-end for predicting 2D joint positions followed by an energy minimization stage which fits a detailed 3D model to the image. However, this chapter will discuss a number of key challenges which arise when reconstructing animal subjects compared with humans and methods to overcome them.
+
+\subsection{Limited animal training data}
+For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species. In the case of SMPLify, the network is trained on large-scale human keypoint datasets, including MPII~\cite{andriluka14cvpr} (approx. 40,000 people) and the Leeds Sport Dataset~\cite{johnson2010clustered}. Unfortunately, there is no keypoint dataset for animals that cover even a small fraction of the quadruped types that we aim to reconstruct. 
+
+Of greater concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities. For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+
+These dataset challenges have, at least in part, resulted in the lack of \emph{automatic} approaches for 3D animal reconstruction. Precisely, prior to the design of the system discussed in this chapter, 3D animal reconstruction techniques relied on at least one of manually provided silhouettes, keypoint locations or limb tracks. The techniques are summarized in \Cref{tab:animal-annot-tab} and discussed in depth in \Cref{chap:relwork}. 
+
+\input{Chapter4/Tables/rw-tbl.tex}
+
+
+\subsection{Synthetic image generation}
+
+In the absence of real-world motion capture data, the recent publication of the Skinned Multi-Animal Linear (SMAL) model~\cite{zuffi2017menagerie} offers a method for \emph{synthetic} data generation. Analogous in design to the popular SMPL~\cite{loper15smpl} parametric human model, SMAL can generate a wide range of quadruped species. As discussed in \Cref{chap:relwork}, SMAL overcomes the lack of 3D animal training data by instead learning from 41 scans of toy figurines. This results in SMAL being of considerably lower fidelity than the SMPL, which was constructed from 1786 3D human scans. However, the model's PCA shape space offers a mechanism for sampling potentially infinite quadruped animals of satisfactory realism which can form a valuable training dataset.
+
+% comes without surface texture maps. 
+The use of synthetic images to train 3D reconstruction systems has been attempted in recent computer vision literature. The general approach is to capture training images by capturing multiple images of a representative 3D model (or scene) by randomly sampling camera and environmental parameters. A machine learning model is then trained on this dataset $D_{synth}$ of synthetic images and later tested on a dataset $D_{real}$ of real-world examples. This procedure offers an important practical advantage; the training images can be automatically generated with correponding annotations. Depending on the task, this can overcome a lengthy and complex process of sourcing manual annotations from users. However, designing a data pipeline which can generate synthetic images with sufficient realism to be representative of real test images $D_{real}$ is challenging. A common pitfall of such approaches is the tendancy to train machine learning models that perform well on unseen synthetic images but poorly on real world examples. This phenomenon is often caused by systematic differences between the $D_{synth}$ and $D_{real}$, resulting in the model becoming overreliant on features present only in $D_{synth}$ or unfamiliar with features present only in $D_{real}$. The differences between datasets is often described as the \emph{domain gap} which must be bridged in order to achieve a successful predictor. 
+
+%Review paper: https://arxiv.org/pdf/1909.11512.pdf?fbclid=IwAR2FuZvNAlIGuyh2wtVEmj_rLzjaJvCjMNWP_svBqhMtnXcEX-NV9z8rR7g
+Fortunately, there are a number of options for tackling this problem. A popular strategy is to ensure the generation pipeline is of extremely high quality. SURREAL\lazycite{SURREAL}{SURREAL} is a method which learns from synthetic human images rendered using the popular SMPL~\cite{loper15smpl} parametric model. In this work, the authors go to significant effort to source realistic UV texture maps for SMPL and apply a high quality rendering engine complete with a lighting and reflectance model to generate their training images. A similar approach is followed by SMALST \lazycite{SMALST}{SMALST}, who follow a multi-view optimization pipeline to construct a synthetic zebra training dataset complete with realistic textures. Related also are autonomous driving systems that train (or pre-train) on synthetic `virtual worlds' \lazycite{https://arxiv.org/pdf/1605.06457.pdf?fbclid=IwAR0RtcIEKYgghwD5uo_TSwesiD2XuhqaQtuoTaQe2omp-QCdzJv4O3PjBjU}{Virtual Worlds}. An alternative option is to process the test image dataset to find a representation which is easier to synthesise. For 3D human skeleton prediction, Shotton et al.~\cite{shotton-kinect} synthetise a set of depth images used to train a keypoint regressor. An unfortunate byproduct of this training style however is that it necessitates a depth sensor at test time. 
+
+%Related also is the work of \lazycite{GTA-Cars}{GTA-Cars} who use a images rendered from a popular video game engine to teach an automous agent to drive with reinforcement learning. 
+%Another category of approaches are found in optical flow. Optical flow is an example of a dense point correspondence task: given two frames $I_{i}, I_{i+1}$ a model should predict a \emph{flow field} $f: \RR{H}{W} \mapsto \RR{H}{W}$. Of course, for this task the most important learning signal is obtained through observing object and camera \emph{motion}. For this reason, multiple models are trained using the FlyingChairs dataset: since natural scenes are complex to generate, models can just learn from flow directly. % Tidy up this argument
+
+A significant advance has been made recently with the introduction of generative adversarial networks (GANs). The idea of a GAN is to train two `competing' networks: the \emph{generator} is tasked with producing synthetic images and the \emph{discriminator} determines if a given input image originated in a real-world dataset or was instead synthesized by the generator. These two networks are given opposite goals: the generator is penalized if it fails to `fool' the discriminator, and the discriminator is penalized if it fails to recognize a synthesized image. By training these networks jointly, the generator eventually learns to produce synthetic images of extremely high quality, since the discriminator provides feedback on even subtle aspects of the synthetic images which are unreaslistic. Despite the remarkable quality of `GANerated' images, the challenge of conditioning GANs to generate \emph{structured} images is still an evolving field. For example, a sensible challenge might be to train a GAN to generate UV texture maps for the SMAL model. 
+
+
+of this is that there should be an analoug% TODO: Justify why GANs are a bad idea...
+% Mode collapse
+% With GANs, there should be an anology between shapes in the real and synthetic set. However, it's difficult to render synthetic shapes which match shapes in an unlabelled test dataset. 
+
+The system presented in this section adopts an alternative (and much simpler) approach for synthetic image generation. The idea builds on the realisation that a 2D silhouette image encodes a significant amount of the object's shape features, and by virtue of being textureless and having no background detail is much simpler to synthesise. As previously discussed, there are also a great number of `off-the-shelf' image segmentation engines which can produce accurate animal silhouettes of a high quality. 
+
+The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
+
+
+\subsection{Handling silhouette ambiguity}
+
+An unfortunate drawback of using silhouette images (for example, when compared to RGB or depth counterparts) is that missing interior contours leads to a source of reconstruction ambiguity. An example of this is shown in Figure 6 in which two distinct 3D reconstructions are shown to yield similar 2D silhouette reprojections. Clearly, a naive joint predictor which regreses a single set of 2D coordinates from an input silhouette would perform suboptimally, since the silhouette alone contains insufficient information to resolve such cases. 
+
+However, the fact that the system is designed to accept a video sequence as input (rather than a single frame) provides additional information which can be used to resolve per-frame ambiguities. This section describes a method for incoporating temporal knowledge in order to obtain a reliable set of predicted 2D joint coordinates that later form the basis for the 3D model fitting stage. The key insight is to modify a standard joint heatmap predictor~\lazycite{hourglassnet} {hourglassnet} in order to encourage multi-modal outputs, both when trained on synthetic data and later tested on real world frames. A novel discrete optimization stage is then used to recover the skeleton trajectory of maximal likelihood from the sequence of multi-modal predictions. This section will explore two methods for achieving this: the first frames the problem as a quadratic program and the later provides achieves a significant efficiency improvement by using a genetic algorithm. 
+
+
+%The system comprises a machine learning front-end which predicts candidate 2D joint positions, a discrete optimization which finds kinematically plausible joint correspondences, and an energy minimization stage which fits a detailed 3D model to the image. 
+
+
+% The core methodologies are inspired by techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting. A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
+
+% For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
+
+% Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
+% For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+
+\subsection{Contributions}
+
+\input{Chapter4/FigTex/splash.tex}
+
+Taking into account the above constraints, this work applies a novel strategy to animal tracking, which assumes a machine-learning approach to extraction of animal silhouettes from video, and then fits a parameterized 3D model to silhouette sequences.  The system exhibits the following contributions:
+\begin{itemize}
+\item A machine-learned mapping from silhouette data of a large class of quadru\-peds to generic 2D joint positions.
+\item A novel optimal joint assigment (OJA) algorithm extending the bipartite matching of Cao {\em et al.}~\cite{cao2017realtime} in two ways, one which can be cast as a quadratic program (QP), and an extension optimized using a genetic algorithm (GA).
+\item A procedure for optimization of a 3D deformable model to fit 2D silhouette data and 2D joint positions, while encouraging temporally coherent outputs.
+\item We introduce a new benchmark animal dataset of joint annotations (BADJA) which contains sparse keypoint labels and silhouette segmentations for eleven animal video sequences. 
+Previous work in 3D animal reconstruction has relied on bespoke hand-clicked keypoints~\cite{zuffi2017menagerie,zuffi_lions} and little quantitative evaluation of performance could be given.
+The sequences exhibit a range of animals, are selected to capture a variety of animal movement and include some challenging visual scenarios such as occlusion and motion blur.
+\end{itemize}
+
+The system is outlined in \figref{overview}.  The remainder of the paper provides a detailed description of system components.  Joint accuracy results at multiple stages of the pipeline are reported on the new BADJA dataset, which contains ground truths for real animal subjects. Experiments are also conducted on synthetic animal videos to produce 3D joint accuracy statistics and full mesh comparisons. A qualitative comparison is given to recent work~\cite{zuffi2017menagerie} on the related single-frame 3D shape and pose recovery problem. The paper concludes with an assessment of strengths and limitations of the work.
+
+% \subsection{Related Work}
+% In this section, we will discuss work specifically related to this paper. The broad 
+
+% \subsubsection{Non-automatic approaches for 3D reconstruction of articulated subjects}
+
+% Much of this is handled in the previous section, but could be briefly recapped. Point out that we want an AUTOMATIC technique that can rapidly apply across different quadruped types.
+
+% \subsubsection{Automatic approaches for 3D reconstruction of articulated subjects}
+
+% The SMPLify approach is comprises of two stages, means of achieving 3D human reconstruction. an automatic To train such a system, we may look towards the SMPLify technique employed for 3D human mesh recovery
+
+
+% \subsubsection{Learning from synthetic data}
+
+% SURREAL dataset for humans. 
+
+% \subsubsection{Cleaning up predictions}
+
+% Talk about pictorial structure models. Could be integrated later.
+
+% \section{Design discussion for an automatic quadruped 3D reconstruction}
+% \def\seq#1#2#3#4{\left[{#1_{#2}}\right]_{#2=#3}^{#4}}
+
+% The test-time problem to be solved is to take a sequence of input images and for each image, output the shape, pose and position parameters describing the animal's motion.
+
+% To train such a system, we start by considering the suitability of the SMPLify~\cite{bogo16keep} method (discussed above) which describes a two-stage approach for automatic 3D human reconstruction. However, the approach has particular design requirements that prevents trivial extension to reconstructing quadrupeds. 
+
+% \subsection{Keypoint training data for joint predictor}
+
+% Firstly, the preliminary stage of the approach is based on the DeepCut joint predictor, a convolutional neural network that takes an input an image and predicts a set of semantically meaningful keypoints. In the case of SMPLify, the network is trained on large-scale human keypoint datasets, including MPII~\cite{andriluka14cvpr} (approx. 40,000 people) and the Leeds Sport Dataset~\cite{johnson2010clustered}. As previously discussed, there are no keypoint datasets for animals that cover even a small fraction of the quadruped types that we aim to reconstruct. 
+
+% With no real-world data to use for training the keypoint predictor, we can turn instead to a novel approach that instead relies on synthetic (or fake) data for training. 
+
+
+% \subsection{Data driven shape and pose priors}
+
+% Of course, we also don't have any shape or pose priors.
+
