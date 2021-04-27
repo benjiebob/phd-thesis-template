@@ -31,43 +31,43 @@
 % (3) In theory could also run on horses, but would take time.
 
 \section{Introduction}
-This chapter introduces a system for automatically recovering the 3D pose and shape of dogs from monocular internet imagery. As discussed in \Cref{chap:relwork}, there is a long history of 3D reconstruction approaches which rely on morphable models. Often, these models are provided with 3D shape priors, which are used to help regularize fitting and thereby encourage plausible predictions. Due to the limited 3D training data available for animals, existing priors are of relatively low fidelity, having been built from a few toy figurines rather than scans of real subjects. While available animal priors are of sufficient quality to represent obviously differences between entire species (e.g. horse, camel, etc.), they poorly represent the variation between members of the same species. For this reason, existing reconstruction approaches typically produce similar looking output even when tested on different examples of the same animal class. This proves to be an issue for the practical application of such systems, as it prevents animal researchers from analysing subtle differences in their animal populations with may have potential health implications. The approach described in this chapter targets this problem without requiring any additional 3D training data. Instead, a new technique is introduced which \emph{refines the shape prior} during the model's training procedure, and learns instead from a large 2D image dataset. In order to quantitatively compare to existing methods, and to stress test the fidelity of predicted 3D shapes, experimentation is based on \emph{StanfordExtra}, a new large-scale dataset containing 120 different dog breeds.
+
+This chapter introduces an automatic, end-to-end method for recovering the 3D pose and shape of dogs from monocular internet images. The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem. In addition, dogs are poorly represented in existing 3D morphable models. This work learns a richer prior over dog shapes than in previous work which helps regularize parameters estimation. This chapter demonstrates that the natural variation present in a 2D dataset is sufficient to learn a detailed 3D prior by incorporating expectation maximization (EM) steps into the training process. It is also demonstrated how to adapt the raw linear blend skinning process to include additional limb scaling parameters, which are shown to improve the quality of reconstruction. Inspired by recent methods for human reconstruction ~\cite{kanazawa18end-to-end}, the system comprises an end-to-end convolutional neural network which directly predicts the morphable model parameters with no subsequent energy minimization phase, enabling real-time operation. The later experimentation section is based on StanfordExtra, a new `in the wild' dataset of dog images, containing 120 breeds. The method presented achieves state-of-the-art performance, and outperforms model fitting approaches, even when they are given access to ground truth annotations at test time. 
+
+%A by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset StanfordExtra to the research community.
+
+%This chapter introduces an automatic, end-to-end system for automatically recovering the 3D pose and shape of dogs from monocular internet imagery. The large variation in shape between dog breeds, poor representation in existing morphable models and prevalance of nusiance factors in typical internet imagery makes this a challenging problem. A primary focus of this chapter is a method for learning a rich 3D shape prior by adapting aharnessing a large dataset of dog images, requiring no additional 3D dog annotations. is the introduction of a rich 3D shape prior, which enables accurate 
+
+%significant Despite being the most popular household pet \lazycite{TODO}{TODO}, there are relatively few methods which focus on dogs in recent 3D reconstruction literature. It is likely this is since the wide diversity among dog breeds are poorly represented by existing morphable models. dogs are poorly represented by the dogs have been largely overlooked in 3D reconstruction literature. Dogs are have been poorly represented in existing work, primarily due to the lack of available 3D morphable models which adequately represent them, the large variation in shape and pose 
+
+\subsection{Learning a 3D animal shape prior}
+As discussed in \Cref{chap:relwork}, there is a long history of 3D reconstruction approaches which rely on morphable models. Examples of such priors have been demonstrated already, for faces \lazycite{Faces, rel-work}{Faces, rel-work}, SMPLify~\lazycite{SMPLify}{SMPLify} for human images, and in \Cref{chap:cgas} of this thesis, which uses the SMAL~\cite{zuffi2017menagerie} shape prior for monocular quadruped reconstruction. Often, these models are provided with 3D shape priors, which are used to help regularize fitting and thereby encourage plausible predictions. A typical strategy employed by these methods, is to design an energy (or loss) function that balances \emph{data terms} which encourages strong alignment between the 3D model and input image, and \emph{prior terms} which help to ensure 3D realism. Due to the limited 3D training data available for animals, existing priors are built using toy figurines rather than scans of real subjects so are consequently of much lower fidelity. While available animal priors are of sufficient quality to represent course differences between entire species (e.g. horse, camel, etc.), they poorly represent variation between members of the same species. For this reason, state of the art animal reconstruction approaches tend to produce similar looking output when tested on different examples of the same animal class. This raises an issue for practical applications of such systems; for example, animal researchers are unable to analyse subtle differences in weight and body proportions which could otherwise lead to health and wellbeing insights. 
+
+The approach described in this chapter tackles this problem, importantly without requiring any additional 3D training data. Instead, a new technique is introduced which \emph{adapts an existing shape prior} by learning from large 2D image dataset. The proposed method takes inspiration from the SPIN method of Kolotouros et al., who demonstrate blending a deep convolutional neural network and an energy minimization framework. Their 3D reconstruction approach uses the HMR backbone~\lazycite{HMR}{HMR} to yield a set of SMPL~\lazycite{SMPL}{SMPL} human body shape and pose parameters $\Theta_{reg}$ from an input image. During SPIN's training phase, the initial fit $\Theta{reg}$ is processed by the SMPLify~\lazycite{SMPLify}{SMPLify} model fitting procedure, which refines the initial fit based on the ground truth joints to yield a new estimate $\Theta_{opt}$. The difference between these two predictions is then expressed as a loss $||\Theta_{reg} - \Theta_{opt}||$ which is backpropagated through the regression network to help it generate improved model parameter predictions.
+
+Using this strategy, SPIN demonstrates a successful collaboration of two core model fitting paradigms: regression-based deep neural networks and iterative optimization (often referred to as energy-based methods). Optimization methods typically achieve highly accurate alignment between the 3D template model and input image data. However, they are often slow nad suffer greatly if the 3D template model is poorly initialized. In contrast, deep learning methods which directly regress 3D model parameters require large training datasets and, while previous methods~\lazycite{HMR}{HMR} show good results, they are not pixel accurate to the input image. they are not pixel accurate. The insight realised by SPIN is a pixel-accurate fit achieved by an iterative process can act as a strong supervisory signal for a deep network during its training phase. In addition, deep networks can be used to generate high quality initializations for the optimization phase. Critically, SPIN only relies on the slow energy minimization procedure to generate the supervisory signal during the network's training loop, so the test-time performance is unaffected.
+
+This work demonstrates a novel technique for adapting a low-fidelity 3D shape prior to better represent the challenging dog category. The approach comprises an an expectation maximization process, applied during the training loop, and makes incremental updates to the prior based on weights learned from a large 2D image dataset. With no additional 3D training data required, this technique is shown experimentally to produce higher fidelity shape reconstructions. This has the effect of better recovering the ``personal'' details of each input dog, rather than crudely representing the breed. Further details on the expectation maximization process and overall reconstruction network are deferred to the later method section.
+
+\subsection{Animal datasets}
+
+In order to quantitatively compare to existing methods, and to stress test the fidelity of predicted 3D shapes, experimentation is based on \emph{StanfordExtra}, a new large-scale dataset containing 120 different dog breeds.
+
+\subsection{Real-time 3D reconstruction}
 
 A further contribution of the system presented in this chapter is that it is capable of operating in real time. Being able to reconstruct animals in a live video stream is of great importance to potential downstream tasks, such as behaviour or health monitoring. Real-time processing potentially enables experts to immediately respond to causes for concern among their animal populations, rather than having to act on insights found retrospectively. At present, state-of-the-art animal reconstruction techniques incoporate per-image (or per-sequence as in \Cref{chap:cgas}) model fitting stages implemented as energy minimization procedures which prohibit their real-time use. Inspired by recent approaches in humans~\cite{kanazawa18end-to-end}, this chapter's approach incoporates a deep convolutional neural network that directly regresses the target parameters for the 3D morphable model. The shape prior refinement process, applied only at training time, has no impact on test time performance and, as shown in the experimentation section, enables the model to predict high quality 3D dog models that make a subsequent refinement step optional. 
 
-\subsection{Designing a 3D shape prior}
-even in monocular, single-image scenarios. Examples of such priors have been demonstrated already, for faces \lazycite{Faces, rel-work}{Faces, rel-work}, SMPLify~\lazycite{SMPLify}{SMPLify} for human images, and in \Cref{chap:cgas} of this thesis, which uses the SMAL~\cite{zuffi2017menagerie} shape prior for monocular quadruped reconstruction. A typical strategy employed by these methods, is to design an energy (or loss) function that balances \emph{data terms} which encourages strong alignment between the 3D model and input image, and \emph{prior terms} which help to ensure 3D realism. reconstruction strategy, employed by all these methods, is to balance a data term which encourages strong alignment between the 3D model and image data with a 3D shape prior to ensure realism. However, is to dHowever, the success of these priors relies heavily on the data used to build them. For animals, limited real-world 3D training data has resulted in the available models and priors being of relatively low fidelity, having been built instead from a few toy artist scans. While these priors are sufficient to approximate an animal species (e.g. an elephant, tiger, dog), they lack the representative power necessary for complex intra-species variation. Section XX demonstrates this problem by fitting the SMAL model to various dog images of different breeds. 
 
-This is verified in chapter This can be seen by fitting the , fitting an existing quadruped model to various dog breeds the SMAL attempts to fit the SMAL model to different power to represent intricate intra-species variation. Of course, a successful er-specianimal species, they are certainly Monocular reconstruction pipelines To stress this, 
-
-artist scans has As discussed previously, limited 3D training datadand which help regularize fitting to ensure plausible output models even when a only a single, monocular image is provided.  to ensure plausible particularly when only a single, monocular image is provided. Monocular 3D reconstruction pipelines typically rely on 3D shape priors in order help regularize fitting. fitting, approaches typically rely on 3D shape priors which help regularize However, there are relatively few techniques which 
-The technique Differently to the work in \Cref{chap:cgas}, this chapter focuses on a technique for learning a rich 3D shape prior from a 2D dataset. 
-
-2 focus of this method is to learn a rich 3D shape prior from a large 2D dataset capable of capturing the differences between individual dog breeds. 
-
-llearning a rich 3D shape prior by to learn a rich 3D shape prior, enabling  focus of this approach is to learn a rich shape prior, capable of representing the differences between multiple dog breeds.
+This thesis has already explored the use of 3D shape priors to regularize monocular reconstruction methods. 
 
 
 
-
-focussing on the dog category. on a single, challenging species: focussing on different examples of the same In this chapter, this phenomenon is stress tested by focussing with a new dataset This results in This results in reconstruction methods generating reconstruction methods being in reconstruction methods being being relatively This resulOf course, this could be resolved by collecting a much larger dataset of 3D models. overcome this challenge is to build priors on a larger dataset of 3D models. However, at the limit of this approach, it is clearly impractical to require a representative scan for the 3 billion species of animals on Earth. 
-
-
-tThis is explored in depth in this chapter, in which SMAL~\cite{zuffi2017menagerie} struggles to represent the differences between different breeds of the same species. is fit to different breeds of dog, resulting in either poor resconstructions or a crude output shape a later section are poor at representing intra-species variation. For example, the SMAL~\cite{zuffi2017menagerie} could crudely used in \Cref{chap:cgas} was acceptable to crudely approximate the differences between bears, camels and dogs, but struggles to represent lack the representative power necessary to allow reconstruWhen applied to reconstruction pipelines, 
-
-
-applying 3D morphable models to Unlike previous work in 3D morphable modelling, focus of the method introduces here  Differently to the work present in \Cref{chap:cgas}, the focus of this method is to learn a rich pthe wofocuses on learning a rich prior over animal shapes 
-
-\subsection{End-to-end operation}
-
-\subsection{More stuff}
-
-is designed to work in real-time and this method focuses on learning a rich prior recovers produces  end-to-end method for automatically recovering the 3D pose and shape of dogs from monocular internet images.
-The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
-We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
-We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
-In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
-As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
+% is designed to work in real-time and this method focuses on learning a rich prior recovers produces  end-to-end method for automatically recovering the 3D pose and shape of dogs from monocular internet images.
+% The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
+% We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
+% We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
+% In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
+% As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
 
 
 % Animals contribute greatly to our society, in numerous ways economic and otherwise (there are more than 63 million pet dogs in the US alone~\cite{appa20}).
@@ -96,14 +96,45 @@ While each of these qualities exist in some existing works, we believe ours is t
     allowing explicit scaling of subparts.
 \end{enumerate}
 
-\subsection{Related work}
-We will discuss some related techniques for this paper.
-
-\subsubsection{Automatic 3D reconstruction approaches}
-
-\subsubsection{Animal datasets}
-
 \input{Chapter5/fig_system_overview2.tex}
+
+\section{Preliminaries}
+
+\subsection{PCA shape space}
+
+For shape spaces shape space formulations based on principal component analysis (PCA), recall the linear generator function $g: \R{d} \mapsto \R{3n}$ which maps a $d$-dimensional parameter space to $n$ 3D morphable model vertex coordinates: 
+
+\begin{equation}
+    g(w) = \bar{c} + Ew
+\end{equation}
+
+In this formulation, $\bar{c} \in \R{3n}$ is the mean 3D shape from a training dataset, and $E \in \R{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \bar{c_i}\}$. 
+
+%% PCA does assumlaxe normal distribution of features See p.55 SAS book1 or Rummel, 19702 or Mardia, 19793.
+
+A consequence of PCA construction is that the features in the $d$-dimensional parameter space follow a multivariate normal distribution. %% ASK ANDREW, or be less lazy and do the math
+With this construction, one can define a likelihood function which measures the probability of a given shape vector $w \in \R{d}$
+
+\begin{equation}
+    f(w) = (2\pi)^{-\frac{d}{2}}\det(\Sigma)^{-\frac{1}{2}}e^{-\frac{1}{2}(w-\bar{c})^T\Sigma^{-1}(w-\bar{c})}
+\end{equation}
+
+For problems which aim to optimize $w$, the 3D shape prior is obtained by maximizing $f(w)$ or equivalently, by minimizing the negative log likelihood
+
+\begin{equation}
+     -\ln(f(w)) = -\frac{1}{2}\left[\ln\det(\Sigma) + d\ln(2\pi) +  (w - \bar{c})^T\Sigma^{-1}(w-\bar{c})\right]
+\end{equation}
+and dropping terms with no dependency on $w$ (which remain constant during optimization) leaves the Mahalanobis distance of $w$ to the origin
+
+\begin{equation}
+    L(w) = (w - \bar{c})^T\Sigma^{-1}(w-\bar{c})
+\end{equation}
+
+
+the 3D shape optimization problems, the 3D shape prior 
+
+This construction assumes 3D faces in this $d$-dimensional parameter space follow a multivariate normal distribution (a design decision explored further in this thesis \Cref{chap:wldo}). In addition, the function $f(w)$ which defines the likelihood shape space vector $\alpha$ represents a plausible face, is therefore given by the Mahalanbois distance of $\alpha$ to the origin. 
+
 
 \section{Building SMBLD: a new parametric dog model}
 
