@@ -1,0 +1,48 @@
+
+% \subsection{Learning a 3D animal shape prior}
+
+% As discussed in \Cref{chap:relwork}, there is a long history of 3D reconstruction approaches which rely on morphable models. Often, these models are provided with 3D shape priors, which are used to help regularize fitting and thereby encourage plausible predictions. These methods typically design an energy (or loss) function that balances \emph{data terms} to encourage strong alignment between the 3D model and input image, and \emph{prior terms} which ensure realistic predictions. Due to the limited 3D training data available for animals, existing priors are built using a few toy figurines rather than scans of real subjects such as used for SMPL~\lazycite{SMPL}{SMPL}. Consequently, existing priors are of much lower fidelity and poorly represent some species, particularly dogs. This leads to poor performance by state-of-the-art single-view methods on the dog category, since the prior term tends to be too restrictive. 
+ 
+% Some methods overcome this by forgoing the 3D shape prior altogether. SMALST is one such example; they instead train on 3D synthetic data generated using video sequences. CMU and UCMU reconstruct birds without a 3D morphable model, and replace a data-driven 3D shape prior with smoothness terms, deformation constraints and symmetry constraints. However, birds are treated in this work as an unarticulated category, which leads to simpler optimization. However, this chapter differs by focusing purely on single monocular images, and tackles the complex, articulated dog category.
+
+% Of course, a valid approach for improving 3D animal priors would be to run established pipelines with a larger, and higher quality dataset of 3D animal scans. However, collecting such a dataset typically requires an expensive and time-consuming scanning process for real animal subjects, or labour intensive process by talented 3D graphics artists to generate multiple animal models. This work proposes an approach which \emph{adapts an existing shape prior} by learning from an annotated 2D image dataset, which is much cheaper to obtain.
+
+
+
+
+
+%This chapter introduces an automatic, end-to-end system for automatically recovering the 3D pose and shape of dogs from monocular internet imagery. The large variation in shape between dog breeds, poor representation in existing morphable models and prevalance of nusiance factors in typical internet imagery makes this a challenging problem. A primary focus of this chapter is a method for learning a rich 3D shape prior by adapting aharnessing a large dataset of dog images, requiring no additional 3D dog annotations. is the introduction of a rich 3D shape prior, which enables accurate 
+
+%significant Despite being the most popular household pet \lazycite{TODO}{TODO}, there are relatively few methods which focus on dogs in recent 3D reconstruction literature. It is likely this is since the wide diversity among dog breeds are poorly represented by existing morphable models. dogs are poorly represented by the dogs have been largely overlooked in 3D reconstruction literature. Dogs are have been poorly represented in existing work, primarily due to the lack of available 3D morphable models which adequately represent them, the large variation in shape and pose 
+
+% remains significant shape variation between breeds Despite the overall dataset 
+
+% While the overall dataset diversity is more constrained by considering only a single animal category, the dog category is extremely varied and capturing subtleties in 3D shape between different breeds poses a challenge to the prior refinement process. 
+
+% It is noticeable that existing work has not yet demonstrated effective 3D reconstruction of dogs over large test sets. This is arguably due to dog breeds being remarkably dissimilar in shape and texture, presenting a challenge to the current state of the art.
+
+% variation in the dog category is significant among different dog remains significant and the subtleties in 3D shape between breeds leads to a challenging reconstruction task. 
+
+% breeds dogs considering only a single animal category does limit the overall dataset diversity, the dog category remains extremely varied and contains complex variation 
+
+% limits the overall diversity, limits the overall dataset diversity, the remaining diversity is much more complex.  arguably limits diversity, While the diversity is arguably more limited than diversity This work focuses on the dog category, which  Existing 3D animal reconstruction methods are typically evaluated on a few examples taken of multiple species with significant appearance variation. Notable exceptions include SMALST, who focus only on zebras,methods are typically evaluated on a few examples of evaluation on a few dozen examples Rather than following existing work, in which evaluation is conducted on a few examples of different species, a few examples of multiple species is 
+
+
+% Rather than To better examine the fidelity of reconstructed animals, the method is applied rather than following existing works by evaluating on a few examples of different species, work by In order to test the accurate of reconstructions, Rather than following existing works by evaluating on a handful of examples for separate species, the fidelity of reconstructions are better evaluated multiple species with extremely different shape properties, to instead focus on the dog species which represents significant, but much more complex diversity. To supervise the 3D reconstruction network (and enable refinement steps), images should be supplied with 2D keypoint annotations to encourage pose alignment, and a binary silhouette annotation to promote accurate shape recovery. 
+
+% \Cref{chap:cgas} of this thesis discusses the plentiful nature of animal (including dog) silhouette data, which can be found in \lazycite{COCO etc.}{COCO etc.}. The rest of the chapter, however, focuses on a synthetic training method to overcome the limited 2D keypoint datasets. Unfortunately, one limitation of the method in \Cref{chap:cgas} is that synthetic data generation process, based on rendering randomly sampled 3D animal models, relies on the original 3D SMAL prior which cannot be adapted. As will be shown, this leads the method to perform poorly on challenging datasets containing animal shapes (and indeed poses) which are not well represented by the prior. Instead, it is necessary to collect a real world and diverse dog dataset. 
+
+% Of course, syntehtOf course, synthetic data is one such approach could be employed 
+
+% Although dog silhouette data is plentiful~\lazycite{COCO etc.}{COCO etc.},  2D keypoint annotations are much harder to come by. One strategy for this would be 
+
+% Due to the diversityIn order to evaluate the fidelity of reconstructed animals, reconstruction quality of of reconstruction of the same species. quality of and provide a large dataset from which to learn quantitatively compare to existing methods, and test the accuracy of predicted 3D shapes, the method is evaluated on it is necessary to evaluate of predicted 3D shapes, and to stress test the fidelity of predicted 3D shapes, experimentation is based on \emph{StanfordExtra}, a new large-scale dataset containing 120 different dog breeds.
+
+% \subsection{Real-time 3D reconstruction}
+
+% is designed to work in real-time and this method focuses on learning a rich prior recovers produces  end-to-end method for automatically recovering the 3D pose and shape of dogs from monocular internet images.
+% The large variation in shape between dog breeds, significant occlusion and low quality of internet images makes this a challenging problem.
+% We learn a richer prior over shapes than previous work, which helps regularize parameter estimation.
+% We demonstrate results on the Stanford Dog Dataset, an ``in-the-wild'' dataset of 20,580 dog images for which we have collected 2D joint and silhouette annotations to split for training and evaluation. 
+% In order to capture the large shape variety of dogs, we show that the natural variation in the 2D dataset is enough to learn a detailed 3D prior through expectation maximisation (EM).
+% As a by-product of training, we generate a new parameterized model (including limb scaling) SMBLD which we release alongside our new annotation dataset \emph{StanfordExtra} to the research community.
