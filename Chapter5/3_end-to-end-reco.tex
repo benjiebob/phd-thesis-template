@@ -1,0 +1,54 @@
+
+\section{End-to-end dog reconstruction from monocular images} 
+
+We now consider the task of reconstructing a 3D dog mesh from a monocular image. We achieve this by training an end-to-end convolutional network that predicts a set of SMBLD model and perspective camera parameters. In particular, we train our network to predict pose $\pose$ and shape $\shape$ SMBLD parameters together with translation $\trans$ and focal length $f$ for a perspective camera. A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
+
+\subsection{Model architecture}
+
+%extended with convolutional layer and an fully-connected layer 
+Our network architecture is inspired by the model of 3D-Safari~\cite{Zuffi19Safari}. Given an input image cropped to (224, 224), we apply a Resnet-50~\cite{he2016deep} backbone network to encode a 1024-dimensional feature map. These features are passed through various linear prediction heads to produce the required parameters. The pose, translation and camera prediction modules follow the design of 3D-Safari, but we describe the differences in our shape module.
+
+\ss{Pose, translation and camera prediction.}
+These modules are independent multi-layer perceptrons which map the above features to the various parameter types. As with 3D-Safari we use two linear layers to map to a set of $35 \times 3$ 3D pose parameters (three parameters for each joint in the SMBLD kinematic tree) given in Rodrigues form. We use independent heads to predict camera frame translation $\trans_{x,y}$ and depth $\trans_{z}$ independently. We also predict the focal length of the perspective camera similarly to 3D-Safari.
+
+\ss{Shape and scale prediction.}
+
+Unlike 3D-Safari, we design our network to predict the set of shape parameters (including scale) rather than vertex offsets. We observe improvement by handling the standard 20 blend-shape parameters and our new scale parameters in separate linear prediction heads. We retrieve the scale parameters by $\scale = \exp{x}$ where $x$ are the network predictions, as we find predicting log scale helps stabilise early training.
+
+\subsection{Training losses}
+
+A common approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shape, \trans, \f)$ with 3D ground truth annotations~\cite{kolotouros19learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
+
+
+We instead develop a method that instead relies on \emph{weak 2D supervision} to guide network training. In particular, we rely on only 2D keypoints and silhouette segmentations, are significantly cheaper to obtain.
+
+The rest of this section describes the set of losses used to supervise the network at train time.
+
+\ss{Joint reprojection.}
+The most important loss to promote accurate limb positioning is the joint reprojection loss $\L{joints}$ which compares the projected model joints $\pi(F_{J}(\pose, \shape), \trans, \f)$ to the ground truth annotations $\hat{X}$. Given the parameters predicted by the network, we apply the SMBLD model to transform the pose and shape parameters into a set of 3D joint positions $J \in \RR{35}{3}$, and project them to the image plane using translation and camera parameters. The joint loss $L_{joints}$ is given by the $\ell_2$ error between the ground truth and projected joints:
+
+\begin{equation}
+\L{joints}(\pose, \shape, \trans, \f; \hat{X}) = \lVert \hat{X} - \pi(F_{J}(\pose, \shape), \trans, \f) \rVert_{2}
+\end{equation}
+
+Note that many of our training images exhibit significant occlusion, so $\hat{X}$ contains many invisible joints. We handle this by masking $\L{joints}$ to prevent invisible joints contributing to the loss.
+
+\ss{Silhouette loss.}
+The silhouette loss $\L{sil}$ is used to promote shape alignment between the SMBLD dog mesh and the input dog. In order to compute the silhouette loss, we define a rendering function $R: (\verts, \trans, \f) \mapsto S$ which projects the SMBLD mesh to produce a binary segmentation mask. In order to allow derivatives to be propagated through $R$, we implement $R$ using the differentiable Neural Mesh Renderer~\cite{kato2018renderer}. The loss is computed as the $\ell_2$ difference between a projected silhouette and the ground truth mask $\hat{S}$:
+
+\begin{equation}
+\L{sil}(\pose, \shape, \trans, \f; \hat{S}) = \lVert \hat{S} - R\bigl(F_{V}(\pose, \shape), \trans, \f \bigr) \rVert_{2}
+\end{equation}
+
+
+\ss{Priors.}
+In the absence of 3D ground truth training data, we rely on priors obtained from artist graphics models to encourage realism in the network predictions. We model both pose and shape using a multivariate Gaussian prior, consisting of means $\mu_{\pose},\mu_{\shape}$ and covariance matrices $\Sigma_{\pose},\Sigma_{\shape}$. The loss is given as the log likelihood of a given shape or pose vector under these distributions, which corresponds to the Mahalanobis distance between the predicted parameters and their corresponding means:
+\begin{align}
+    \L{pose}(\pose; \mu_{\pose}, \Sigma_{\pose}) &= (\pose - \mu_{\pose})^T \Sigma_{\pose}^{-1} (\pose - \mu_{\pose})\\
+    \L{shape}(\shape; \mu_{\shape}, \Sigma_{\shape}) &= (\shape - \mu_{\shape})^T \Sigma_{\shape}^{-1} (\shape - \mu_{\shape})
+\end{align}
+Unlike previous work, we find there is no need to use a loss to penalize pose parameters if they exceed manually specified joint angle limits. We suspect our network learns this regularization naturally because of our large dataset.
+
+%our network this is a positive side-effect of training a network on a large dataset rather than optimizing independently to single images, as the network can learn natural regularisation that discourages infeasible joint configurations.
+
+%this is since the network is able to use the plentiful training examples to learn its own prior.
