@@ -3,7 +3,40 @@
 
 % Explain why the SMAL parameteric model is unsuitable for the dog category.
 
-At the heart of the method is a parametric representation of a 3D animal mesh, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by Zuffi et al.~\cite{zuffi2017menagerie}. As discussed in \Cref{chap:cgas}, SMAL is a deformable 3D quadruped mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The model consists of a linear blend skinning function $F_{v}: (\pose, \shape) \mapsto V$, which generates a set of vertex positions $V \in \RR{3889}{3}$, and a joint function $F_{J}: (\pose, \shape) \mapsto J$, which generates a set of joint positions $J \in \RR{35}{3}$.
+At the heart of the method is a parametric representation of a 3D animal mesh, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by Zuffi et al.~\cite{zuffi2017menagerie}. As discussed in \Cref{chap:cgas}, SMAL is a deformable 3D quadruped mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The SMAL generator function can therefore be viewed supplying a set of triangles and a function 
+\begin{equation}
+\verts(\pose, \shape,) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
+\end{equation}
+which generates the set of 3D model vertex positions $\verts(\pose, \shape) \in \RR{3889}{3}$ for the given pose, shape. Also required are a set of position parameters $\posn$ which governs the global orientation and translation of the model. The following represents a 3D model of given pose and shape transformed to its 3D position.
+
+\begin{equation}
+    \posn * \verts(\pose, \shape)
+\end{equation}    
+
+In addition, the SMAL model 3D joints locations are obtained from the output set of vertcies by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices.
+
+\begin{equation}
+J(\pose, \shape, \posn) := \proj(\posn * \verts(\pose, \shape, \posn) \jointselect)
+\end{equation}
+
+% model consists of a linear blend skinning function $F_{v}: (\pose, \shape) \mapsto V$, which generates a set of vertex positions $V \in \RR{3889}{3}$, and a joint function $F_{J}: (\pose, \shape) \mapsto J$, which generates a set of joint positions $J \in \RR{35}{3}$.
+
+% TODO: Use consistent notation!
+% This section provides a formal definition for the deformable 3D model that is used to generate synthetic training data and in the model fitting stage to obtain the final mesh. Our system assumes a deformable 3D model such as SMAL~\cite{zuffi2017menagerie} which parametrizes a 3D mesh as a function of {\em pose} parameters~$\pose \in \R\npose$ (e.g.\ joint angles) and {\em shape} parameters~$\shape \in \R\nshape$. 
+% As discussed in \Cref{chap:relwork}, a 3D mesh is an array of vertices $\verts \in \RR 3\nverts$ (the vertices are columns of a $3 \times \nverts$ matrix) and a set of triangles represented as integer triples $(i,j,k)$, which are indices into the vertex array.
+% A deformable model such as SMAL may be viewed as supplying a set of triangles, and a function
+% \begin{equation}
+% \verts(\pose, \shape) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
+% \end{equation}
+% which generates the 3D model for a given pose and shape.
+% The mesh topology (i.e.~the triangle vertex indices) is provided by the deformable model, and is the same for all shapes and poses we consider, so in the sequel a mesh will be defined only by the 3D positions of its vertices.
+
+% In any given image, the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation in axis angle form. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
+% \begin{equation}
+% \posn * \verts(\pose, \shape)
+% \end{equation}
+% represents a 3D model of given pose and shape transformed to its 3D position.
+
 
 \subsection{Introducing scale parameters}
 
@@ -13,8 +46,11 @@ This is overcome with a simple but effective way to improve the model's represen
 
 \input{Chapter5/FigTex/fig_scalingparams.tex}
 
-\subsection{Learning a 3D shape prior over scale parameters}
+\subsection{Learning a prior over scale parameters}
 
+Next of concern is how to adapt the existing SMAL shape prior to cover the new set of scale parameters and thereby better represent the dog category. This is achieved by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes, designed for animation and which offer more variety than the original set of SMAL toys. An energy minimization process is used to align the SMAL vertices to each scan, under smoothing regularizers. 
+
+\subsubsection{Preliminaries: the SMAL shape prior}
 For shape spaces shape space formulations based on principal component analysis (PCA), recall the linear generator function $g: \R{d} \mapsto \R{3n}$ which maps a $d$-dimensional parameter space to $n$ 3D morphable model vertex coordinates: 
 
 \begin{equation}
@@ -50,20 +86,18 @@ and dropping terms with no dependency on $w$ (which remain constant during optim
 
 % We have already seeen this formulation in Chapter 4.
 
-Another method for improving the generalizability of the SMAL model is to improve the 3D shape prior. Such priors are typically used to ensure shape deformation remain within a realistic and anatomically plausible range. Due to the limited diversity of scans used to build the SMAL model, while the shape prior does enforce realism among deformations, it does not allow for a wide enough range to cover the set of dogs in our dataset.
+\subsubsection{Learning an improved prior via 3D model fitting}
 
-We improve the quality of the prior (and learn a prior over our new scale parameters) by fitting to a set of $13$ artist-designed 3D dog meshes, designed for animation use, which are more varied than the original set. We apply an energy minimization scheme which aligns the SMAL vertices to each scan, under smoothing regularizers.
+Recall that SMBLD is adapted from the SMAL~\cite{zuffi2017menagerie} deformable animal mesh, by including limb scaling parameters. A new shape prior is learnt by fitting this new SMBLD model, which comprises parameters for pose $\pose$ and shape $\beta$ (the latter of which now includes scaling parameters $\kappa$).
 
-Recall that SMBLD is adapted from the SMAL~\cite{zuffi2017menagerie} deformable animal mesh, by including limb scaling parameters. We learn a prior by fitting our SMBLD model, which comprises parameters for pose $\pose$ and shape $\beta$ (the latter of which includes our scaling parameters $\kappa$).
+Note that fitting SMBLD to 3D scans emits much simpler optimization than to 2D images, since the complete 3D information of the target mesh is available. In addition, the target meshes are not particularly detailed and are already aligned in the canonical T-pose, so we avoid need for a complex alignment technique as discussed in \Cref{chap:cgas}. 
 
-Note that fitting SMBLD to 3D scans is significantly easier than to 2D images, since the complete 3D information of the target mesh is available. In addition, our target meshes are not particularly detailed and are already aligned in T-pose, so we avoid need for a complex alignment technique as discussed in, for example SMPL~\cite{loper15smpl} or SMAL~\cite{zuffi2017menagerie}.
-
-We run an energy minimization process to align the SMBLD mesh to the 3D scans, subject to some smoothing regularizers. We minimize the following energy formulation:
+An energy minimization process is used to align the SMBLD mesh to the 3D scans, subject to some smoothing regularizers. The following energy formulation is minimized
 
 \begin{equation}
     \E{opt} = \E{chamfer} + \E{laplacian} + \E{edge} + \E{normal}
 \end{equation}
-where each of these terms has a scalar weight $\lambda$. We set $\W{chamfer}=\W{edge}=1.0$, $\W{normal}=0.01$ and $\W{laplacian}=0.1$. We run the optimization using SGD, learning rate $1.0e^{-4}$ for $1000$ iterations.
+where each of these terms has a scalar weight $\lambda$. Here, $\W{chamfer}=\W{edge}=1.0$, $\W{normal}=0.01$ and $\W{laplacian}=0.1$. Optimization is run using stochastic gradient descent (SGD) with learning rate $1.0e^{-4}$ for $1000$ iterations. Further details on the specific energy terms are now provided.
 
 \ss{Chamfer energy.} A measure of the average distance between vertices of the SMBLD mesh $V=F_v(\pose, \shape)$, and the target mesh vertices $V'$, when $p$ vertices $v_{i}, v'_{j}$ are sampled from each mesh respectively:
 \begin{equation}
