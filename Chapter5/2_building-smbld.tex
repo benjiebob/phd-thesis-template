@@ -3,20 +3,18 @@
 
 % Explain why the SMAL parameteric model is unsuitable for the dog category.
 
-At the heart of the method is a parametric representation of a 3D animal mesh, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by Zuffi et al.~\cite{zuffi2017menagerie}. As discussed in \Cref{chap:cgas}, SMAL is a deformable 3D quadruped mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The SMAL generator function can therefore be viewed supplying a set of triangles and a function 
+At the heart of the method is a parametric mesh representation of a 3D animal, which is based on the Skinned Multi-Animal Linear (SMAL) model proposed by Zuffi et al.~\cite{zuffi2017menagerie}. As discussed in \Cref{chap:cgas}, SMAL is a deformable 3D quadruped mesh parameterized by shape and pose. The \emph{shape}~$\shape \in \R\nshape$ parameters are PCA coefficients of an undeformed template mesh with limbs in default position. The \emph{pose}~$\pose \in \R\npose$ parameters meanwhile govern the joint angle rotations ($35 \times 3$ Rodrigues parameters) which effect the articulated limb movement. The SMAL generator function can therefore be viewed supplying a set of triangles and a function 
 \begin{equation}
-\verts(\pose, \shape,) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
+\verts(\pose, \shape) : \R \npose \times \R \nshape \mapsto \RR 3 \nverts
 \end{equation}
-which generates the set of 3D model vertex positions $\verts(\pose, \shape) \in \RR{3889}{3}$ for the given pose, shape. Also required are a set of position parameters $\posn$ which governs the global orientation and translation of the model. The following represents a 3D model of given pose and shape transformed to its 3D position.
-
+which generates the set of 3D model vertex positions $\verts(\pose, \shape) \in \RR{3889}{3}$ for the given pose and shape. Also required are a set of position parameters $\posn$ which govern the global orientation and translation of the model. The following represents a 3D model of given pose and shape transformed to its 3D position
 \begin{equation}
     \posn * \verts(\pose, \shape)
 \end{equation}    
 
-In addition, the SMAL model 3D joints locations are obtained from the output set of vertcies by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices.
-
+In addition, the 3D joints locations on the SMAL modal are obtained from the output vertex set by post-multiplying by a $\nverts \times \njoints$ matrix $\jointselect$.  The $j^{\text{th}}$ column of~$\jointselect$ defines the 3D position of joint~$j$ as a linear combination of the vertices
 \begin{equation}
-J(\pose, \shape, \posn) := \proj(\posn * \verts(\pose, \shape, \posn) \jointselect)
+J(\pose, \shape, \posn) := \posn * \verts(\pose, \shape) \jointselect
 \end{equation}
 
 % model consists of a linear blend skinning function $F_{v}: (\pose, \shape) \mapsto V$, which generates a set of vertex positions $V \in \RR{3889}{3}$, and a joint function $F_{J}: (\pose, \shape) \mapsto J$, which generates a set of joint positions $J \in \RR{35}{3}$.
@@ -38,11 +36,167 @@ J(\pose, \shape, \posn) := \proj(\posn * \verts(\pose, \shape, \posn) \jointsele
 % represents a 3D model of given pose and shape transformed to its 3D position.
 
 
+\subsection{Precise formulation of SMAL}
+
+\def\smalrest{\bar{T}}
+\def\smalrestjts{J}
+\def\smalblendweights{\mathcal{W}}
+
+\def\smalrestvert{\bar{t}}
+\def\smalrestvertnew{\bar{t'}}
+\def\smalblendweight{w}
+
+\newcommand{\bigzero}{\mbox{\normalfont\Large\bfseries 0}}
+\newcommand{\bigone}{\mbox{\normalfont\Large\bfseries 1}}
+\newcommand{\rvline}{\hspace*{-\arraycolsep}\vline\hspace*{-\arraycolsep}}
+
+
+
+While SMAL has been shown to adequately represent a variety of quadruped types, the modes of dog shape variation are poorly captured by the current model. This is unsurprising, since SMAL used only four dogs in its construction. This limitation is overcome using a simple but effective method that improves the model's representational power over this particularly diverse animal category. 
+
+Recall the standard linear blend skinning function
+\begin{equation}
+    W(\smalrest,\smalrestjts,\pose,\smalblendweights) : \mathbb{R}^{3N \times 3K \times |\pose| \times |\smalblendweights|} \mapsto \R{3N}
+\end{equation}
+which takes the SMAL template vertices in rest pose $\smalrest$, joint locations $\smalrestjts$, a pose vector $\pose$ and blend weights $\smalblendweights$ and returns the posed vertices.
+
+Each vertex $\smalrestvert_{i}$ in $\smalrest$ is transformed into $\smalrestvertnew_{i}$ as
+
+\begin{equation}
+    \smalrestvertnew_{i} = \sum_{k=1}^{K} \smalblendweight_{k,i} G_{k}'(\pose,\smalrestjts)\smalrestvert_{i}
+\end{equation}
+\begin{equation}
+    G'_{k}(\pose,\smalrestjts) = G_{k}(\pose,\smalrestjts) G_{k}(\pose^{*},\smalrestjts)^{-1}
+\end{equation}
+\begin{equation}\label{eqt:kintree_prods}
+    G_{k}(\pose,\smalrestjts) = \prod_{j \in A(k)} 
+    \begin{pmatrix}
+        \exp(w_{j})
+        & \rvline 
+        & j_{j} \\
+    \hline
+        \bigzero
+        & \rvline 
+        & \bigone
+    \end{pmatrix}
+\end{equation}
+
+where $\smalblendweight_{k,i}$ is an element of the blend weight matrix $\smalblendweight$, representing how much the rotation of part $k$ effects the vertex $i$, $\exp(w_{j})$ is the local $3 \times 3$ rotation matrix corresponding to joint $j$, $G(\pose,\smalrestjts)$ is the world transformation of joint $k$, and $G'(\pose,\smalrestjts)$ is the same transformation after removing the transformation due to the rest pose $\pose^{*}$. Each $3$-element vector in $J$ corresponding to a single joint center $j$, is denoted $j_{j}$ . Finally, $A(k)$ denotes the ordered set of joint ancestors of joint $k$.
+
+The SMAL model's complete generator function $M(\shape, \pose, \posn)$ is then given as 
+\begin{equation}
+    M(\shape,\pose) = W(T_{P}(\shape, \pose), J(\shape), \pose, \smalblendweights)
+\end{equation}
+\begin{equation}
+    T_{P}(\shape,\pose) = \smalrest + B_{S}(\shape) + B_{P}(\pose)
+\end{equation}
+
+where here $B_{S}(\shape), B_{P}(\pose) \in \RR{3889}{3}$ are vectors of vertices representing offsets from the SMAL rest template. These are referred to as shape and pose blend shapes respectively.
+
+Using this definition, a vertex $\smalrestvertnew_{i}$ is transformed according to 
+\begin{equation}
+    \smalrestvertnew_{i} = \sum_{k=1}^{K} \smalblendweight_{k,i} G'(\pose,J(\shape))(\smalrestvertnew_{i} + b_{S,i}(\shape) + b_{P,i}(\pose))
+\end{equation}
+
+where $b_{S,i}(\shape)$ and $b_{P, i}(\pose)$ are vertices in $B_{S}(\shape)$ and $B_{P}(\pose)$ respectively and represent the shape and pose blend shape offsets for the vertex $\smalrestvertnew_{i}$.
+
+\subsubsection{Shape blend shapes}
+
+Shape blend shapes are applied to the SMAL rest model to smoothly modify the mesh's body proportions. This has the effect of appearing to alter the animal category. The body shapes are globally represented by a linear function $B_{S}$
+
+\begin{equation}
+    B_{S}(\shape;\mathcal{S}) = \sum_{n=1}^{|\shape|}\shape_{n}S_{n}
+\end{equation}
+where $\shape \in \R{41}$ is a vector of linear shape coefficients and $S_{n}$ represents the orthnormal principle components of shape displacements, learned from the registered training scans. 
+
+% SHOW THIS?
+
+\subsubsection{Pose blend shapes}
+
+Let $R: \R{|\pose|} \mapsto \R{9K}$ be a function which maps the pose vector $\pose$ to a vector of concatenated part relative rotation matrices $\exp{\pose}$. Given the SMAL model contains $33$ joints, $R(\pose)$ is a vector of length $33 \times 9 = 297$. Since elements of $R(\pose)$ comprise sine and cosine functions of the input pose vector, $R(\pose)$ is therefore non-linear with respect to $\pose$.
+
+The pose blend shapes are definited to be linear in $R^{*}(\pose) = (R(\pose) - R(\pose^{*}))$ where $\pose^{*}$ denotes the rest pose. Letting $R_{n}(\pose)$ denote the $n^{th}$ element of $R(\pose)$, the vertex deviations from the rest template are
+\begin{equation}
+    B_{P}(\pose;\mathcal{P}) = \sum_{n=1}^{9K} (R_{n}(\pose) - R_{n}(\pose^{*}))P_{n}
+\end{equation}
+
+An important observation is that by subtracting the rest pose $R(\pose^{*})$, the contribution of the pose blend shape is zero when the model is in the rest pose.
+
+
+\subsubsection{Joint locations}
+
+Differing animal body shapes have an effect on the 3D joint locations. 
+
+\begin{equation}
+    J(\shape; J, \smalrest, \mathcal{S}) = \mathcal{J}(\smalrest + B_{S}(\shape; \mathcal{S}))
+\end{equation}
+where $\mathcal{J}$ is a matrix that transforms rest vertices into rest joints.
+
+\subsubsection{Complete formulation}
+
+The complete formulation is therefore given as
+
+\begin{equation}
+    M(\shape,\pose;\smalrest,\smalblendweights,\mathcal{S},\mathcal{J},\mathcal{P}) = W(T_{P}(\shape,\pose; \smalrest,\mathcal{S},\mathcal{P}), J(\shape; \mathcal{J}, \smalrest, \mathcal{S}), \pose, \smalblendweights)
+\end{equation}
+
+
 \subsection{Introducing scale parameters}
 
-While SMAL has been shown to be adequate for representing a variety of quadruped types, the modes of dog shape variation are poorly captured by the current model. This is unsurprising, since SMAL used only four dogs in its construction.
+The set of shape parameters $\beta$ are augmented with an additional set $\scale$ which independently scale parts of the mesh. For each model joint, parameters ${\scale_x,\scale_y,\scale_z}$ are defined which apply a local scaling of the mesh along the local coordinate $x, y, z$ axes, before pose is applied. 
 
-This is overcome with a simple but effective way to improve the model's representational power over this particularly diverse animal category. The set of shape parameters $\beta$ are augmented with an additional set $\scale$ which independently scale parts of the mesh. For each model joint, parameters ${\scale_x,\scale_y,\scale_z}$ are defined which apply a local scaling of the mesh along the local coordinate $x, y, z$ axes, before pose is applied. Allowing each joint to scale entirely independently can however lead to unrealistic deformations, so scale parameters are shared between multiple joints, e.g. leg lengths. The new Skinned Multi-Breed Linear Model for Dogs (SMBLD) is therefore adapted from SMAL by adding $6$ scale parameters to the existing set of shape parameters. Figure~\ref{fig:shape_variation} shows how introducing scale parameters increases the flexibility of the SMAL model. The original SMAL shape prior is also extended to cover the new scale parameters by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes. 
+% TODO: Be specific about how scale parameters affect the formulation above
+A simple method for adding scaling parameters is to apply a transformation to the rotation matrices for each joint. \Cref{eqt:kintree_prods} then becomes
+\begin{equation}
+    G_{k}(\pose,\smalrestjts) = \prod_{j \in A(k)} 
+    \begin{pmatrix}
+        Q_{j} \exp(w_{j})
+        & \rvline 
+        & j_{j} \\
+    \hline
+        \bigzero
+        & \rvline 
+        & \bigone
+    \end{pmatrix}
+\end{equation}
+
+where the matrix
+\begin{equation}
+    Q_{j} = \begin{pmatrix}
+        \scale_{j,x} & 0 & 0 \\
+        0 & \scale_{j,y} & 0 \\
+        0 & 0 & \scale_{j,z}
+    \end{pmatrix}
+\end{equation}
+
+Unfortunately, this formulation causes challenges should a user wish to scale a mesh subpart along the kinematic tree. While it is natural for joint \emph{rotations} to be compositionally applied along the kinematic tree (mirroring the effect of skeletal limb motion) this does not follow for scaling parameters. For example, it is common for a user to apply scaling to a subpart which does not necessarily affect subsequent parts. With the formulation at present, it would be the responsibility of the user to ``undo'' scaling for the remaining tree, requiring them to be aware of the kinematic tree index ordering. This is seen as suboptimal behaviour, so the following formulation is preferred, defining \emph{absolute} scale parameters that do not propagate their effect. Taking advantage of the hierarchical ordering of the kinematic tree for joint $k$ gives $A(k) = \left[A(k)_{0}, A(k)_{1}, \dots, k\right]$. Therefore, the absolute scaling matrix is given by
+\begin{equation}
+    G_{k}(\pose,\smalrestjts) = 
+    \begin{pmatrix}
+        \exp(w_{A(k,0)})
+        & \rvline 
+        & j_{0} \\
+    \hline
+        \bigzero
+        & \rvline 
+        & \bigone
+    \end{pmatrix} \cdot
+    \prod_{j \in \left[A(k)_{1}, \dots, k \right]}
+        \begin{pmatrix}
+            Q_{j-1}^{-1} \exp(w_{j}) Q_{j}
+            & \rvline 
+            & j_{j} \\
+        \hline
+            \bigzero
+            & \rvline 
+            & \bigone
+        \end{pmatrix}
+\end{equation}
+Note that $Q_{j-1}$ refers to the parent scaling matrix of joint $j$. Note that the scale parameters in this formulation determine only the scale for the particular subpart by undoing that of the parent.
+
+\subsection{Sharing scale parameters}
+
+Allowing each joint to scale entirely independently can however lead to unrealistic deformations, so scale parameters are shared between multiple joints, e.g. leg lengths. The new Skinned Multi-Breed Linear Model for Dogs (SMBLD) is therefore adapted from SMAL by adding $6$ scale parameters to the existing set of shape parameters. Figure~\ref{fig:shape_variation} shows how introducing scale parameters increases the flexibility of the SMAL model. The original SMAL shape prior is also extended to cover the new scale parameters by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes. 
 
 \input{Chapter5/FigTex/fig_scalingparams.tex}
 
