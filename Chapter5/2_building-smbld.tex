@@ -38,40 +38,47 @@ J(\pose, \shape, \posn) := \posn * \verts(\pose, \shape) \jointselect
 
 \subsection{Precise formulation of SMAL}
 
-\def\smalrest{\bar{T}}
-\def\smalrestjts{J}
-\def\smalblendweights{\mathcal{W}}
+\def\smalrestT{\bar{T}}
+\def\smalrestJ{J}
+\def\smalbweightsW{\mathcal{W}}
 
-\def\smalrestvert{\bar{t}}
-\def\smalrestvertnew{\bar{t'}}
-\def\smalblendweight{w}
+\def\smalrestv#1#2{\bar{#1_{#2}}}
+\def\smalbweightw{w}
+
+\def\poseele#1{\omega_{#1}}
+\def\poseelenorm#1{\bar{\omega_{#1}}}
 
 \newcommand{\bigzero}{\mbox{\normalfont\Large\bfseries 0}}
 \newcommand{\bigone}{\mbox{\normalfont\Large\bfseries 1}}
 \newcommand{\rvline}{\hspace*{-\arraycolsep}\vline\hspace*{-\arraycolsep}}
 
 
-
 While SMAL has been shown to adequately represent a variety of quadruped types, the modes of dog shape variation are poorly captured by the current model. This is unsurprising, since SMAL used only four dogs in its construction. This limitation is overcome using a simple but effective method that improves the model's representational power over this particularly diverse animal category. 
 
-Recall the standard linear blend skinning function
+First, it is important to precisely define the SMAL generator function. SMAL relies on the standard linear blend skinning (LBS) function to return a set of posed vertices
 \begin{equation}
-    W(\smalrest,\smalrestjts,\pose,\smalblendweights) : \mathbb{R}^{3N \times 3K \times |\pose| \times |\smalblendweights|} \mapsto \R{3N}
+    W(\smalrestT,\smalrestJ,\pose,\smalbweightsW) : \mathbb{R}^{3N \times 3K \times |\pose| \times |\smalbweightsW|} \mapsto \R{3N}
 \end{equation}
-which takes the SMAL template vertices in rest pose $\smalrest$, joint locations $\smalrestjts$, a pose vector $\pose$ and blend weights $\smalblendweights$ and returns the posed vertices.
+The function arguments are: SMAL template vertices in rest pose $\smalrestT$, SMAL 3D joint locations $\smalrestJ$, a pose vector $\pose$ and blend weights $\smalbweightsW$.
 
-Each vertex $\smalrestvert_{i}$ in $\smalrest$ is transformed into $\smalrestvertnew_{i}$ as
+The pose vector $\pose = \left[\poseele{0}^{T},\dots,\poseele{\njoints}^{T}\right]^{T}$ contains 3 parameters for each joint. Each element $\poseele{j} \in \R{3}$ denotes the axis-angle representation of the relative rotation of each part $j$ with respect to its parent in the kinematic tree. The local $3 \times 3$ rotation matrix corresponding to a joint $j$ is denoted $\exp(\poseele{j})$ and is obtained from axis angle representation using the \emph{Rodrigues formula}
+\begin{equation}
+    \exp(\poseele{j}) = \mathcal{I} + \hat{\poseelenorm{j}}\sin(||\poseele{j}||) + \hat{\poseelenorm{j}}^{2}\cos(||\poseele{j}||)
+\end{equation}
+where $\hat{\poseelenorm{j}}$ is the skew symmetric matrix of the 3-vector $\bar{\omega} = \frac{\omega}{||\omega||}$ representing the unit norm axis of rotation. $\mathcal{I}$ is the $3 \times 3$ identity matrix.
+
+LBS transforms each rest vertex $\smalrestv{t}{i} \in \smalrestT$ to $\smalrestv{t'}{i}$ as
 
 \begin{equation}
-    \smalrestvertnew_{i} = \sum_{k=1}^{K} \smalblendweight_{k,i} G_{k}'(\pose,\smalrestjts)\smalrestvert_{i}
+    \smalrestv{t'}{i} = \sum_{k=1}^{K} \smalbweightw_{k,i} G_{k}'(\pose,\smalrestJ)\smalrestv{t}{i}
 \end{equation}
 \begin{equation}
-    G'_{k}(\pose,\smalrestjts) = G_{k}(\pose,\smalrestjts) G_{k}(\pose^{*},\smalrestjts)^{-1}
+    G'_{k}(\pose,\smalrestJ) = G_{k}(\pose,\smalrestJ) G_{k}(\pose^{*},\smalrestJ)^{-1}
 \end{equation}
 \begin{equation}\label{eqt:kintree_prods}
-    G_{k}(\pose,\smalrestjts) = \prod_{j \in A(k)} 
+    G_{k}(\pose,\smalrestJ) = \prod_{j \in A(k)} 
     \begin{pmatrix}
-        \exp(w_{j})
+        \exp(\poseele{j})
         & \rvline 
         & j_{j} \\
     \hline
@@ -80,31 +87,30 @@ Each vertex $\smalrestvert_{i}$ in $\smalrest$ is transformed into $\smalrestver
         & \bigone
     \end{pmatrix}
 \end{equation}
+where $\smalbweightw_{k,i}$ is an element of the blend weight matrix $\smalbweightsW$, representing how much the rotation of part $k$ effects the vertex $i$, $\exp(\poseele{j})$ is the local $3 \times 3$ rotation matrix corresponding to joint $j$, $G(\pose,\smalrestJ)$ is the world transformation of joint $k$, and $G'(\pose,\smalrestJ)$ is the same transformation after removing the transformation due to the rest pose $\pose^{*}$. Each $3$-element vector in $J$ corresponding to a single joint center $j$, is denoted $j_{j}$ . Finally, $A(k)$ denotes the ordered set of joint ancestors of joint $k$.
 
-where $\smalblendweight_{k,i}$ is an element of the blend weight matrix $\smalblendweight$, representing how much the rotation of part $k$ effects the vertex $i$, $\exp(w_{j})$ is the local $3 \times 3$ rotation matrix corresponding to joint $j$, $G(\pose,\smalrestjts)$ is the world transformation of joint $k$, and $G'(\pose,\smalrestjts)$ is the same transformation after removing the transformation due to the rest pose $\pose^{*}$. Each $3$-element vector in $J$ corresponding to a single joint center $j$, is denoted $j_{j}$ . Finally, $A(k)$ denotes the ordered set of joint ancestors of joint $k$.
-
-The SMAL model's complete generator function $M(\shape, \pose, \posn)$ is then given as 
+The SMAL model's complete generator function $v(\pose, \shape)$ is then given as 
 \begin{equation}
-    M(\shape,\pose) = W(T_{P}(\shape, \pose), J(\shape), \pose, \smalblendweights)
+    v(\pose,\shape) = W(T_{P}(\pose, \shape), J(\shape), \pose, \smalbweightsW)
 \end{equation}
 \begin{equation}
-    T_{P}(\shape,\pose) = \smalrest + B_{S}(\shape) + B_{P}(\pose)
+    T_{P}(\pose,\shape) = \smalrestT + B_{S}(\shape) + B_{P}(\pose)
 \end{equation}
 
 where here $B_{S}(\shape), B_{P}(\pose) \in \RR{3889}{3}$ are vectors of vertices representing offsets from the SMAL rest template. These are referred to as shape and pose blend shapes respectively.
 
-Using this definition, a vertex $\smalrestvertnew_{i}$ is transformed according to 
+Using this definition, a vertex $\smalrestv{t'}{i}$ is transformed according to 
 \begin{equation}
-    \smalrestvertnew_{i} = \sum_{k=1}^{K} \smalblendweight_{k,i} G'(\pose,J(\shape))(\smalrestvertnew_{i} + b_{S,i}(\shape) + b_{P,i}(\pose))
+    \smalrestv{t'}{i} = \sum_{k=1}^{K} \smalbweightw_{k,i} G'(\pose,J(\shape))(\smalrestv{t'}{i} + b_{S,i}(\shape) + b_{P,i}(\pose))
 \end{equation}
 
-where $b_{S,i}(\shape)$ and $b_{P, i}(\pose)$ are vertices in $B_{S}(\shape)$ and $B_{P}(\pose)$ respectively and represent the shape and pose blend shape offsets for the vertex $\smalrestvertnew_{i}$.
+where $b_{S,i}(\shape)$ and $b_{P, i}(\pose)$ are vertices in $B_{S}(\shape)$ and $B_{P}(\pose)$ respectively and represent the shape and pose blend shape offsets for the vertex $\smalrestv{t'}{i}$.
 
 \subsubsection{Shape blend shapes}
 
 Shape blend shapes are applied to the SMAL rest model to smoothly modify the mesh's body proportions. This has the effect of appearing to alter the animal category. The body shapes are globally represented by a linear function $B_{S}$
 
-\begin{equation}
+\begin{equation}\label{eqt:shapeblendshapes}
     B_{S}(\shape;\mathcal{S}) = \sum_{n=1}^{|\shape|}\shape_{n}S_{n}
 \end{equation}
 where $\shape \in \R{41}$ is a vector of linear shape coefficients and $S_{n}$ represents the orthnormal principle components of shape displacements, learned from the registered training scans. 
@@ -113,7 +119,7 @@ where $\shape \in \R{41}$ is a vector of linear shape coefficients and $S_{n}$ r
 
 \subsubsection{Pose blend shapes}
 
-Let $R: \R{|\pose|} \mapsto \R{9K}$ be a function which maps the pose vector $\pose$ to a vector of concatenated part relative rotation matrices $\exp{\pose}$. Given the SMAL model contains $33$ joints, $R(\pose)$ is a vector of length $33 \times 9 = 297$. Since elements of $R(\pose)$ comprise sine and cosine functions of the input pose vector, $R(\pose)$ is therefore non-linear with respect to $\pose$.
+Let $R: \R{|\pose|} \mapsto \R{9K}$ be a function which maps the pose vector $\pose$ to a vector of concatenated part relative rotation matrices $\exp(\pose)$. Given the SMAL model contains $33$ joints, $R(\pose)$ is a vector of length $33 \times 9 = 297$. Since elements of $R(\pose)$ comprise sine and cosine functions of the input pose vector, $R(\pose)$ is therefore non-linear with respect to $\pose$.
 
 The pose blend shapes are definited to be linear in $R^{*}(\pose) = (R(\pose) - R(\pose^{*}))$ where $\pose^{*}$ denotes the rest pose. Letting $R_{n}(\pose)$ denote the $n^{th}$ element of $R(\pose)$, the vertex deviations from the rest template are
 \begin{equation}
@@ -128,7 +134,7 @@ An important observation is that by subtracting the rest pose $R(\pose^{*})$, th
 Differing animal body shapes have an effect on the 3D joint locations. 
 
 \begin{equation}
-    J(\shape; J, \smalrest, \mathcal{S}) = \mathcal{J}(\smalrest + B_{S}(\shape; \mathcal{S}))
+    J(\shape; J, \smalrestT, \mathcal{S}) = \mathcal{J}(\smalrestT + B_{S}(\shape; \mathcal{S}))
 \end{equation}
 where $\mathcal{J}$ is a matrix that transforms rest vertices into rest joints.
 
@@ -137,7 +143,7 @@ where $\mathcal{J}$ is a matrix that transforms rest vertices into rest joints.
 The complete formulation is therefore given as
 
 \begin{equation}
-    M(\shape,\pose;\smalrest,\smalblendweights,\mathcal{S},\mathcal{J},\mathcal{P}) = W(T_{P}(\shape,\pose; \smalrest,\mathcal{S},\mathcal{P}), J(\shape; \mathcal{J}, \smalrest, \mathcal{S}), \pose, \smalblendweights)
+    v(\pose,\shape;\smalrestT,\smalbweightsW,\mathcal{S},\mathcal{J},\mathcal{P}) = W\big(T_{P}(\pose,\shape; \smalrestT,\mathcal{S},\mathcal{P}), J(\shape; \mathcal{J}, \smalrestT, \mathcal{S}), \pose, \smalbweightsW\big)
 \end{equation}
 
 
@@ -148,9 +154,9 @@ The set of shape parameters $\beta$ are augmented with an additional set $\scale
 % TODO: Be specific about how scale parameters affect the formulation above
 A simple method for adding scaling parameters is to apply a transformation to the rotation matrices for each joint. \Cref{eqt:kintree_prods} then becomes
 \begin{equation}
-    G_{k}(\pose,\smalrestjts) = \prod_{j \in A(k)} 
+    G_{k}(\pose,\smalrestJ) = \prod_{j \in A(k)} 
     \begin{pmatrix}
-        Q_{j} \exp(w_{j})
+        Q_{j} \exp(\poseele{j})
         & \rvline 
         & j_{j} \\
     \hline
@@ -169,21 +175,21 @@ where the matrix
     \end{pmatrix}
 \end{equation}
 
-Unfortunately, this formulation causes challenges should a user wish to scale a mesh subpart along the kinematic tree. While it is natural for joint \emph{rotations} to be compositionally applied along the kinematic tree (mirroring the effect of skeletal limb motion) this does not follow for scaling parameters. For example, it is common for a user to apply scaling to a subpart which does not necessarily affect subsequent parts. With the formulation at present, it would be the responsibility of the user to ``undo'' scaling for the remaining tree, requiring them to be aware of the kinematic tree index ordering. This is seen as suboptimal behaviour, so the following formulation is preferred, defining \emph{absolute} scale parameters that do not propagate their effect. Taking advantage of the hierarchical ordering of the kinematic tree for joint $k$ gives $A(k) = \left[A(k)_{0}, A(k)_{1}, \dots, k\right]$. Therefore, the absolute scaling matrix is given by
+Unfortunately, this formulation causes challenges should a user wish to scale a mesh subpart along the kinematic tree. While it is natural for joint \emph{rotations} to be compositionally applied along the kinematic tree (mirroring the effect of skeletal limb motion) this does not follow for scaling parameters. For example, it is common for a user to apply scaling to a subpart which does not necessarily affect subsequent parts. With the formulation at present, it would be the responsibility of the user to ``undo'' scaling for the remaining tree, requiring them to be aware of the kinematic tree index ordering. This is seen as suboptimal behaviour, so the following formulation is preferred, defining \emph{absolute} scale parameters that do not propagate their effect. Taking advantage of the hierarchical ordering of the kinematic tree for joint $k$, $A(k) = \left[A(k)_{0}, A(k)_{1}, \dots, k\right]$ are joints along the tree. Therefore, the absolute scaling matrix is given by
 \begin{equation}
-    G_{k}(\pose,\smalrestjts) = 
+    G_{k}(\pose,\smalrestJ) = 
     \begin{pmatrix}
-        \exp(w_{A(k,0)})
+        \exp(\poseele{A(k,0)}) Q_{A(k,0)}
         & \rvline 
-        & j_{0} \\
+        & j_{A(k,0)} \\
     \hline
         \bigzero
         & \rvline 
         & \bigone
-    \end{pmatrix} \cdot
+    \end{pmatrix}
     \prod_{j \in \left[A(k)_{1}, \dots, k \right]}
         \begin{pmatrix}
-            Q_{j-1}^{-1} \exp(w_{j}) Q_{j}
+            Q_{j-1}^{-1} \exp(\poseele{j}) Q_{j}
             & \rvline 
             & j_{j} \\
         \hline
@@ -196,57 +202,21 @@ Note that $Q_{j-1}$ refers to the parent scaling matrix of joint $j$. Note that 
 
 \subsection{Sharing scale parameters}
 
-Allowing each joint to scale entirely independently can however lead to unrealistic deformations, so scale parameters are shared between multiple joints, e.g. leg lengths. The new Skinned Multi-Breed Linear Model for Dogs (SMBLD) is therefore adapted from SMAL by adding $6$ scale parameters to the existing set of shape parameters. Figure~\ref{fig:shape_variation} shows how introducing scale parameters increases the flexibility of the SMAL model. The original SMAL shape prior is also extended to cover the new scale parameters by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes. 
+Allowing each joint to scale entirely independently can however lead to unrealistic deformations. To overcome this, scale parameters are shared between multiple joints which are physiologically related and would naturally scale together. For example, the $y$-scaling for the four legs (which governs the length) is controlled by only a single parameter. The new Skinned Multi-Breed Linear Model for Dogs (SMBLD) is therefore adapted from SMAL by adding $6$ scale parameters to the existing set of shape parameters. Figure~\ref{fig:shape_variation} shows how introducing scale parameters increases the flexibility of the SMAL model. The next task is to learn an prior (with which to initialize the later EM process) that covers these new scale parameters. 
 
 \input{Chapter5/FigTex/fig_scalingparams.tex}
 
-\subsection{Learning a prior over scale parameters}
+\subsection{Learning a multimodal shape/scale prior}
 
-Next of concern is how to adapt the existing SMAL shape prior to cover the new set of scale parameters and thereby better represent the dog category. This is achieved by fitting SMBLD to a set of $13$ artist-designed 3D dog meshes, designed for animation and which offer more variety than the original set of SMAL toys. An energy minimization process is used to align the SMAL vertices to each scan, under smoothing regularizers. 
+The SMBLD shape prior is initialized by fitting the model to a set of $13$ artist-designed 3D dog meshes, downloaded from the internet and are similar in style to the SMAL toys. While the collection does offer a few more examples of dogs than used in the original SMAL set, the models still lack realism and are very constrained when compared to the 120 different breeds represented in the later test set. An energy minimization process is used to align the SMBLD vertices to each scan, in order to obtain a set of shape $\shape$, pose $\pose$ and $\scale$ parameters. 
 
-\subsubsection{Preliminaries: the SMAL shape prior}
-For shape spaces shape space formulations based on principal component analysis (PCA), recall the linear generator function $g: \R{d} \mapsto \R{3n}$ which maps a $d$-dimensional parameter space to $n$ 3D morphable model vertex coordinates: 
+\subsubsection{Fitting SMBLD to 3D scans}
 
-\begin{equation}
-    g(w) = \bar{c} + Ew
-\end{equation}
+Recall that SMBLD's shape $\shape$ and $\pose$ parameters are exactly as defined in SMAL, meaning there is no need to relearn (or adapt) the blend shape data $\mathcal{P}, \mathcal{S}$ or joint selectors $\jointselect$. The scale $\scale$ parameters, however, are novel to SMBLD. The goal of this section is to learn a new 3D prior over both shape and scale parameters which will initialize the later prior refined during the WLDO training loop. 
 
-In this formulation, $\bar{c} \in \R{3n}$ is the mean 3D shape from a training dataset, and $E \in \R{3n \times d}$ is a matrix containing the $d$ most dominant eigenvectors computed over shape residuals $\{c_i - \bar{c_i}\}$. 
+Note that fitting SMBLD to 3D scans emits much simpler optimization in comparison to 2D images, since the complete 3D information of the target mesh is available. In addition, the target meshes are not particularly detailed and are already aligned in the canonical T-pose, so we avoid need for a complex alignment technique as discussed in \Cref{chap:cgas}. 
 
-% Another hypothesis is that the 3D faces in the reduced parameter space R
-% d follow a multivariate normal distribution, which can be directly deduced from the eigenvalues corresponding to E.
-
-%% PCA does assumlaxe normal distribution of features See p.55 SAS book1 or Rummel, 19702 or Mardia, 19793.
-
-A consequence of PCA construction is that the features in the $d$-dimensional parameter space follow a multivariate normal distribution. This can be directly derived from the eigenvalues corresponding to $E$. %% ASK ANDREW, or be less lazy and do the math
-With this construction, one can define a likelihood function which measures the probability of a given shape vector $w \in \R{d}$
-
-\begin{equation}
-    f(w) = (2\pi)^{-\frac{d}{2}}\det(\Sigma)^{-\frac{1}{2}}e^{-\frac{1}{2}(w-\bar{c})^T\Sigma^{-1}(w-\bar{c})}
-\end{equation}
-
-For problems which aim to optimize $w$, the 3D shape prior is obtained by maximizing $f(w)$ or equivalently, by minimizing the negative log likelihood
-
-\begin{equation}
-     -\ln\left[f(w)\right] = -\frac{1}{2}\left[\ln\det(\Sigma) + d\ln(2\pi) +  (w - \bar{c})^T\Sigma^{-1}(w-\bar{c})\right]
-\end{equation}
-and dropping terms with no dependency on $w$ (which remain constant during optimization) leaves the Mahalanobis distance of $w$ to the origin
-
-\begin{equation}
-    L(w) = (w - \bar{c})^T\Sigma^{-1}(w-\bar{c})
-\end{equation}
-
-% END PRELIMINARIES
-
-% We have already seeen this formulation in Chapter 4.
-
-\subsubsection{Learning an improved prior via 3D model fitting}
-
-Recall that SMBLD is adapted from the SMAL~\cite{zuffi2017menagerie} deformable animal mesh, by including limb scaling parameters. A new shape prior is learnt by fitting this new SMBLD model, which comprises parameters for pose $\pose$ and shape $\beta$ (the latter of which now includes scaling parameters $\kappa$).
-
-Note that fitting SMBLD to 3D scans emits much simpler optimization than to 2D images, since the complete 3D information of the target mesh is available. In addition, the target meshes are not particularly detailed and are already aligned in the canonical T-pose, so we avoid need for a complex alignment technique as discussed in \Cref{chap:cgas}. 
-
-An energy minimization process is used to align the SMBLD mesh to the 3D scans, subject to some smoothing regularizers. The following energy formulation is minimized
+An energy minimization process is used to align the SMBLD mesh to the 3D scans, subject to smoothing regularizers. The following energy formulation is minimized
 
 \begin{equation}
     \E{opt} = \E{chamfer} + \E{laplacian} + \E{edge} + \E{normal}
@@ -265,6 +235,64 @@ where each of these terms has a scalar weight $\lambda$. Here, $\W{chamfer}=\W{e
 \ss{Normal energy.} This energy promotes consistency between adjacent faces. It is a measure of the average normal consistency between adjacent faces. For two faces with normals $\mathbf{n_0}$ and $\mathbf{n_1}$, the normal consistency is $1 - \frac{\mathbf{n_0} \cdot \mathbf{n_1}}{\left|\mathbf{n_0}\right|\left|\mathbf{n_1}\right|}$.
 
 At the end of this process, we have a collection of fits $\left|(\pose,\shape)\right|_{\{i=1,...13\}}$ from which we can learn our unimodal pose and shape priors. As discussed, we evenutally use this unimodal shape prior to initialize our mixture shape prior, which is tuned with the expectation-maximization step in the training loop.
+
+\subsubsection{Learning a unimodal shape prior}
+
+Recall that the SMAL body shapes are represented by the linear function in \Cref{eqt:shapeblendshapes}. In this formulation, the matrix $S_{n}$ represents the orthonormal principal components of shape displacements. A consquence of the PCA construction is that the features in $\nshape$-dimensional parameter space (as they are linear combinations of the original features) are normally distributed with mean $\shapemu$ and covariance matrices $\shapecov$. With this construction, a likelihood function measures the probability of a given shape vector $\shape \in \R{\nshape}$
+
+\begin{equation}
+    \mathbb{P}_{\shape}(\shape) = (2\pi)^{-\frac{\nshape}{2}}\det(\shapecov)^{-\frac{1}{2}}e^{-\frac{1}{2}(\shape-\shapemu)^{T}\shapecov^{-1}(\shape-\shapemu)}
+\end{equation}
+
+For problems which aim to optimize $\shape$ as a free variable, the 3D shape prior is obtained by maximizing $\mathbb{P}_{\shape}(\shape)$ or equivalently, by minimizing the negative log likelihood
+
+\begin{equation}
+     -\ln\left[\mathbb{P}_{\shape}(\shape)\right] = -\frac{1}{2}\left[\ln\det(\shapecov) + \nshape\ln(2\pi) +  (\shape - \shapemu)^T\Sigma^{-1}(\shape-\shapemu)\right]
+\end{equation}
+Finally, terms with no dependency on $\shape$ can be dropped since they remain constant during the optimization. This reduces the formulation of the loss as the Mahalanobis distance of $\shapemu$
+
+\begin{equation}
+    \L{shape}(\shape;\shapemu,\shapecov) = (\shape - \shapemu)^{T}\shapecov^{-1}(\shape - \shapemu)
+\end{equation}
+
+A similar construction applies to the scale parameters $\scale$ with means and covariances computed from the 13 training scans. The scale loss function is therefore given as
+
+\begin{equation}
+    \L{scale}(\scale;\scalemu,\scalecov)= (\scale - \scalemu)^{T}\scalecov^{-1}(\scale - \scalemu)
+\end{equation}
+
+Continuing from here, it is convenient to group shape and scale parameters into a new shape-scale variable $\shapescale$ and the loss function can be grouped as follows
+\begin{equation}
+    \L{shape-scale}(\shapescale=\left[\shape,\scale\right];\shapescalemu=\left[\shapemu,\scalemu\right],\shapescalecov=\left[\shapecov,\scalecov\right]) = \L{shape}(\shape;\shapemu,\shapecov) + \L{scale}(\scale;\scalemu,\scalecov)
+\end{equation}
+
+% END PRELIMINARIES
+
+% We have already seeen this formulation in Chapter 4.
+
+% \subsubsection{Learning an improved prior via 3D model fitting}
+
+% Recall that SMBLD is adapted from the SMAL~\cite{zuffi2017menagerie} deformable animal mesh, by including limb scaling parameters. A new shape prior is learnt by fitting this new SMBLD model, which comprises parameters for pose $\pose$ and shape $\beta$ (the latter of which now includes scaling parameters $\kappa$).
+
+\subsubsection{Extending the formulation with a multimodal shape prior}
+
+\def\imgweight{w}
+
+The previous section introduced a unimodal, multivariate Gaussian prior, based on mean $\shapescalemu$ and covariance matrix $\shapescalecov$. However, enforcing this throughout training tends to result in predictions which appear similar in 3D shape, even when tested on dog images of different breeds. Diversity is improved among predicted 3D dog shapes by extending the above formulation to a Mixture of $M$ Gaussians prior.
+
+Here, $\shapescalemu^{m}$, $\shapescalecov^{m}$ and $\shapescalepi^{m}$ are the mean, covariance and mixture weight respectively for Gaussian component 
+$m$. For each component the mean is sampled from the existing unimodal prior and the covariance is set equal to the unimodal prior i.e. $\shapescalecov^{m} := \shapescalecov$. All mixture weights are initially set to $\frac{1}{M}$.
+
+Each training image $i$ is assigned a set of latent variables $\{\imgweight_{i}^{1}, \dots, \imgweight_{i}^{M}\}$ encoding the probability of the dog shape in image~$i$ being generated by component~$m$. 
+
+The mixture shape loss is given as:
+\begin{align}
+    \L{mixture}(\shapescale_{i}; \shapescalemu, \shapescalecov, \shapescalepi)
+    =&
+    \sum_{m=1}^M \shapepi^{m} \left[\L{shape-scale}(\shapescale_{i}; \shapescalemu^{m}, \shapescalecov^{m})\right]
+\end{align}
+
+
 
 % \section{Learning mixture shape prior.}
 % This section contains additional detail for how we learn our mixture shape prior, using expectation maximization in-the-loop.

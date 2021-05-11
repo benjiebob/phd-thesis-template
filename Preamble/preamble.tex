@@ -251,6 +251,7 @@
 \def\pose{\theta}
 \def\npose{P}
 \def\shape{\beta}
+\def\shapescale{\delta}
 \def\nshape{B}
 \def\verts{\nu}
 \def\nverts{V}
@@ -276,12 +277,22 @@
 
 \def\scale{\kappa}
 \def\trans{t}
-\def\betacov{{\Sigma_{\beta}}}
-\def\posecov{{\Sigma_{\pose}}}
-\def\posemean{{\mu_{\pose}}}
-\def\betamean{{\mu_{\beta}}}
+% \def\betacov{{\Sigma_{\beta}}}
+% \def\posecov{{\Sigma_{\pose}}}
+% \def\posemean{{\mu_{\pose}}}
+% \def\betamean{{\mu_{\beta}}}
 \def\nimages{N}
 \def\nshape{B}
+
+\def\shapecov{\Sigma_{\shape}}
+\def\shapemu{\mu_{\shape}}
+\def\shapepi{\Pi_{\shape}}
+\def\scalecov{\Sigma_{\scale}}
+\def\scalemu{\mu_{\scale}}
+\def\scalepi{\Pi_{\scale}}
+\def\shapescalecov{\Sigma_{\shapescale}}
+\def\shapescalemu{\mu_{\shapescale}}
+\def\shapescalepi{\Pi_{\shapescale}}
 
 \def\W#1{\lambda_\textrm{#1}}
 
@@ -314,3 +325,5 @@ node {#2};
 }
 
 \def\seq#1#2#3#4{\left[{#1_{#2}}\right]_{#2=#3}^{#4}}
+
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
