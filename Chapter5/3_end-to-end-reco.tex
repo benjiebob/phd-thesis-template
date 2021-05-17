@@ -1,12 +1,12 @@
 
 \section{End-to-end dog reconstruction from monocular images} 
 
-We now consider the task of reconstructing a 3D dog mesh from a monocular image. We achieve this by training an end-to-end convolutional network that predicts a set of SMBLD model and perspective camera parameters. In particular, we train our network to predict pose $\pose$ and shape $\shape$ SMBLD parameters together with translation $\trans$ and focal length $f$ for a perspective camera. A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
+This section considers the task of reconstructing a 3D dog mesh from a monocular image. To achieve this, an end-to-end convolutional neural network is trained to predict a set of parameters for the SMBLD model and also for a perspective camera. In particular, the network is trained to predict pose $\pose$ and shape-scale $\shape-space$ SMBLD parameters together with translation $\trans$ and focal length $f$ for a perspective camera. A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
 
 \subsection{Model architecture}
 
 %extended with convolutional layer and an fully-connected layer 
-Our network architecture is inspired by the model of 3D-Safari~\cite{Zuffi19Safari}. Given an input image cropped to (224, 224), we apply a Resnet-50~\cite{he2016deep} backbone network to encode a 1024-dimensional feature map. These features are passed through various linear prediction heads to produce the required parameters. The pose, translation and camera prediction modules follow the design of 3D-Safari, but we describe the differences in our shape module.
+The network architecture for WLDO is inspired by the model of 3D-Safari~\cite{Zuffi19Safari}. Given an input image cropped to (224, 224), a Resnet-50~\cite{he2016deep} backbone network is applied in order to encode a 1024-dimensional feature map. These features are passed through various linear prediction heads to produce the required parameters. The pose, translation and camera prediction modules follow the design of 3D-Safari, but we describe the differences in our shape module.
 
 \ss{Pose, translation and camera prediction.}
 These modules are independent multi-layer perceptrons which map the above features to the various parameter types. As with 3D-Safari we use two linear layers to map to a set of $35 \times 3$ 3D pose parameters (three parameters for each joint in the SMBLD kinematic tree) given in Rodrigues form. We use independent heads to predict camera frame translation $\trans_{x,y}$ and depth $\trans_{z}$ independently. We also predict the focal length of the perspective camera similarly to 3D-Safari.
@@ -17,7 +17,7 @@ Unlike 3D-Safari, we design our network to predict the set of shape parameters (
 
 \subsection{Training losses}
 
-A common approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shape, \trans, \f)$ with 3D ground truth annotations~\cite{kolotouros19learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
+A typical approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shape, \trans, \f)$ with 3D ground truth annotations~\cite{kolotouros19learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
 
 
 We instead develop a method that instead relies on \emph{weak 2D supervision} to guide network training. In particular, we rely on only 2D keypoints and silhouette segmentations, are significantly cheaper to obtain.
