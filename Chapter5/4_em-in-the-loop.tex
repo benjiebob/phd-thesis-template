@@ -106,21 +106,21 @@ And this simplifies to
     :=
     \log{\shapescalepi^{m}} - \frac{1}{2}
         \left[
-            d\log{2\pi} + \log{\det{\shapescalecov^{m}}} + M_{m}
+            d\log{2\pi} + \log{\det{\left(\shapescalecov^{m}\right)}} + M_{i,m}
         \right] \\ -
     \log{
         \sum_{m'=1}^{M} 
         \exp{
             \log{\shapescalepi^{m'}} - \frac{1}{2}
             \left[
-                d\log{2\pi} + \log{\det{\shapescalecov^{m'}}} + M_{m'}
+                d\log{2\pi} + \log{\det{\left(\shapescalecov^{m'}\right)}} + M_{i,m'}
             \right]
         }
     }
 \end{multline}
 where
 \begin{align}
-M_{m} :=& 
+M_{i,m} :=& 
     (\shapescale_{i} - \shapescalemu^{m})^{T}
     (\shapescalecov^{m})^{-1}
     (\shapescale_{i} - \shapescalemu^{m})    
