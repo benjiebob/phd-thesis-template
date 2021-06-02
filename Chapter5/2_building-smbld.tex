@@ -246,10 +246,17 @@ This energy is equal to the average edge length across the mesh, and is used to 
 
 \ss{Normal energy.} 
 
-% TODO; define normal
+% TODO; define normal, cross product between two triangle edges
 Normal energy is a measure of the average normal consistency between adjacent triangles. For two triangles $t_{i}, t_{j} \in T$ in SMAL's fixed triangle set, let $n_{i}, n_{j}$ be the respective normals. Recall that $n = (v_{1} - v_{0}) \cdot (v_{2} - v_{0})$. Then normal consistency is defined by
 \begin{equation}
-    \E{normal} = 1 - \frac{n_{i} \cdot \mathbf{n_{j}}{\left|n{i}\right|\left|n_{j}\right|}
+    \E{normal} = 1 - \frac{n_{i} \cdot n_{j}}{\left|n_{i}\right|\left|n_{j}\right|}
+\end{equation}
+
+% \begin{equation}
+%     \E{normal} = 1 - \frac{\mathbf{n_0} \cdot \mathbf{n_1}}{\left|\mathbf{n_0}\right|\left|\mathbf{n_1}\right|}
+% \end{equation}
+
+% This energy promotes consistency between adjacent faces. It is a measure of the average normal consistency between adjacent faces. For two faces with normals $\mathbf{n_0}$ and $\mathbf{n_1}$, the normal consistency is $1 - \frac{\mathbf{n_0} \cdot \mathbf{n_1}}{\left|\mathbf{n_0}\right|\left|\mathbf{n_1}\right|}$.
 
 At the end of this process, we have a collection of fits $\left|(\pose,\shape)\right|_{\{i=1,...13\}}$ from which we can learn our unimodal pose and shape priors. As discussed, we evenutally use this unimodal shape prior to initialize our mixture shape prior, which is tuned with the expectation-maximization step in the training loop.
 
