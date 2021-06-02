@@ -1,6 +1,11 @@
 \section{End-to-end dog reconstruction from monocular images} 
 
-This section describes a technique for reconstructing a 3D dog mesh from a single, monocular image. This is achieved using an end-to-end convolutional neural network, which predicts a set of parameters for the SMBLD morphable dog model (i.e. pose $\pose$ and shape-scale $\shapescale$) and a perspective camera (i.e. translation $\trans$ and focal length $f$). A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
+This section describes a technique for reconstructing a 3D dog mesh from a single, monocular image. This is achieved using an end-to-end convolutional neural network, which predicts pose $\pose$ and shape-scale $\shapescale$ for the SMBLD morphable dog model, translation and orientation $\posn$ and focal length $f$ for a perspective camera $\proj_{f}$. A complete overview of the proposed system is shown in Figure~\ref{fig:sys_overview_train_sup}.
+
+% the model's 3D {\em position} (i.e.\ translation and orientation) is also unknown, and will be represented by a parametrization $\posn$ which may be for example translation as a 3-vector and rotation in axis angle form. Application of such a transformation to a $3\times\nverts$ matrix will be denoted by $*$, so that 
+% \begin{equation}
+% \posn * \verts(\pose, \shape)
+% \end{equation}
 
 \subsection{Model architecture}
 
@@ -8,46 +13,55 @@ This section describes a technique for reconstructing a 3D dog mesh from a singl
 The network architecture for WLDO is inspired by the model of 3D-Safari~\cite{Zuffi19Safari}. Given an input image cropped to (224, 224), a Resnet-50~\cite{he2016deep} backbone network is applied in order to encode a 1024-dimensional feature map. These features are passed through various linear prediction heads to produce the required parameters. The pose, translation and camera prediction modules follow the design of 3D-Safari, but we describe the differences in our shape-scale module.
 
 \ss{Pose, translation and camera prediction.}
-These modules are independent multi-layer perceptrons which map the above features to the various parameter types. As with 3D-Safari, two linear layers are used to map to a set of $35 \times 3$ 3D pose parameters (three parameters for each joint in the SMBLD kinematic tree) given in Rodrigues form. The translation of the SMBLD model is predicted with two linear layers that predict translation in the camera frame $\trans_{x,y}$ and depth $\trans_{z}$ independently. The camera prediction layer predicts the focal length of the perspective camera. Note that this parameter is theoretically unnecessary since model depth is already predicted, however as in the original 3D-Safari implementation, including the parameter produces empirally better fits. The camera focal length is obtained as $f = f_{0} + f_{1}x$ where $x$ is predicted by the network and $f_{0} = f_{1} = 2700$.
+These modules are independent multi-layer perceptrons which map the above features to the various parameter types. As with 3D-Safari, two linear layers are used to map to a set of $35 \times 3$ 3D pose parameters (three parameters for each joint in the SMBLD kinematic tree and three parameters for the model orientation) given in Rodrigues form. The translation component of the SMBLD model is predicted with two linear layers that predict translation in the camera frame $\trans_{x,y}$ and depth $\trans_{z}$ independently. The camera prediction layer predicts the focal length of the perspective camera. Note that while this parameter is theoretically unnecessary since model depth is already predicted, as in the original 3D-Safari implementation, including the parameter produces empirally better fits. The camera focal length is obtained as $f = f_{0} + f_{1}x$ where $x$ is predicted by the network and $f_{0} = f_{1} = 2700$.
 
 \ss{Shape and scale prediction.}
 
-Unlike 3D-Safari, we design our network to predict the set of shape parameters (including scale) rather than vertex offsets. We observe improvement by handling the standard 20 blend-shape parameters and our new scale parameters in separate linear prediction heads. We retrieve the scale parameters by $\scale = \exp{x}$ where $x$ are the network predictions, as we find predicting log scale helps stabilise early training.
+Unlike 3D-Safari, WLDO predicts a set of shape and scale parameters rather than vertex offsets. Separate predictions heads are used to predict 20 shape parameters $\shape$ and the new scale parameters $\kappa$. The scale parameters are obtained as $\scale = \exp{x}$ where $x$ are the network predictions, as predicting log scale helps stabilise early training and conveniently guarantees non-negative values for scale.
 
 \subsection{Training losses}
 
-A typical approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shapescale, \trans, \f)$ with 3D ground truth annotations~\cite{kolotouros19learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
+A typical approach for training such an end-to-end system would be to supervise the prediction of $(\pose, \shapescale, \posn, \f)$ with 3D ground truth annotations~\cite{kolotouros19learning,kanazawa18end-to-end,pavlakos18learning}. However, building a suitable 3D annotation dataset would require an experienced graphics artist to design an accurate ground truth mesh for each of 20,520 StanfordExtra dog images, a prohibitive expense.
 
+Instead, WLDO relies on \emph{weak 2D supervision} provided by 2D keypoints and silhouette segmentations to guide network training. These data sources are significantly cheaper to obtain than 3D models.
 
-We instead develop a method that instead relies on \emph{weak 2D supervision} to guide network training. In particular, we rely on only 2D keypoints and silhouette segmentations, are significantly cheaper to obtain.
-
-The rest of this section describes the set of losses used to supervise the network at train time.
+The remainder of this section describes the set of losses used to supervise the network at train time.
 
 \ss{Joint reprojection.}
-The most important loss to promote accurate limb positioning is the joint reprojection loss $\L{joints}$ which compares the projected model joints $\pi(F_{J}(\pose, \shape), \trans, \f)$ to the ground truth annotations $\hat{X}$. Given the parameters predicted by the network, we apply the SMBLD model to transform the pose and shape parameters into a set of 3D joint positions $J \in \RR{35}{3}$, and project them to the image plane using translation and camera parameters. The joint loss $L_{joints}$ is given by the $\ell_2$ error between the ground truth and projected joints:
+As in \Cref{chap:cgas}, the joint projection loss $\L{joints}$ promotes accurate limb positioning by comparing the projected model joints to the ground truth annotations $X^{*}$. To achieve this, the SMBLD generator function processes the network's pose $\pose$ and shape-scale $\shapescale$ parameters to generate a set of 3D joint positions which are translated and orientated with $\posn$. The joint positions are then projected to the image plane using the camera parameters. The joint loss $\L{joints}$ is given by the $\ell_2$ error between the ground truth and projected joints:
 
 \begin{equation}
-\L{joints}(\pose, \shape, \trans, \f; \hat{X}) = \lVert \hat{X} - \pi(F_{J}(\pose, \shape), \trans, \f) \rVert_{2}
+\L{joints}(\pose, \shapescale, \posn, \f; X^{*}) = \lVert X^{*} - \proj_{f}(\posn * \verts(\pose, \shapescale) \jointselect) \rVert_{2}
 \end{equation}
 
-Note that many of our training images exhibit significant occlusion, so $\hat{X}$ contains many invisible joints. We handle this by masking $\L{joints}$ to prevent invisible joints contributing to the loss.
+Note that many of the training images contain significant occlusion, so $X^{*}$ contains many invisible joints. This is handled by masking $\L{joints}$ so that invisible joints do not contributing to the loss.
 
 \ss{Silhouette loss.}
-The silhouette loss $\L{sil}$ is used to promote shape alignment between the SMBLD dog mesh and the input dog. In order to compute the silhouette loss, we define a rendering function $R: (\verts, \trans, \f) \mapsto S$ which projects the SMBLD mesh to produce a binary segmentation mask. In order to allow derivatives to be propagated through $R$, we implement $R$ using the differentiable Neural Mesh Renderer~\cite{kato2018renderer}. The loss is computed as the $\ell_2$ difference between a projected silhouette and the ground truth mask $\hat{S}$:
+The silhouette loss $\L{sil}$ is used to promote shape alignment between the SMBLD dog mesh and the input dog. In order to compute the silhouette loss, a rendering function $R\bigl(\posn * \verts(\pose, \shapescale)\bigr) \in \mathbb{B}^{W\times H}$ projects the SMBLD mesh to produce a binary segmentation mask. In order to allow derivatives to be propagated, $R$ is implemented using the differentiable Neural Mesh Renderer~\cite{kato2018renderer}. The loss is computed as the $\ell_2$ difference between a projected silhouette and the ground truth mask $S$:
 
 \begin{equation}
-\L{sil}(\pose, \shape, \trans, \f; \hat{S}) = \lVert \hat{S} - R\bigl(F_{V}(\pose, \shape), \trans, \f \bigr) \rVert_{2}
+\L{sil}(\pose, \shapescale, \posn, \f; S) = \lVert S - R\bigl(\posn * \verts(\pose, \shapescale)\bigr) \rVert_{2}
 \end{equation}
 
+% The model is also assumed to be supplied with a rendering function $R$ which takes a vertex array in camera coordinates, and generates a 2D binary image of the model silhouette.  That is,
+% \begin{equation} \label{eq:render_sil}
+% R\bigl(\posn * \verts(\pose, \shape)\bigr) \in \mathbb{B}^{W\times H}
+% \end{equation}
+% for an image resolution of $W \times H$. 
 
-\ss{Priors.}
-In the absence of 3D ground truth training data, we rely on priors obtained from artist graphics models to encourage realism in the network predictions. We model both pose and shape using a multivariate Gaussian prior, consisting of means $\mu_{\pose},\mu_{\shape}$ and covariance matrices $\Sigma_{\pose},\Sigma_{\shape}$. The loss is given as the log likelihood of a given shape or pose vector under these distributions, which corresponds to the Mahalanobis distance between the predicted parameters and their corresponding means:
+\ss{Pose prior.}
+In the absence of 3D ground truth training data, priors are obtained from artist graphics models in order to encourage realism in the network predictions. The pose prior is modelled as a multivariate Gaussian prior consisting of mean $\mu_{\pose}$ and a covariance matrix $\Sigma_{\pose}$. The loss is given as the log likelihood of a given shape or pose vector under these distributions, which corresponds to the Mahalanobis distance between the predicted parameters and their corresponding means:
 \begin{align}
     \L{pose}(\pose; \mu_{\pose}, \Sigma_{\pose}) &= (\pose - \mu_{\pose})^T \Sigma_{\pose}^{-1} (\pose - \mu_{\pose})\\
-    \L{shape}(\shape; \mu_{\shape}, \Sigma_{\shape}) &= (\shape - \mu_{\shape})^T \Sigma_{\shape}^{-1} (\shape - \mu_{\shape})
 \end{align}
-Unlike previous work, we find there is no need to use a loss to penalize pose parameters if they exceed manually specified joint angle limits. We suspect our network learns this regularization naturally because of our large dataset.
+Unlike previous work, there is no need to use a loss for penalizing pose parameters if they exceed manually specified joint angle limits. It is suspected that that the WLDo network learns this regularization naturally by training on the large dataset.
 
-%our network this is a positive side-effect of training a network on a large dataset rather than optimizing independently to single images, as the network can learn natural regularisation that discourages infeasible joint configurations.
-
-%this is since the network is able to use the plentiful training examples to learn its own prior.
+\ss{Shape-scale prior.}
+As discussed in the previous section, the shape prior is modelled as a mixture of $M$ Gaussians. 
+Recall that $\shapescalemu^{m}$, $\shapescalecov^{m}$ and $\shapescalepi^{m}$ are the mean, covariance and mixture weight respectively for each Gaussian component 
+$m$. From before, the mixture shape loss is given as:
+\begin{align}
+    \L{mixture}(\shapescale_{i}; \shapescalemu, \shapescalecov, \shapescalepi)
+    =&
+    \sum_{m=1}^M \shapepi^{m} \left[\L{shape-scale}(\shapescale_{i}; \shapescalemu^{m}, \shapescalecov^{m})\right]
+\end{align}

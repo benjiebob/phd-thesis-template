@@ -300,8 +300,6 @@ Continuing from here, it is convenient to group shape and scale parameters into 
 
 \subsubsection{Extending to a multimodal prior}
 
-\def\imgweight{w}
-
 So far, a shape-scale prior has been introduced based on a unimodal, multivariate Gaussian with mean $\shapescalemu$ and covariance matrix $\shapescalecov$. However, enforcing this throughout training tends to result in model predictions that appear similar in 3D shape, even when tested on dog images of different breeds. Diversity is improved among predicted 3D dog shapes by extending the above formulation to a Mixture of $M$ Gaussians prior.
 
 Here, $\shapescalemu^{m}$, $\shapescalecov^{m}$ and $\shapescalepi^{m}$ are the mean, covariance and mixture weight respectively for Gaussian component 

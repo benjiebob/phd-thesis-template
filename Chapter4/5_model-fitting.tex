@@ -8,7 +8,7 @@ A naive 3D model fitting implementation would be to simple apply 3DM independent
 The following section defines the 4 energy terms used in the optimization: 
 
 \ss{Silhouette energy.}
-The silhouette energy $\E{sil}$ compares the 3D animal model to the silhouette image according to the L2 distance between the OpenDR rendered binary image and the input silhouette:
+The silhouette energy $\E{sil}$ compares the 3D animal model to the silhouette image according to the L2 distance between the OpenDR rendered binary image and the input silhouette $S_{t}$:
 
 \begin{equation}
 \E{sil}(\posn_{t}, \pose_{t}, \shape; S_{t}) = \lVert S_{t} - R\bigl(\posn_{t} * \verts(\pose_{t}, \shape)\bigr) \rVert
