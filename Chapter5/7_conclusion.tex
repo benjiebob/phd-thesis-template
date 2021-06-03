@@ -1,8 +1,8 @@
 
 \section{Conclusions}
-This paper presents an end-to-end method for automatic, monocular 3D dog reconstruction. We achieve this using only weak 2D supervision, provided by our novel StanfordExtra dataset. Further, we show we can learn a more detailed shape prior by tuning a gaussian mixture during model training and this leads to improved reconstructions. We also show our method improves over competitive baselines, even when they are given access to ground truth data at test time.
+This paper presents an end-to-end method for automatic, monocular 3D dog reconstruction. This is achieved using only weak 2D supervision, provided by the StanfordExtra dataset which has been introduced in this chapter. Further, it has been shown that a more detailed shape prior can be learned by tuning a gaussian mixture during model training and this leads to improved reconstructions. In addition, the WLDO method improves over competitive baselines, even when they are given access to ground truth data at test time.
 
-Future work should involve tackling some failure cases of our system, for example handling multiple overlapping dogs or dealing with heavy motion blur. Other areas for research include extending our EM formulation to handle video input to take advantage of multi-view shape constraints, and transferring knowledge accumulated through training on StanfordExtra dogs to other species.
+Future work should involve tackling some failure cases of our system, for example handling multiple overlapping dogs or dealing with heavy motion blur. Other areas for research include extending the EM formulation introduced here to handle video input to take advantage of multi-view shape constraints. Finally, an interesting direction may be to transfer knowledge accumulated through training on StanfordExtra dogs to enable accurate 3D shape reconstruction for other species.
 
 % \input{Chapter5/FigTex/fig_qualresults_sup.tex}
 
