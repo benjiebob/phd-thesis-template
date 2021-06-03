@@ -1,0 +1,17 @@
+\begin{table}[]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\multicolumn{1}{l}{Method} & 
+\multicolumn{1}{c}{IoU} & 
+\multicolumn{1}{c}{PCK} 
+\\ 
+\midrule
+DeepLab v3+ & 83.4 & --- \\
+HourglassNet & --- & 71.4 \\
+CGAS Joint Predictor & --- & 51.8 \\
+\bottomrule 
+\end{tabular}
+\vspace{1em}
+\caption{\label{tab:othernetworks}\textbf{Competitive Networks}. We evaluate the performance of Stacked Hourglass Network with 8 stacks and 1 block and DeepLab v3+ trained on our Stanford Dog training set and evaluated on the test set. We train CGAS on the synthetic data and evaluate on ground truth segmentations in the Stanford Dog test set.}
+\end{table}

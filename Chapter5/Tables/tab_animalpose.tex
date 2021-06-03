@@ -1,0 +1,30 @@
+\small
+\centering
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\multicolumn{1}{l}{Method} & 
+\multicolumn{1}{c}{IoU} & 
+\multicolumn{5}{c}{PCK} \\
+\multicolumn{2}{c}{} &
+\multicolumn{1}{c}{Avg} &
+\multicolumn{1}{c}{Legs} &
+\multicolumn{1}{c}{Tail} &
+\multicolumn{1}{c}{Ears} &
+\multicolumn{1}{c}{Face} \\
+\midrule
+SMAL~\cite{DBLP:journals/corr/ZuffiKJB16} & 63.6 & 69.1 & 60.9 & 83.5 & 75.0 & 93.0 \\
+% \hline
+\textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
+\bottomrule 
+\end{tabular}
+\vspace{1em}
+\caption{
+    \label{tab:baselines}
+    \textbf{Evaluation of generalization capability on Animal Pose dataset~\cite{animalpose}}.
+    We compare PCK and silhouette IOU scores comparison for our network to the 
+    SMAL method, on the recent Animal Pose dataset. 
+    Neither our method, nor the joint/silhouette predictors used for 
+    SMAL are fine-tuned.}
+}
+
+%[OURS] IOU: 65.6\%, PCK: 72.5\% and [SMAL] IOU: 63.6\%, PCK: 69.2\%.

@@ -1,0 +1,36 @@
+\begin{table}[]
+{
+    \small
+    \centering
+    \begin{tabular}{@{}lcccccccc@{}}
+    \toprule
+    \multicolumn{1}{l}{Method} & 
+    \multicolumn{1}{c}{Kps} & 
+    \multicolumn{1}{c}{Seg} & 
+    \multicolumn{1}{c}{IoU} & 
+    \multicolumn{5}{c}{PCK @ 0.15} \\
+    \multicolumn{4}{c}{} &
+    \multicolumn{1}{c}{Avg} &
+    \multicolumn{1}{c}{Legs} &
+    \multicolumn{1}{c}{Tail} &
+    \multicolumn{1}{c}{Ears} &
+    \multicolumn{1}{c}{Face} \\
+    \midrule
+    \rowcolor{comp} 3D-M~\cite{zuffi2017menagerie} & Pred & Pred & 69.9 & 69.7 & 68.3 & 68.0 & 57.8 & 93.7 \\
+    \rowcolor{notcomp} 3D-M & GT & GT & 71.0 & 75.6 & 74.2 & 89.5 & 60.7 & 98.6 \\
+    \rowcolor{notcomp} 3D-M & GT & Pred & 70.7 & 75.5 & 74.1 & 88.1 & 60.2 & 98.7 \\
+    \rowcolor{notcomp} 3D-M & Pred & GT & 70.5 & 70.3 & 69.0 & 69.4 & 58.5 & 94.0 \\
+    \hline
+    \rowcolor{comp} CGAS~\cite{biggs2018creatures} & CGAS & Pred & 63.5 & 28.6 & 30.7 & 34.5 & 25.9 & 24.1 \\
+    \rowcolor{notcomp} CGAS & CGAS & GT & 64.2 & 28.2 & 30.1 & 33.4 & 26.3 & 24.5 \\
+    \hline
+    \rowcolor{comp} 3D-M + scaling & Pred & Pred & 70.4 & 70.9 & 69.8 & 66.9 & 59.7 & 94.0 \\
+    \rowcolor{comp} 3D-M + scaling + EM prior & Pred & Pred & 71.8 & 73.4 & 72.5 & \textbf{70.3} & 62.6 & \textbf{94.1} \\
+    \hline
+    \rowcolor{comp} \textbf{Ours} & --- & --- & \textbf{74.2} & \textbf{78.8} & \textbf{76.4} & 63.9 & \textbf{78.1} & 92.1 \\
+    \bottomrule 
+    \end{tabular}
+    \vspace{1em}
+    \caption[]{\label{tab:baselinesfix}\textbf{Baseline comparisons.} PCK and silhouette IOU scores are shown for SOTA methods under varying conditions. Directly comparable baseline methods (requiring only an input image) are highlighted. \emph{Pred} keypoints generated with Hourglass-Net~\cite{newell2016stacked} and segmentations with DeepLab v3+~\cite{journals/corr/ChenPK0Y16}. 3D-M/CGAS are also analysed when they have access to ground-truth keypoints and/or segmentation masks. We also analyse adding this paper's innovations (scale parameters and EM prior) to 3D-M~\cite{zuffi2017menagerie}.}
+}
+\end{table}

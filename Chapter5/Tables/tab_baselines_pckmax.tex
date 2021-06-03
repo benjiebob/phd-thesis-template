@@ -1,0 +1,35 @@
+\begin{table}[]
+{
+    \small
+    \centering
+    \begin{tabular}{@{}lcccccccc@{}}
+    \toprule
+    \multicolumn{1}{l}{Method} & 
+    \multicolumn{1}{c}{Kps} & 
+    \multicolumn{1}{c}{Seg} & 
+    \multicolumn{5}{c}{PCK-MAX @ 0.1} \\
+    \multicolumn{3}{c}{} &
+    \multicolumn{1}{c}{Avg} &
+    \multicolumn{1}{c}{Legs} &
+    \multicolumn{1}{c}{Tail} &
+    \multicolumn{1}{c}{Ears} &
+    \multicolumn{1}{c}{Face} \\
+    \midrule
+    \rowcolor{comp} 3D-M~\cite{zuffi2017menagerie} & Pred & Pred & 67.1 & 65.7 & 79.5 & 54.9 & 87.4  \\
+    \rowcolor{notcomp} 3D-M & GT & GT & 72.6 & 69.9 & 92.0 & 58.6 & 96.9 \\
+    \rowcolor{notcomp} 3D-M & GT & Pred & 72.6 & 70.2 & 91.5 & 58.1 & 96.9 \\ 
+    \rowcolor{notcomp} 3D-M & Pred & GT & 67.4 & 66.0 & 79.9 & 55.0 & 88.2 \\ 
+    \hline
+    \rowcolor{comp} CGAS~\cite{biggs2018creatures} & CGAS & Pred & 43.7 & 46.5 & 64.1 & 36.5 & 21.4  \\
+    \rowcolor{notcomp} CGAS & CGAS & GT & 43.6 & 46.3 & 64.2 & 36.3 & 21.6 \\
+    \hline
+    \rowcolor{comp} 3D-M + scaling & Pred & Pred & 69.6 & 69.4 & 79.3 & 56.5 & 87.6 \\
+    \rowcolor{comp} 3D-M + scaling + EM prior & Pred & Pred & 71.6 & 71.5 & \textbf{80.7} & 59.3 & 88.0 \\
+    \hline
+    \rowcolor{comp} \textbf{Ours} & --- & --- & \textbf{75.7} & \textbf{75.0} & 77.6 & \textbf{69.9} & \textbf{90.0} \\
+    \bottomrule 
+    \end{tabular}
+    \vspace{1em}
+    \caption{\label{tab:baselines}\textbf{PCK-MAX baselines.} PCK-MAX scores are shown for SOTA methods under varying conditions. Directly comparable baseline methods (requiring only an input image) are highlighted. \emph{Pred} keypoints generated with Hourglass-Net~\cite{newell2016stacked} and segmentations with DeepLab v3+~\cite{journals/corr/ChenPK0Y16}. 3D-M/CGAS are also analysed when they have access to ground-truth keypoints and/or segmentation masks. We also analyse adding this paper's innovations (scale parameters and EM prior) to the 3D-M method~\cite{zuffi2017menagerie}.}
+}
+\end{table}
