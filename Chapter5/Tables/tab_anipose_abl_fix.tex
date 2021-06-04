@@ -1,60 +1,24 @@
 
 \begin{table}
-    \parbox{.45\linewidth}{
-        % \small
-        \RawFloats
-        \centering
-        \begin{tabular}{@{}lcccccc@{}}
-        \toprule
-        \multicolumn{1}{l}{Method} & 
-        \multicolumn{1}{c}{IoU} & 
-        \multicolumn{5}{c}{PCK @ 0.15} \\
-        \multicolumn{2}{c}{} &
-        \multicolumn{1}{c}{Avg} &
-        \multicolumn{1}{c}{Legs} &
-        \multicolumn{1}{c}{Tail} &
-        \multicolumn{1}{c}{Ears} &
-        \multicolumn{1}{c}{Face} \\
-        \midrule
-        3D-M~\cite{zuffi2017menagerie} & 64.9 & 59.2 & 55.7 & 56.9 & 61.3 & \textbf{86.7} \\
-        % \hline
-        \textbf{Ours} & \textbf{67.5} & \textbf{67.6} & \textbf{60.4} & \textbf{62.7} & \textbf{86.0} & \textbf{86.7} \\
-        \bottomrule
-        \multicolumn{7}{c}{} \\
-        \multicolumn{7}{c}{}
-        \end{tabular}
-        \vspace{1em}
-        \caption[]{
-            \label{tab:animalposefix}
-            \textbf{Animal Pose dataset~\cite{animalpose} results}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for 3D-M.
-        }
-    }
-    \hfill
-    \parbox{.45\linewidth}{
-        % \small
-        \RawFloats
-        \centering
-        \begin{tabular}{@{}lcccccc@{}}
-        \toprule
-        \multicolumn{1}{l}{Method} & 
-        \multicolumn{1}{c}{IoU} & 
-        \multicolumn{5}{c}{PCK @ 0.1} \\
-        \multicolumn{2}{c}{} &
-        \multicolumn{1}{c}{Avg} &
-        \multicolumn{1}{c}{Legs} &
-        \multicolumn{1}{c}{Tail} &
-        \multicolumn{1}{c}{Ears} &
-        \multicolumn{1}{c}{Face} \\
-        \midrule
-        \textbf{Ours} & \textbf{74.2} & \textbf{63.7} & \textbf{59.5} & \textbf{48.1} & 60.1 & 88.0 \\
-        $-$EM & 68.7 & 63.2 & 58.8 & 44.5 & \textbf{62.6} & 87.6 \\
-        $-$MoG & 69.0 & 63.1 & \textbf{59.5} & 40.0 & 60.0 & \textbf{89.5} \\
-        $-$Scale & 68.3 & 60.1 & 58.2 & 45.2 & 50.5 & 88.3 \\
-        \bottomrule 
-        \end{tabular}
-        \vspace{1em}
-        \caption[]{
-            \label{tab:ablationfix}\textbf{Ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.
-        }
+    \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    \multicolumn{1}{l}{Method} & 
+    \multicolumn{1}{c}{IoU} & 
+    \multicolumn{5}{c}{PCK @ 0.1} \\
+    \multicolumn{2}{c}{} &
+    \multicolumn{1}{c}{Avg} &
+    \multicolumn{1}{c}{Legs} &
+    \multicolumn{1}{c}{Tail} &
+    \multicolumn{1}{c}{Ears} &
+    \multicolumn{1}{c}{Face} \\
+    \midrule
+    \textbf{Ours} & \textbf{74.2} & \textbf{63.7} & \textbf{59.5} & \textbf{48.1} & 60.1 & 88.0 \\
+    $-$EM & 68.7 & 63.2 & 58.8 & 44.5 & \textbf{62.6} & 87.6 \\
+    $-$MoG & 69.0 & 63.1 & \textbf{59.5} & 40.0 & 60.0 & \textbf{89.5} \\
+    $-$Scale & 68.3 & 60.1 & 58.2 & 45.2 & 50.5 & 88.3 \\
+    \bottomrule 
+    \end{tabular}
+    \caption[]{
+        \label{tab:ablationfix}\textbf{Ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.
     }
 \end{table}

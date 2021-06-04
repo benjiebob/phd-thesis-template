@@ -1,56 +1,21 @@
 \begin{table}[!htbp]
-    \parbox{.45\linewidth}{
-        % \3D-Ml
-        \RawFloats
-        \centering
-        \begin{tabular}{@{}lccccc@{}}
-        \toprule
-        \multicolumn{1}{l}{Method} & 
-        \multicolumn{5}{c}{PCK-MAX @ 0.1} \\
-        \multicolumn{1}{c}{} &
-        \multicolumn{1}{c}{Avg} &
-        \multicolumn{1}{c}{Legs} &
-        \multicolumn{1}{c}{Tail} &
-        \multicolumn{1}{c}{Ears} &
-        \multicolumn{1}{c}{Face} \\
-        \midrule
-        3D-M~\cite{zuffi2017menagerie} & 69.1 & 60.9 & 83.5 & 75.0 & 93.0 \\
-        % \hline
-        \textbf{Ours} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-        \bottomrule
-        \multicolumn{6}{c}{} \\
-        \multicolumn{6}{c}{}
-        % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6} \\
-        % \textbf{Ours} & \textbf{66.9} & \textbf{73.8} & \textbf{65.1} & \textbf{85.6} & \textbf{84.0} & \textbf{93.6}
-        \end{tabular}
-        \vspace{1em}
-        \caption{
-            \label{tab:animalpose}
-            \textbf{PCK-MAX Animal Pose dataset~\cite{animalpose}}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for 3D-M.}
-    }
-    \hfill
-    \parbox{.45\linewidth}{
-        % \small
-        \RawFloats
-        \centering
-        \begin{tabular}{@{}lccccc@{}}
-        \toprule
-        \multicolumn{1}{l}{Method} & 
-        \multicolumn{5}{c}{PCK-MAX @ 0.1} \\
-        \multicolumn{1}{c}{} &
-        \multicolumn{1}{c}{Avg} &
-        \multicolumn{1}{c}{Legs} &
-        \multicolumn{1}{c}{Tail} &
-        \multicolumn{1}{c}{Ears} &
-        \multicolumn{1}{c}{Face} \\
-        \midrule
-        \textbf{Ours} & \textbf{75.7} & \textbf{75.0} & \textbf{77.6} & 69.9 & 90.0 \\
-        $-$EM & 74.6 & 72.9 & 75.2 & \textbf{72.5} & 88.3 \\
-        $-$MoG & 74.9 & 74.3 & 73.3 & 70.0 & \textbf{90.2} \\ 
-        $-$Scale & 72.6 & 72.9 & 75.3 & 62.3 & 89.1 \\
-        \bottomrule 
-        \end{tabular}
-        \vspace{1em}
-        \caption{\label{tab:ablation}\textbf{PCK-MAX ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.}
-    }
+    \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    \multicolumn{1}{l}{Method} & 
+    \multicolumn{5}{c}{PCK-MAX @ 0.1} \\
+    \multicolumn{1}{c}{} &
+    \multicolumn{1}{c}{Avg} &
+    \multicolumn{1}{c}{Legs} &
+    \multicolumn{1}{c}{Tail} &
+    \multicolumn{1}{c}{Ears} &
+    \multicolumn{1}{c}{Face} \\
+    \midrule
+    \textbf{Ours} & \textbf{75.7} & \textbf{75.0} & \textbf{77.6} & 69.9 & 90.0 \\
+    $-$EM & 74.6 & 72.9 & 75.2 & \textbf{72.5} & 88.3 \\
+    $-$MoG & 74.9 & 74.3 & 73.3 & 70.0 & \textbf{90.2} \\ 
+    $-$Scale & 72.6 & 72.9 & 75.3 & 62.3 & 89.1 \\
+    \bottomrule 
+    \end{tabular}
+    % \vspace{1em}
+    \caption{\label{tab:ablation}\textbf{PCK-MAX ablation study.} Evaluation with the following contributions removed: (a) EM updates, (b) Mixture Shape Prior, (c) SMBLD scale parameters.}
 \end{table}

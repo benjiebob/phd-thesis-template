@@ -1,0 +1,24 @@
+
+\begin{table}
+    \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    \multicolumn{1}{l}{Method} & 
+    \multicolumn{1}{c}{IoU} & 
+    \multicolumn{5}{c}{PCK @ 0.15} \\
+    \multicolumn{2}{c}{} &
+    \multicolumn{1}{c}{Avg} &
+    \multicolumn{1}{c}{Legs} &
+    \multicolumn{1}{c}{Tail} &
+    \multicolumn{1}{c}{Ears} &
+    \multicolumn{1}{c}{Face} \\
+    \midrule
+    3D-M~\cite{zuffi2017menagerie} & 64.9 & 59.2 & 55.7 & 56.9 & 61.3 & \textbf{86.7} \\
+    % \hline
+    \textbf{Ours} & \textbf{67.5} & \textbf{67.6} & \textbf{60.4} & \textbf{62.7} & \textbf{86.0} & \textbf{86.7} \\
+    \bottomrule
+    \end{tabular}
+    \caption[]{
+        \label{tab:animalposefix}
+        \textbf{Animal Pose dataset~\cite{animalpose} results}. Evaluation on recent Animal Pose dataset with no fine-tuning to our method nor joint/silhouette predictors used for 3D-M.
+    }
+\end{table}

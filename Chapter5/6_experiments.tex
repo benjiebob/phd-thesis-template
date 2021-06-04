@@ -26,27 +26,31 @@ Each loss term is weighted with a scalar $\W{}$. The following details the speci
 \ss{Stage 1.} $\W{joints}=10.0,\W{pose}=1.0,\W{shape}=1.0,\W{sil}=0.0,\W{mixture}=0.0$. This stage is trained for 250 epochs using the Adam optimizer, with learning rate set to $10^{-4}$. 
 \ss{Stage 2.} $\W{joints}=10.0,\W{pose}=0.5,\W{shape}=0.0,\W{sil}=100.0,\W{mixture}=0.1$. This stage is trained for 150 epochs and run the described EM update step every $K=50$ epochs. The number of clusters $M=10$ was selected based on a grid search over $M=1,5,10,25$ with IoU scores compared. The Adam optimizer is again applied with learning rate to $10^{-5}$.
 
-To begin, WLDO is compared with various baseline methods. 3D Menagerie (3D-M)~\cite{DBLP:journals/corr/ZuffiKJB16} is an approach which fits the 3D SMAL model using per-image energy minimization. Creatures Great and SMAL (CGAS)~\cite{biggs2018creatures} is a three-stage method, which employs a joint predictor on silhouette renderings from synthetic 3D dogs, applies a genetic algorithm to clean predictions, and finally applies the SMAL optimizer to produce the 3D mesh.
+To begin, WLDO is compared with various baseline methods. 3D Menagerie (3D-M)~\cite{zuffi2017menagerie} is an approach which fits the 3D SMAL model using per-image energy minimization. Creatures Great and SMAL (CGAS)~\cite{biggs2018creatures} is a three-stage method, which employs a joint predictor on silhouette renderings from synthetic 3D dogs, applies a genetic algorithm to clean predictions, and finally applies the SMAL optimizer to produce the 3D mesh.
 
-At test-time both 3D-M and CGAS rely on manually-provided segementation masks, and 3D-M also relies on hand-clicked keypoints. In order to produce a fair comparison, we produce a set of \emph{predicted} keypoints for StanfordExtra by training the Stacked Hourglass Network~\cite{newell2016stacked} with 8 stacks and 1 block, and \emph{predicted} segmentation masks using DeepLab v3+~\cite{journals/corr/ChenPK0Y16}. The Stacked Hourglass Network achieves 71.4\% PCK score, DeepLab v3+ achieves 83.4\% IoU score and the CGAS joint predictor achieves 41.8\% PCK score. 
+At test-time both 3D-M and CGAS rely on manually-provided segementation masks, and 3D-M also relies on hand-clicked keypoints. In order to produce a fair comparison, we produce a set of \emph{predicted} keypoints for StanfordExtra by training the Stacked Hourglass Network~\cite{newell2016stacked} with 8 stacks and 1 block, and \emph{predicted} segmentation masks using DeepLab v3+~\cite{deeplabv3plus}. The Stacked Hourglass Network achieves 71.4\% PCK score, DeepLab v3+ achieves 83.4\% IoU score and the CGAS joint predictor achieves 41.8\% PCK score. 
 
 %All methods are trained from scratch and evaluated on our Stanford Dog validation set.
 
 % \input{eccv2020kit/tab_othernetworks}
 % \input{tab_othernetworks}
 
-Table~\ref{tab:baselinesfix} and Figure~\ref{fig:comparison_sup} show the comparison against competitive methods. For full examination, results for 3D-M and CGAS are additionally provided in the scenario that ground-truth keypoints and/or segmentations are available at test time. 
+Table~\ref{tab:baselinesfix}, \Cref{fig:comparison_1} and \Cref{fig:comparison_2} show the comparison against competitive methods. For full examination, results for 3D-M and CGAS are additionally provided in the scenario that ground-truth keypoints and/or segmentations are available at test time. 
 
 The results show our end-to-end method outperforms the competitors when they are provided with predicted keypoints/segmentations (white rows). The WLDO method therefore achieves a new state-of-the-art on this 3D reconstruction task. In addition, the method is shown to achieve improved average IoU/PCK scores than competitive methods, even when competitors are provided ground truth annotations at test time (grey rows). Also demonstrated is the wider applicability of two contributions of this chapter (scale parameters and improved prior) in the improved performance of the 3D-M method when these are incorporated. Finally, WLDO's test-time speed is significantly faster than competitive methods as no subsequent energy minimization procedure is required. 
 
 \input{Chapter5/Tables/tab_baselines_pckfix.tex}
-\input{Chapter5/FigTex/fig_comparison_sup2.tex}
+
+
+\input{Chapter5/FigTex/fig_comparison_1.tex}
+\input{Chapter5/FigTex/fig_comparison_2.tex}
 
 %xxx: Note that CGAS does badly as it can't clean up using video
 \subsection{Generalization to unseen dataset}
 
 Table~\ref{tab:animalposefix} shows an experiment to compare how well our model generalizes to a new data domain. We test our model against the 3D-M~\cite{zuffi2017menagerie} method (using predicted keypoints and segmentations as above for fairness) on the recent Animal Pose dataset~\cite{animalpose}. The data preparation process is the same as for StanfordExtra and no fine-tuning was used for either method. Good results are achieved in this unseen domain and still improve over the 3D-M optimizer.
 
+\input{Chapter5/Tables/tab_anipose_fix.tex}
 \input{Chapter5/Tables/tab_anipose_abl_fix.tex}
 
 \subsection{Ablation study}
@@ -60,6 +64,7 @@ The results in Table~\ref{tab:ablationfix} indicate that each individual compone
 The final evaluation metric analyses PCK-MAX, a protocol which provides an upper bound on the PCK score by assuming invisible keypoints were successfully recovered.
 
 \input{Chapter5/Tables/tab_baselines_pckmax.tex}
+\input{Chapter5/Tables/tab_anipose_pckmax.tex}
 \input{Chapter5/Tables/tab_anipose_abl_pckmax.tex}
 
 
@@ -75,7 +80,7 @@ The final evaluation metric analyses PCK-MAX, a protocol which provides an upper
 
 \subsection{Qualitative evaluation}
 
-Figure~\ref{fig:comparison_sup} shows a range of example system outputs when tested on range of StanfordExtra and Animal Pose~\cite{animalpose} dogs with varying pose and shape and in challenging conditions. Note that only StanfordExtra is used for training.
+Figures \ref{fig:qualresults_se_1}, \ref{fig:qualresults_se_2} and \ref{fig:qualresults_se_3} shows a range of example system outputs when tested on range of StanfordExtra dogs with varying pose and shape and in challenging conditions. Figure \ref{fig:qualresults_ani} shows results on the Animal Pose dataset. Note that only StanfordExtra is used for training.
 
 
 % \input{fig_comparison}
