@@ -178,6 +178,9 @@ Furthermore, it is very encouraging to observe that our method is also able to o
 This comes as a surprise since our method has not been optimized for this mode of operation.
 The difference is more significant for 3DPW which probably happens because 3DPW is not used for training and, hence, the normalizing flow prior acts as an effective filter of predicted outlier poses. Qualitiative results are shown in \cref{fig:qual_results_all}.
 
+\input{Chapter6/FigTex/fig-qualresults2.tex}
+
+
 % TODO: integrate
 \section{Results on MS-COCO} \label{s:supp_qual}
 In addition to the experiments with quantitative evaluation on H36m, AH36m and 3DPW in \cref{s:exp}, in this section, we also provide qualitative results on challenging examples from the MS-COCO dataset~\cite{lin2014microsoft}.
@@ -185,14 +188,15 @@ In addition to the experiments with quantitative evaluation on H36m, AH36m and 3
 % \vspace{-5cm}
 \input{Chapter6/FigTex/fig-qualresultscoco.tex}
 
-\section{Results on COCO and 3DPW}
-In addition to the experiments with quantitative evaluation on H36m and AH36m in \cref{s:exp}, in this section, we also provide qualitative results on the MS-COCO dataset~\cite{lin2014microsoft}. Differently from the (A){}H36m, here we train on the SMPL training annotations on MS-COCO provided by the authors of~\cite{kolotouros19learning}. We train on the training image set and test on the MS-COCO val images. Since our method requires 2D keypoints as input, at test time, the network takes as input the 2D keypoint detections from the OpenPose keypoint detector~\cite{cao2018openpose}.
+% THIS STUFF ISN'T VALID. TRAINED IN DIFFERENT WAY.
+% \section{Results on COCO and 3DPW}
+% In addition to the experiments with quantitative evaluation on H36m and AH36m in \cref{s:exp}, in this section, we also provide qualitative results on the MS-COCO dataset~\cite{lin2014microsoft}. Differently from the (A){}H36m, here we train on the SMPL training annotations on MS-COCO provided by the authors of~\cite{kolotouros19learning}. We train on the training image set and test on the MS-COCO val images. Since our method requires 2D keypoints as input, at test time, the network takes as input the 2D keypoint detections from the OpenPose keypoint detector~\cite{cao2018openpose}.
 
-\Cref{fig:coco_unamb,fig:amb_coco} contain example monocular SMPL predictions on the val set of MS-COCO\@.
-Additionally, in \cref{fig:3dpw_v2,fig:3dpw_v2_2} we provide example results of the COCO-trained model on several videos of the test set of 3DPW~\cite{vonmarcard2018recovering}. We can observe that the best SMPL hypothesis is correctly aligned with the input image, and that the whole set of image hypotheses correctly covers the space of pose ambiguities.
+% \Cref{fig:coco_unamb,fig:amb_coco} contain example monocular SMPL predictions on the val set of MS-COCO\@.
+% Additionally, in \cref{fig:3dpw_v2,fig:3dpw_v2_2} we provide example results of the COCO-trained model on several videos of the test set of 3DPW~\cite{vonmarcard2018recovering}. We can observe that the best SMPL hypothesis is correctly aligned with the input image, and that the whole set of image hypotheses correctly covers the space of pose ambiguities.
 
-\input{Chapter6/FigTex/fig-coco.tex}
-\input{Chapter6/FigTex/fig-amb-coco.tex}
+% \input{Chapter6/FigTex/fig-coco.tex}
+% \input{Chapter6/FigTex/fig-amb-coco.tex}
 
 \subsubsection{Ablation study.}
 We further conduct an ablative study on 3DPW that removes components of our method and measures the incurred change in performance. More specifically, we: 1) ablate the hypothesis reprojection loss; 2) set $p(X|I)=\text{Uniform}$ in \cref{e:loss-quant}, effectively removing the normalizing flow component and executing unweighted K-Means in $n$-quantized-best-of-$M$. \Cref{tab:tab_abl} demonstrates that removing both contributions decreases performance, validating our design choices.

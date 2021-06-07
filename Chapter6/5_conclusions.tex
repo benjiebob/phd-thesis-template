@@ -3,7 +3,5 @@
 In this work, we have explored a seldom visited problem of representing the set of plausible 3D meshes corresponding to a single ambiguous input image of a human.
 To this end, we have proposed a novel method that trains a single multi-hypothesis best-of-$M$ model and, using a novel $n$-quantized-best-of-$M$ strategy, allows to sample an arbitrary number $n<M$ of hypotheses.
 
-\input{Chapter6/FigTex/fig-qualresults2.tex}
-
 Importantly, this proposed quantization technique leverages a normalizing flow model, that effectively filters out the predicted hypotheses that are unnatural.
 Empirical evaluation reveals performance superior to several strong probabilistic baselines on Human36M, its challenging ambiguous version, and on 3DPW. Our method encounters occasional failure cases, such as when tested on individuals with unusual shape (e.g. obese people), since we have very few of these examples in the training set. Tackling such cases would make for interesting and worthwhile future work.  
