@@ -1,0 +1,47 @@
+\section{Preliminaries}\label{s:preliminaries}
+
+Before discussing our method, we describe the necessary background, starting from SMPL\@.
+
+\subsection{SMPL.}
+
+SMPL is a model of the human body parameterized by axis-angle rotations $\theta \in \mathbb{R}^{69}$ of 23 body joints, the shape coefficients $\beta \in \mathbb{R}^{10}$ modelling shape variations, and a global rotation $\gamma \in \mathbb{R}^{3}$.
+SMPL defines a \emph{skinning function}  $S: (\theta, \beta, \gamma) \mapsto V$ that maps the body parameters to the vertices $V \in \mathbb{R}^{6890\times 3}$ of a 3D mesh.
+% The skinngin n itself is non-linear due to the conversion of the rotation angles into rotation matrices when the kinematic tree is assembled.
+
+\subsection{Predicting the SMPL parameters from a single image.}
+
+Given an image $\mathbf{I}$ containing a person, the goal is to recover the SMPL parameters $(\theta, \beta, \gamma)$ that provide the best 3D reconstruction of it.
+% Conceptually, this is an inverse problem since the image $\mathbf{I} = \Gamma(S(\theta, \beta, \gamma), \eta)$ can be thought to be generated from the SMPL parameters $(\theta, \beta, \gamma)$ plus a number of unknown factors $\eta$ capturing details of the appearance, background, etc.
+Existing algorithms~\cite{kanazawa18learning} cast this as learning a deep network $G(I) = (\theta, \beta, \gamma, t)$ that predicts the SMPL parameters as well as the %scale $s \in \mathbb{R}$ and
+translation $t \in \mathbb{R}^3$ of the perspective camera observing the person. We assume a fixed set of camera parameters.
+% \rk{TODO: Ben refines: The camera defines a function $\pi_{s,t}(X) = sx + t_{x}, sy + t_{y}$ projecting 3D points $X\in\mathbb{R}^3$ to 2D image coordinates: https://github.com/nkolot/SPIN/blob/b95a00a7c0147f2c5bee0874ba0972c6389b6f99/demo.py}.
+During training, the camera is used to constrain the reconstructed 3D mesh and the annotated 2D keypoints to be consistent.
+Since most datasets only contain annotations for a small set of keypoints (\cite{guler2018densepose} is an exception), and since these keypoints do not correspond directly to any of the SMPL mesh vertices, we need a mechanism to translate between them.
+This mechanism is a fixed linear regressor $J : V \mapsto X$ that maps the SMPL mesh vertices $V = S(G(I))$ to the 3D locations $X = J(V) = J(S(G(I)))$ of the $K$ joints.
+Then, the projections $\pi_{t}(X)$ of the 3D joint positions into image $\mathbf{I}$ can be compared to the available 2D annotations.
+
+\subsection{Normalizing flows.}
+
+% The idea of normalizing flows (NF) is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
+% The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$. Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
+% In this paper, we utilize a particular version of NF dubbed RealNVP \cite{dinh17density}.
+% A more detailed explanation of NF and RealNVP has been deferred to the supplementary.
+
+The idea of normalizing flows is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
+The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$.
+Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
+In this case, the relation between $p(\theta)$ and $p(z)$ is given by a change of variable
+$$
+ p(z = f(X)) =  \left| \frac{df(X)}{dX} \right| p(X),
+$$
+where, for notational simplicity, we have assumed that $z,X\in\mathbb{R}^D$ are vectors.
+
+The challenge is to learn $f$ from data in a way that maintains its invertibility and smoothness.
+This is done by decomposing $z = f_L \circ \dots \circ f_1 (X)$ in $n$ layers, where $X_l = f_l(X_{l-1})$, $x = X_n$ and $X=X_0$, and each layer is in turn smooth and invertible.
+Then one can write
+$$
+ \log p(z = f(X)) =
+ \log p(X) + \sum_{l=1}^L \log \left| \frac{df_l(X_{l-1})}{dX_{l-1}} \right|.
+$$
+Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
+RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.

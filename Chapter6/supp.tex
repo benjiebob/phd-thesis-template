@@ -77,28 +77,28 @@ with an Adam optimizer with an initial learning rate of $10^{-5}$.
 \section{Performance analysis} \label{s:supp_perf}
 A single inference pass takes on average 0.14s per image on NVIDIA V100 GPU. The overall training time (including the HMR pre-training step) is 5 days on a single gpu.
 
-\section{Normalizing Flows} \label{s:supp_nflow}
+% \section{Normalizing Flows} \label{s:supp_nflow}
 
-The idea of normalizing flows is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
-The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$.
-Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
-In this case, the relation between $p(\theta)$ and $p(z)$ is given by a change of variable
-$$
- p(z = f(X)) =  \left| \frac{df(X)}{dX} \right| p(X),
-$$
-where, for notational simplicity, we have assumed that $z,X\in\mathbb{R}^D$ are vectors.
+% The idea of normalizing flows is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
+% The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$.
+% Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
+% In this case, the relation between $p(\theta)$ and $p(z)$ is given by a change of variable
+% $$
+%  p(z = f(X)) =  \left| \frac{df(X)}{dX} \right| p(X),
+% $$
+% where, for notational simplicity, we have assumed that $z,X\in\mathbb{R}^D$ are vectors.
 
-The challenge is to learn $f$ from data in a way that maintains its invertibility and smoothness.
-This is done by decomposing $z = f_L \circ \dots \circ f_1 (X)$ in $n$ layers, where $X_l = f_l(X_{l-1})$, $x = X_n$ and $X=X_0$, and each layer is in turn smooth and invertible.
-Then one can write
-$$
- \log p(z = f(X)) =
- \log p(X) + \sum_{l=1}^L \log \left| \frac{df_l(X_{l-1})}{dX_{l-1}} \right|.
-$$
-Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
-RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
+% The challenge is to learn $f$ from data in a way that maintains its invertibility and smoothness.
+% This is done by decomposing $z = f_L \circ \dots \circ f_1 (X)$ in $n$ layers, where $X_l = f_l(X_{l-1})$, $x = X_n$ and $X=X_0$, and each layer is in turn smooth and invertible.
+% Then one can write
+% $$
+%  \log p(z = f(X)) =
+%  \log p(X) + \sum_{l=1}^L \log \left| \frac{df_l(X_{l-1})}{dX_{l-1}} \right|.
+% $$
+% Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
+% RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
 
-% Note: MSCOCO results deleted for FAIR licensing reasons 
+% % Note: MSCOCO results deleted for FAIR licensing reasons 
 % \section{Results on MS-COCO} \label{s:supp_qual}
 % In addition to the experiments with quantitative evaluation on H36m, AH36m and 3DPW in \cref{s:exp}, in this section, we also provide qualitative results on challenging examples from the MS-COCO dataset~\cite{lin2014microsoft}.
 
