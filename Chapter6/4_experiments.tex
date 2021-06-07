@@ -21,14 +21,8 @@ and \textbf{3DPW} datasets \cite{vonmarcard2018recovering}.
 \subsubsection{Human3.6M}
 
 H36M is one of the largest datasets of humans annotated with 3D pose using MoCap sensors.
-\begin{wrapfigure}{r}{0.45\textwidth}
-  \begin{center}
-           \includegraphics[width=0.49\linewidth]{exps/dataset_uncrop.png}
-    \includegraphics[width=0.49\linewidth]{exps/cropped3_blur.png}
-  \end{center}
-    \caption{Example image and corresponding annotation from the ambiguous H36M dataset \textbf{AH36M}. Best viewed in colour.\label{f:ambi_samples}}
-    \vspace{-1.8em}
-\end{wrapfigure}
+
+\input{Chapter6/FigTex/fig-amb-datasets.tex}
 
 As common practice, we train on subjects S1, S5, S6, S7 and S8, and test on S9 and S11. 
 
@@ -38,7 +32,12 @@ As common practice, we train on subjects S1, S5, S6, S7 and S8, and test on S9 a
 \subsection{Evaluation Protocol}
 
 Our evaluation is consistent with~\cite{kolotouros19learning,kolotouros19convolutional} - we report two metrics that compare the lifted dense 3D SMPL shape to the ground truth mesh: Mean Per Joint Position Error (\textbf{\MPJPE}), Reconstruction Error (\textbf{\RE}). 
-For H36M, all errors are computed using an evaluation scheme known as ``Protocol \#2''. Please refer to supplementary for a detailed explanation of \MPJPE and \RE.
+For H36M, all errors are computed using an evaluation scheme known as ``Protocol \#2''. 
+
+% TODO: Check this is correct with Protocol 2
+For each H36M test skeleton, \MPJPE calculates the mean distance between 14 ground truth skeleton 3D joints and the predicted joints obtained by using a fixed linear regressor that maps the array of 6890 3D coordinates of the predicted dense mesh to the skeleton 3D joint coordinates.
+We report an average of all \MPJPE errors measured for each test skeleton.
+The reconstruction error (\RE) is a modification of \MPJPE which consists of finding an additional rigid Procrustes alignment between the pair of assessed poses before evaluating the inter-joint distances.
 
 % We report three metrics that compare the lifted dense 3D SMPL shape to the ground truth mesh: Mean Per Joint Position Error (\textbf{\MPJPE}), Reconstruction Error (\textbf{\RE}), and dense Shape Error (\textbf{\SE}).
 % All errors are computed using an evaluation scheme known as ``Protocol \#1'', as explained below.
@@ -48,6 +47,9 @@ For H36M, all errors are computed using an evaluation scheme known as ``Protocol
 % We report an average of all \MPJPE errors measured for each test skeleton.
 % The reconstruction error is a modification of \MPJPE which consists of finding an additional rigid Procrustes alignment between the pair of assessed poses before evaluating the inter-joint distances.
 % Finally, SE comprises a dense reconstruction metric that evaluates per-vertex distance error between each of the 6890 pairs of ground truth and predicted vertices of the evaluated SMPL meshes.
+
+
+
 
 \subsection{Multipose metrics.}
 
@@ -59,12 +61,16 @@ In more detail, to evaluate an algorithm, we allow it to output $n$ possible pre
 We report results for $n\in \{1,5,10,25\}$.
 
 \subsection{Ambiguous H36M/3DPW (AH36M/A3DPW).}
-Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem.
+Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem. 
 
 % Hence, in order to allow for a quantitative evaluation in a more noisy scenario, we construct an adapted version of H36M with synthetically-generated occlusions as follows 
-Hence, we construct an adapted version of H36M with synthetically-generated occlusions (\cref{f:ambi_samples}) by randomly hiding a subset of the 2D keypoints and re-computing an image crop around the remaining visible joints. Please refer to the supplementary for details of the occlusion generation process.
+Hence, we construct an adapted version of H36M with synthetically-generated occlusions (\cref{f:ambi_samples}) by randomly hiding a subset of the 2D keypoints and re-computing an image crop around the remaining visible joints. While 3DPW does contain real scenes, for completeness, we also evaluate on a noisy, and thus more challenging version (A3DPW) generated according to the aforementioned strategy. 
 
-While 3DPW does contain real scenes, for completeness, we also evaluate on a noisy, and thus more challenging version (A3DPW) generated according to the aforementioned strategy.
+The procedure for constructing AH36M/A3DPW starts with the full size image with a set of 2D joints and apply synthetic occlusions to the subject's body parts by randomly hiding a subset of the 2D keypoints and re-computing a slightly padded image crop around the joints that remained visible. 
+For each image, we randomly choose one of 4 possible strategies for hiding the keypoints: 1) Hiding arm and head keypoints; 2) legs; 3) head; 4) no keypoints hidden. The selection probabilities are $p(1)=p(2)=p(3)=0.3$, $p(4)=0.1$.
+
+
+
 
 % We begin with the full size image with a set of 2D joints and apply synthetic occlusions to the subject's body parts by randomly hiding a subset of the 2D keypoints and re-computing a slightly padded image crop around the joints that remained visible. 
 % For each image, we randomly choose one of 4 possible strategies for hiding the keypoints: 1) Hiding arm and head keypoints; 2) legs; 3) head; 4) no keypoints hidden\footnote{The selection probabilities are $p(1)=p(2)=p(3)=0.3$, $p(4)=0.1$}. 
@@ -78,16 +84,58 @@ While 3DPW does contain real scenes, for completeness, we also evaluate on a noi
 % % \centering\fbox{\makebox(230,100){}}
 % \end{figure}
 
-
-\subsection{Baselines}\label{s:exp_baselines}
+\subsection{Multi-hypothesis baselines} \label{s:multi_baselines}
 
 Our method is compared to two multi-pose prediction baselines. For fairness, both baselines extend the same (state-of-the-art) trunk architecture as we use, and all methods have access to the same training data. 
 
+
+\paragraph{SMPL-MDN}
+
 \textbf{SMPL-MDN} follows~\cite{li19generating} and outputs parameters of a mixture density model over the set of SMPL log-rotation pose parameters. 
 Since a na\"{\i}ve implementation of the MDN model leads to poor performance ($\approx$ 200mm \MPJPE-$n=5$ on H36M), we introduced several improvements that allow optimization of the total loss \cref{e:loss-total}.
+
+% TODO: Integrate
+
+SMPL-MDN predicts parameters of a Gaussian mixture defined over the log-rotation parameters $\theta$ of the SMPL kinematic tree.
+Here, $m$-th Gaussian in the mixture is parametrized with a mean $\mu_m$, covariance matrix $\sigma_m$ and mixture weight $\omega_m$.
+As noted in \cref{s:exp_baselines}, for SMPL-MDN, it was crucial to enable optimization of the total loss (\ref{e:loss-total}) in addition to optimizing the log-likelihood of the predicted Gaussian mixture.
+While the mixture log-likelihood optimizes directly the mixture parameters, the total loss requires a \emph{single} prediction of $\theta$.
+In order to obtain a single estimate of $\theta$ that can enter the total loss, similar to the Best-of-$M$ loss, we utilize the Gaussian mixture parameters and the ground truth angles $\theta$ to generate a virtual prediction $\hat \theta$ that lies close to the ground truth in the sense of the posterior probability of $\theta$.
+More specifically, the virtual $\hat \theta$ is defined as a weighted combination of mixture means $\mu_m$, where the weights are the posterior probabilities of $\theta$ being assigned to $m$-th mixture component:
+% \begin{align}
+% \hat \theta = \sum_{m=1}^{M} w_m \mu_m ~ ; \quad
+% w_m =
+% \frac{ e^{ - \| \theta - \mu_m \| } }
+% { \sum_{m'=1}^M e^{ - \| \theta - \mu_{m'} \| } }.
+% \end{align}
+\begin{align}
+% \hat \theta = \sum_{m=1}^{M} w_m \mu_m ~ 
+\hat \theta &= 
+\sum_{m=1}^{M} \mu_m 
+\frac{
+     p(\theta | \alpha_m, \mu_m, \sigma_m)
+}{
+    \sum_{n=1}^{M} p(\theta | \alpha_n, \mu_n, \sigma_n)
+} ~ ; \quad
+p(\theta | \alpha_m, \mu_m, \sigma_m)
+= \alpha_m N( \theta | \mu_m, \sigma_m),
+\end{align}
+where $\alpha_m, \sigma_m, \mu_m$ are the weight, variance and mean of the $m$-th mixture component respectively; and $N( \theta | \mu_m, \sigma_m)$ is an evaluation of the multivariate normal distribution with mean $\mu_m$ and variance $\sigma_m$ at $\theta$. Note that the best quantitative results were obtained with fixing $\forall m: \alpha_m = \frac{1}{M}, \sigma_m = 0.001$ and only allowing $\mu_m$ to learn.
+
+This way, the SMPL-MDN regressor $G_{MDN}$ is altered to generate a single prediction $G_{MDN}(I) = (\hat \theta, \beta, \gamma, t)$ that enters the total loss (\ref{e:loss-total}).
+
+At test-time, following~\cite{li19generating}, the predicted hypotheses are randomly sampled per-mode predictions $\{(\mu_m, \beta, \gamma, t)\}_{m=1}^M$ rather than random samples from the mixture. We observed that randomly sampling from the mixture density gave worse quantitative results.
+
+\paragraph{SMPL-CVAE} 
+
+% TODO: integrate
 \textbf{SMPL-CVAE}, the second baseline, is a conditional variational autoencoder~\cite{sohn2015cvae} combined with our trunk network.
 SMPL-CVAE consists of an encoding network that maps a ground truth SMPL mesh $V$ to a gaussian vector $z$ which is fed together with an encoding of the image to generate a mesh $V'$ such that $V' \approx V$. At test time, we sample $n$ plausible human meshes by drawing $z \sim \mathcal{N}(0, 1)$ to evaluate with \MPJPE-$n$/\RE-$n$.
-More details of both SMPL-CVAE and SMPL-MDN have been deferred to the supplementary material.
+
+SMPL-CVAE consists of a pair of encoder and decoder networks. The encoder network takes as input the ground truth SMPL mesh $V$ and outputs a Gaussian vector $z$ whose goal is to encode the mode of ambiguity. The decoder $G_{CVAE}(I, z) = (\theta, \beta, \gamma, t)$ then takes as input the $z$, together with the input image $I$, in order to generate the standard tuple of SMPL parameters. At train-time, the network minimizes the total loss (\ref{e:loss-total}) and a KL divergence between the predicted distribution of $z$ and a standard multivariate normal distribution $N(0,1)$.
+
+
+
 % Our flow-based method is compared to two multi-pose prediction baselines. For fairness, both baselines extend the same (state-of-the-art) trunk architecture as we use. \textbf{SMPL-MDN} follows~\cite{li19generating} and outputs parameters of a mixture density model over the set of SMPL log-rotation pose parameters. Since a na\"{\i}ve implementation of the MDN model that only optimizes the log-likelihood of the mixture of log-rotations leads to very poor performance ($\approx$ 200mm \MPJPE-$M=3$ on H36M), we introduced several improvements.
 % The most critical of these is the addition of the total loss \cref{e:loss-total}, which allows direct optimization over the 3D joint and dense vertex error. 
 % Full description of SMPL-MDN has been deferred to the supplementary.
@@ -97,6 +145,7 @@ More details of both SMPL-CVAE and SMPL-MDN have been deferred to the supplement
 % This way, for a given test 2D skeleton, we randomly sample $M$ plausible human meshes that are evaluated with \MPJPE-$M$/\RE-$M$. 
 % A more detailed explanation of SMPL-CVAE is in the supplementary.
 
+\subsection{Single hypothesis baselines}\label{s:single_baselines}
 For completeness, we also compare to three more baselines that tackle the standard single-mesh prediction problem:
 HMR~\cite{kanazawa18end-to-end}, GraphCMR~\cite{pavlakos18learning}, and SPIN~\cite{kolotouros19learning}, where the latter currently attain state-of-the-art performance on H36M/3DPW. All methods were trained on H36M~\cite{ionescu2013human3}, MPI-INF-3DHP~\cite{mono-3dhp2017}, LSP~\cite{Johnson11}, MPII~\cite{andriluka14cvpr} and COCO~\cite{lin2014microsoft}.
 % The off-the-shelf versions of these methods are trained on the combination of several datasets; in order to provide a fair comparison between these methods and our approach, we re-trained each method solely on H36M using code provided by the original authors.
@@ -113,8 +162,13 @@ HMR~\cite{kanazawa18end-to-end}, GraphCMR~\cite{pavlakos18learning}, and SPIN~\c
 % This validates our intuition that conditioning the mesh predictor on 2D keypoint detections is enough for obtaining competitive results.
 % Furthermore, we noticed that our method trains significantly faster than the alternatives, reaching convergence after 24hrs, compared to 96hrs of GraphCMR on a single Tesla V100 GPU\@.
 
+\subsection{Training details}
+
+Our network is trained in two stages. First we train the original HMR model until convergence according to the training protocol from \cite{kolotouros19convolutional}. We then convert the model to our $n$-quantized-best-of-$M$ architecture and continue training until convergence
+with an Adam optimizer with an initial learning rate of $10^{-5}$. The overall training time (including the HMR pre-training step) is 5 days on a single gpu.
+
 \subsection{Results}\label{s:exp_results}
-\Cref{tab:tab_quantitative} contains a comprehensive summary of the results on all 3 benchmarks. Our method outperforms the SMPL-CVAE and SMPL-MDN in all metrics on all datasets.
+\Cref{tab:tab_quantitative} contains a comprehensive summary of the results on all 3 benchmarks. Our method outperforms the SMPL-CVAE and SMPL-MDN in all metrics on all datasets. 
 For SMPL-CVAE, we found that the encoding network often ``cheats'' during training by transporting all information about the ground truth, instead of only encoding the modes of ambiguity.
 The reason for a lower performance of SMPL-MDN is probably the representation of the probability in the space of log-rotations, rather in the space of vertices.
 Modelling the MDN in the space of model vertices would be more convenient due to being more relevant to the final evaluation metric that aggregates per-vertex errors, however, fitting such high-dimensional (dim=$6890 \times 3$) Gaussian mixture is prohibitively costly. 
@@ -124,8 +178,30 @@ Furthermore, it is very encouraging to observe that our method is also able to o
 This comes as a surprise since our method has not been optimized for this mode of operation.
 The difference is more significant for 3DPW which probably happens because 3DPW is not used for training and, hence, the normalizing flow prior acts as an effective filter of predicted outlier poses. Qualitiative results are shown in \cref{fig:qual_results_all}.
 
+% TODO: integrate
+\section{Results on MS-COCO} \label{s:supp_qual}
+In addition to the experiments with quantitative evaluation on H36m, AH36m and 3DPW in \cref{s:exp}, in this section, we also provide qualitative results on challenging examples from the MS-COCO dataset~\cite{lin2014microsoft}.
+
+% \vspace{-5cm}
+\input{Chapter6/FigTex/fig-qualresultscoco.tex}
+
+\section{Results on COCO and 3DPW}
+In addition to the experiments with quantitative evaluation on H36m and AH36m in \cref{s:exp}, in this section, we also provide qualitative results on the MS-COCO dataset~\cite{lin2014microsoft}. Differently from the (A){}H36m, here we train on the SMPL training annotations on MS-COCO provided by the authors of~\cite{kolotouros19learning}. We train on the training image set and test on the MS-COCO val images. Since our method requires 2D keypoints as input, at test time, the network takes as input the 2D keypoint detections from the OpenPose keypoint detector~\cite{cao2018openpose}.
+
+\Cref{fig:coco_unamb,fig:amb_coco} contain example monocular SMPL predictions on the val set of MS-COCO\@.
+Additionally, in \cref{fig:3dpw_v2,fig:3dpw_v2_2} we provide example results of the COCO-trained model on several videos of the test set of 3DPW~\cite{vonmarcard2018recovering}. We can observe that the best SMPL hypothesis is correctly aligned with the input image, and that the whole set of image hypotheses correctly covers the space of pose ambiguities.
+
+\input{Chapter6/FigTex/fig-coco.tex}
+\input{Chapter6/FigTex/fig-amb-coco.tex}
+
 \subsubsection{Ablation study.}
 We further conduct an ablative study on 3DPW that removes components of our method and measures the incurred change in performance. More specifically, we: 1) ablate the hypothesis reprojection loss; 2) set $p(X|I)=\text{Uniform}$ in \cref{e:loss-quant}, effectively removing the normalizing flow component and executing unweighted K-Means in $n$-quantized-best-of-$M$. \Cref{tab:tab_abl} demonstrates that removing both contributions decreases performance, validating our design choices.
+
+\subsubsection{Performance analysis.}
+A single inference pass takes on average 0.14s per image on NVIDIA V100 GPU.
+
+
+
 % Finally, validating the contributions of our method, the ablation study in \cref{tab:abl_ambi} 
 % reports significant drops in performance after removing each of the proposed components of our approach.
 % The results in \cref{tab:abl_unambi} demonstrate that removing both contributions significantly decreases performance.
