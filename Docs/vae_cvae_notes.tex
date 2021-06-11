@@ -1,0 +1,245 @@
+
+\subsubsection{Notes}
+
+% https://wiseodd.github.io/techblog/2016/12/10/variational-autoencoder/
+
+To generate the required parameters, we use a 2 stage multi-layer perceptron (MLP) $G: X \mapsto (z, \beta, \gamma, s, t)^{M}$ to generate a latent code $z_{i}$ that can be passed through the inverse flow to generate joint angles $\theta = F^{-1}(z_{i})$, and the remaining components: $\beta_{i}, \gamma_{i}$ and orthographic camera parameters $s_{i}, t_{i}$.
+
+Once these $M$ SMPL parameterizations have been computed, we can then generate the $M$ meshes using the standard SMPL skinning pipeline:
+
+$P_{i} = S((\theta_{i}, \beta_{i}, \gamma_{i})$
+
+We make use of a standard joint regressor $J: K \mapsto \mathbb{R}^{16\times 2}$ in order to compute the approximate 3D joint positions $K \in \mathbb{R}^{16\times 2}$ associated with the input 2D joints. Orthographic projection $\pi(s, t): \mathbb{R}^{16\times 3} \mapsto \mathbb{R}^{16\times 2}$ is then used to generate the predicted set of 2D points.
+From these diverse modes, we apply a loss to ensure they are all consistent with respect to the input set of 2D joints:
+
+\begin{equation}
+    L_{reproj-input} = \sum_i{|| \pi(s_{i}, t_{i})[J(P_{i})] - x||}
+\end{equation}
+
+We then apply a 3D joint loss in order to identify the best hypothesis among predicted modes:
+
+% i* = argmin_{i}{{J(Y_{i})} - y}
+
+\begin{equation}
+    L_{obj} = L_{joint3d} + L_{reproj-gt} + L_{vertex}
+\end{equation}
+
+Where
+
+This, and this and this are the equations.
+
+We consider the problem of reconstructing $x$ (3D object) form a partial observation $y$ (2D projection).
+We also assume that observations are noisy, so the observation process is described by a known conditional distribution $p(y|x)$.
+We assume that $x$ has a ``useful'' parameterization or code $z$.
+The parameterization is another random variable linked to $x$ via distribution $p(x|z)$.
+While this could be learned, we assume a parameterization is given to us (e.g. SMPL).
+
+The goal is to: 1) learn an ``inverse function'' $q(z|x)$ inverting the parameterization of the data $x$ and 2) learn a ``prediction'' function $q(z|y)$ that recovers $x$ in code space.
+The assumption is that expressing reconstruction ambiguities is easy in code space, so that $q(z|y)$ is far simple to model than $p(x|y)$; however, we pay the price of having to learn $q(z|x)$.
+
+We formulate this similar to a conditional variational autoencoder (cVAE):
+
+$$
+\begin{aligned}
+\log p(x|y)
+&= \log \int p(x,z|y) \,dz \\
+%&= \log \int p(x,z|y) \frac{q(z|x,y)}{q(z|x,y)} \,dz \\
+&= \log \int \underbrace{p(x|z,y) \frac{p(z|y)}{q(z|x,y)}}_{\text{$\approx$ const.}} q(z|x,y) \,dz \\
+&= \log \int p(x|z,y) \frac{p(z|y)}{q(z|x,y)} q(z|x,y) \,dz \\
+&\geq \int \log \left(p(x|z,y) \frac{p(z|y)}{q(z|x,y)}\right) q(z|x,y) \,dz \\
+&=\int \log p(x|z,y) ~q(z|x,y) \,dz \\
+&~~~~~- KL\left(q(z|x,y) \| p(z|y)\right)
+\end{aligned}
+$$
+
+This bound is tight whenever $q(z|x,y) \propto p(x|z,y) p(z|y)$, i.e. $q(z|x,y) = p(z|x,y)$.
+Now we make the assumption that $x$ contains a superset on the information of $y$ on $z$, i.e. $y \perp z ~| x$.
+This translates in the relations $p(x|z,y) = p(x|z)$ and $p(z|x,y) = p(z|x)$.
+This also means that we can consider $q(z|x) = q(z|x,y)$.
+With these simplification, we get:
+
+\begin{multline}
+  \log p(x|y) \geq \\
+\int \log p(x|z) ~q(z|x) \,dz - KL\left(q(z|x) \| p(z|y)\right)
+\end{multline}
+
+The bound is tight when $q(z|x) = p(z|x)$ as in a standard VAE.
+By comparisong, a standard VAE without conditioning looks like:
+\begin{multline}
+  \log p(x) \geq \\
+\int \log p(x|z) ~q(z|x) \,dz - KL\left(q(z|x) \| p(z)\right)
+\end{multline}
+So the only difference is $p(z)$ instead of $p(z|y)$ in the KL divergence (and the fact that one bounds $p(x)$ instead of $p(x|y)$.)
+
+This model combines:
+\begin{enumerate}
+  \item The forward parameterization $p(x|z)$ (e.g. SMPL, linear basis).
+  \item The inverse parameterization $q(z|x)$, to be learned.
+  \item The reconstruction in code space $p(z|y)$. This distribution models the ambiguity in the reconstruction, must be learned, and is assumed to be simpler to model than $p(x|y)$ directly.
+\end{enumerate}
+
+
+\subsection{Older}
+
+A VAE is model of a distributon $p(x)$ expressed as teh marginal of $p(x,u)$ where $u$ is a code.
+The idea is that $p(x|u)$ can be learned as a neural network and $p(u)$ is given a-priori and simple.
+Furthermore, we also learn a conditional distribution $q(u|x)$ that approximates $p(u|x)$ and helps us computing the log-likelihood of the model.
+
+This is done as follows:
+$$
+\begin{aligned}
+\log p(x)
+&= \log \int p(x,u) \,du \\
+&= \log \int p(x,u) \frac{q(u|x)}{q(u|x)} \,du \\
+&= \log \int p(x|u) \frac{p(u)}{q(u|x)} q(u|x) \,du \\
+&= \log \int p(x|u) \frac{p(u)}{q(u|x)} q(u|x) \,du \\
+&\geq \int \log \left(p(x|u) \frac{p(u)}{q(u|x)}\right) q(u|x) \,du \\
+&=\int \log p(x|u) ~q(u|x) \,du - KL\left(q(u|x) \| p(u)\right)
+\end{aligned}
+$$
+Note that the model is comprised by
+\begin{itemize}
+\item the encoder $q(u|x)$  (trainable)
+\item the decoder $p(x|u)$ (trainable)
+\item the prior $p(u)$ (fixed)
+\end{itemize}
+The log-likelihood of this model is
+\begin{multline}
+E_{p_{\text{gt}}(x)}[
+  \log p(x)
+]
+\geq \\
+E_{p_{\text{gt}}(x)}
+\left[
+E_{q(u|x)}[
+  \log p(x|u)
+]
+-
+KL\left(q(u|x) \| p(u)\right)
+\right]
+\end{multline}
+where $p_{\text{gt}}(x)$ is the true distribution of $x$.
+
+In a standard implementation, we do the following:
+
+\begin{enumerate}
+\item \textbf{Encoder} We set $q(u|x) = \mathcal{N}(u | \mu_x, \Sigma_x)$ where $(\mu_x,\Sigma_x) = \Phi(x)$ are computed by an encoder network $\Phi$.
+\item \textbf{Decoder} We set $p(x|u) = \mathcal{N}(x | \mu_u, \Sigma_u)$ where $(\mu_u,\Sigma_u) = \Psi(u)$ are computed by a decoder network $\Psi$.
+\item \textbf{Prior} We set $p(u)$ to a simple fixed distribution (e.g.~std Gaussian) so that $KL(q(u|x) \| p(u))$ is trivial to compute.
+\item We express samples $u = \mu_x + \Sigma_x^{-\frac{1}{2}} \epsilon$ where $\epsilon$ is a sample from an std Gaussian, also known as *reparameterization trick*. We also use the shorthand notation $u = \Phi(x) \square \epsilon$ that captures the fact that $\mu_x$ and $\Sigma_x$ are estimated by the encoder $\Phi$.
+\end{enumerate}
+
+Then, given a dataset of samples $x_1,x_2,\dots,...$, we get random noise vectors $\epsilon_1,\epsilon_2,\dots$ and use SGD to follow the gradient:
+$$
+  \nabla_{\Phi,\Psi}
+  \left[
+    \log \mathcal{N} (x_i| \Psi(\Phi(x_i) \square \epsilon_i))
+    - KL(\mathcal{N}(u| \Phi(x_i)) \| p(u))
+  \right]
+$$
+
+Note that this quantity can be computed in closed form.
+
+\subsection{Variant}
+
+Now we consider a variant of the model above in which $p(x|u)$ is given and fixed and $p(u)$ must be learned (which is the opposite of what we had before).
+
+The derivation of the bound above is the same, but the implementation is a little different. We have:
+
+\begin{itemize}
+\item the encoder $q(u|x)$ (trainable)
+\item the decoder $p(x|u)$ (fixed)
+\item the prior $p(u)$ (trainable)
+\end{itemize}
+
+\paragraph{Example: pose.} $x \in\mathbb{R}^{3\times K}$ are 3D points, $u\in\mathbb{R}^d$ a set of angles, and $p(x|u)$ the action of the kinematic tree.
+
+We may then build the model as follows:
+\begin{itemize}
+\item \textbf{Encoder} We set $q(u|x) = \mathcal{N}(u | \mu_x, \Sigma_x)$ where $(\mu_x,\Sigma_x) = \Phi(x)$ are computed by an encoder network $\Phi$. Same as before.
+
+\item \textbf{Decoder} We set $p(x|u) = \mathcal{N}(x | \mu_u, \Sigma)$ where $\mu_u = f(u)$ is computed by the a known model $f$ and $\Sigma$ is a small fixed variance.
+
+\item \textbf{Prior} $p(u)$ is a representation of a not-so-trivial prior distribution.
+
+\item We use the reparameterizatino trick as before, since that affects the encoder.
+\end{itemize}
+However, now the story is slightly different since $p(x|u)$ is fixed and $p(u)$ must be learned.
+For this, we rewrite the bound as:
+\begin{multline}
+E_{p_{\text{gt}}(x)}[
+  \log p(x)
+]
+\geq
+\\
+E_{p_{\text{gt}}(x)}
+E_{q(u|x)}\left[
+\log p(x)
+-
+\log \frac{q(u|x)}{p(u)}
+\right]
+=
+\\
+E_{p_{\text{gt}}(x)}
+E_{q(u|x)}\left[
+\log p(x|u)
+-
+\log q(u|x)
++
+\log p(u)
+\right]
+\end{multline}
+
+\paragraph{Interpretation.} In expectation under $q(u|x)$, the term $\log p(x|u)$ is a cross entropy term that encourages $x$ to be reconstructed well from the sample $u \sim q(u|x)$. The term $-log q(u|x)$ is an entropy term that prevents $q(u|x)$ from collapsing to a deterministic function. The term $\log p(u)$  is a cross-entropy that encourages $p(u)$ to match the required prior on the parameters.
+
+In terms of SGD, we have something like:
+$$
+  \nabla_{\Phi,p(u)}
+  \left[
+    \log \mathcal{N} (x_i| \Psi(\Phi(x_i) \square \epsilon_i))
+    + H(\mathcal{N}(u|\Phi(x_i)))
+    + \log p(u_i)
+  \right]
+$$
+where $H$ is the entropy of the Gaussian distribution $\mathcal{N}(u|\mu_{x_i}, \Sigma_{x_i})$ (also easy to compute in closed form).
+
+The ``tricky'' bit is to express $p(u_i)$ with an expressive and learnable model.
+
+\subsection{Conditional VAEs}
+
+We now want to modify the formulation so as to consider a partial observation $y$ and be able to compute $p(x|y)$ from it.
+
+\paragraph{Example: pose} We consider the case in which we have $y = \Pi(x)$ as observation, usually some form of projection or distortion of $x$ (possibly stochastic/noisy).
+
+\paragraph{CVAE Formulation 1.} This takes VAE and adds $|y$ everywhere, using the fact $p(x|u,y) = p(x|u)$:
+$$
+\begin{aligned}
+\log p(x|y)
+&= \log \int p(x,u|y) \,du \\
+&= \log \int p(x,u|y) \frac{q(u|y)}{q(u|y)} \,du \\
+&= \log \int p(x|u) \frac{p(u|y)}{q(u|y)} q(u|y) \,du \\
+&= \log \int p(x|u) \frac{p(u|y)}{q(u|y)} q(u|y) \,du \\
+&\geq \int \log \left(p(x|u,y) \frac{p(u|y)}{q(u|y)}\right) q(u|y) \,du \\
+&=\int \log p(x|u) ~q(u|y) \,du - KL\left(q(u|y) \| p(u|y)\right)
+\end{aligned}
+$$
+
+The strange thing is that this requires to use $p(u|y)$ as prior rather than $p(u).$
+
+\paragraph{CVAE Formulation 2.} This one seems much better: just replace $q(u|x)$ with $q(u|y)$ in the math:
+$$
+\begin{aligned}
+\log p(x)
+&= \log \int p(x,u) \,du \\
+&= \log \int p(x|u) p(u) \frac{q(u|y)}{q(u|y)}  \,du \\
+&\geq \int \log \left(\frac{p(x|u) p(u)}{q(u|y)}\right) q(u|y) \,du \\
+&=
+\int \log p(x|u)~ q(u|y) \,du +
+\int \log \frac{p(u)}{q(u|y)} q(u|y) \,du\\
+&=
+\int \log p(x|u)~ q(u|y) \,du
+-
+KL(q(u|y) \| p(u)).
+\end{aligned}
+$$
+

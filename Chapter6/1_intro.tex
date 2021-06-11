@@ -3,57 +3,288 @@
 % Abstract
 This chapter considers the problem of obtaining dense 3D reconstructions of articulated subjects from single and partially occluded views. Humans generally have no problem in predicting, at least approximately, the 3D structure of most scenes including the pose and shape of animals or other people, even from a single view.
 However, the visual evidence available in a single 2D image notoriously~\citep{Faugeras01geometry} contains insufficient information for the third dimension to be recovered uniquely. 
-This chapter follows a growing body of work that views 3D reconstruction of articulated subjects in a probabilistic setting, and proposes that the goal of reconstructio methods should be to make the posterior distribution as sharp as possible by learning an strong prior on the space of possible solutions. 
-In particular, the method described in this chapter recovers \emph{several} plausible and diverse 3D reconstructions which are compatible with the input data. This is implemented using a novel multi-hypothesis neural network architecture, trained using a best-of-M loss where each of the $M$ hypotheses is constrained to lie on a manifold of plausible poses by means of a generative model. Various improvements are suggested to the standard best-of-$M$ setup, to produce reconstruction sets of an arbitrary size, ensuring these are plausible and diverse with a learnt normalizing flow prior and discouraging mode degeneration with a multi-hypothesis reprojection loss.
-A fundamental insight relied upon is that ambiguities in 3D body poses can be effectively modelled using a similar parameterization as in previous chapters, using a suitable 3D morphable model.
-As well as being the first system capable of modelling ambiguities in 3D animal reconstruction, the method is shown to outperform alternative approaches in ambiguous pose recovery on standard benchmarks for 3D humans and in heavily occluded versions of these benchmarks. The chapter begins by introducing key concepts relied upon in this chapter, as well as discussing the related literature. 
+This chapter follows a growing body of work that views 3D reconstruction of articulated subjects in a probabilistic setting, and proposes that the goal of reconstruction methods should be to make the posterior distribution as sharp as possible by learning an strong prior over the space of possible solutions. 
+In particular, the method described in this chapter recovers \emph{several} plausible and diverse 3D reconstructions which are compatible with the input data. This is implemented using a novel multi-hypothesis neural network architecture, trained using a best-of-$M$ loss where each of the $M$ hypotheses is constrained to lie on a manifold of plausible poses by means of a generative model. Various improvements are suggested to the standard best-of-$M$ setup, to produce reconstruction sets of an arbitrary size, ensuring these are plausible and diverse by means of a learnt normalizing flow prior and discouraging mode degeneration with a multi-hypothesis reprojection loss.
+A fundamental insight is that ambiguities in 3D body poses can be effectively modelled using a similar parameterization as in previous chapters, using a suitable 3D morphable model.
+As well as being the first system capable of modelling ambiguities in 3D animal reconstruction, the method is shown to outperform alternative approaches in ambiguous pose recovery on standard benchmarks for 3D humans and in heavily occluded versions of these benchmarks. The chapter begins by introducing key concepts relied upon in this chapter as well as related literature, followed by a description of the method, an evaluation section and finishes with conclusions and opportunities for future work.
 
 \input{Chapter6/FigTex/fig-splash.tex}
 
 \subsection{Limitations of state-of-the-art 3D reconstruction techniques}
 
-Recent progress in single-view 3D model reconstruction for articulated subjects has been impressive.
-Methods such as HMR~\citep{kanazawa18end-to-end}, GraphCMR~\citep{kolotouros19convolutional} and SPIN~\citep{kolotouros19learning} for humans and 3D-Safari~\cite{xxx} and the work in \Cref{chap:wldo} for animals, formulate the task as learning a deep neural network that maps 2D images to the parameters of a 3D morphable model (usually SMAL~\cite{zuffi2017menagerie} for animals or SMPL~\cite{loper15smpl} for humans).
-Although these method work well in general, they are not immune from failures~(\cref{fig:issues}).
-Their main weakness is when processing \emph{heavily occluded images} of the object.
-When a large part of the object is missing, say the hind legs of an animal or lower body of a sitting human, they output reconstructions that are often implausible.
+As discussed in~\Cref{chap:relwork}, recent progress in single-view 3D model reconstruction for articulated subjects has been impressive.
+Methods such as 3D-Safari~\cite{xxx} and \Cref{chap:wldo} of this thesis for animals and HMR~\cite{kanazawa18end-to-end}, GraphCMR~\cite{kolotouros19convolutional} and SPIN~\cite{kolotouros19learning} for humans, formulate the task using a deep neural network that maps 2D images to the parameters of a 3D morphable model (usually SMAL~\cite{zuffi2017menagerie} for animals and SMPL~\cite{loper15smpl} for humans).
+Although these methods work well in general, they are not immune from failure cases~(\Cref{fig:issues}).
+Their main weakness is when processing \emph{heavily occluded images} of the subject.
+When a large part of the subject is missing, say the hind legs of an animal or lower body of a sitting human, they output reconstructions that are often implausible.
 Since these approaches produce only one hypothesis as output, they very likely learn to approximate the mean of the posterior distribution, which may not correspond to any plausible pose.
-A simple thought experiment helps provide insight behind this suboptimality. Consider an agent which reaches a lake and must randomly decide between travelling left or right around. % TODO: continue this.
-Unfortunately, this failure modality is rather common in animal scenes due to environmental and self-occlusion and also for human imagery, for example from scene clutter and crowds.
+This can be understood with a simple thought experiment. Consider an agent which must randomly choose to travel left or right to avoid an oncoming lake. If the agent applies a policy to average these two possibilities, it will lead the agent to travel straight forwards, realising a suboptimal outcome of travelling straight into the lake.
+Unfortunately, the failure modality caused by ambiguous imagery is rather common in animal and human scenes due to environmental and self-occlusion, due to environmental clutter and crowds.
 
 % Discuss other approaches for dealing with this limitation
-This chapter considers the challenge of recovering 3D mesh reconstructions of complex articulated objects such as humans from highly ambiguous image data, often containing significant occlusions of the object.
-Clearly, it is generally impossible to reconstruct the object uniquely if too much evidence is missing; however, it is still possible to predict a \emph{set} containing all possible reconstructions (see \cref{fig:splash}).
-While ambiguous pose reconstruction has been previously investigated, this work proposes the first deep learning approach for ambiguous reconstructions of the \emph{full animal/human mesh}.
+This chapter proposes a system that handles these existing limitations. The approach recovers 3D mesh reconstructions of complex articulated objects such as animals or humans from highly ambiguous image data, often containing significant occlusions of the object.
+Clearly, it is generally impossible to reconstruct the object uniquely if too much evidence is missing; however, it is still possible to predict a \emph{set} containing all possible reconstructions (see \Cref{fig:splash}).
+While ambiguous pose reconstruction has been previously investigated, this work proposes the first deep learning approach for ambiguous reconstructions of the \emph{full articulated mesh}.
 
 \input{Chapter6/FigTex/fig-sotafailures.tex}
 
 \subsection{Modelling ambiguities in 3D reconstruction}
 
-Several previous papers have looked at the problem of modelling ambiguous 3D human pose reconstructions. Early work includes~\citet{kinematic-jump-processes}, ~\citet{tracking-3d-human-figures} and \citet{density-prop}. % TODO: much more here.
+% kinematic-jump-processes http://www.cs.toronto.edu/~crismin/PAPERS/kinematic.pdf
+% tracking-3d-human-figures http://luthuli.cs.uiuc.edu/~daf/courses/AppCV/Papers-2/eccv00.pdf
+% desity-prop https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.119.1950&rep=rep1&type=pdf
+% akhter15pose-conditioned https://openaccess.thecvf.com/content_cvpr_2015/papers/Akhter_Pose-Conditioned_Joint_Angle_2015_CVPR_paper.pdf
+% ligenerating https://openaccess.thecvf.com/content_CVPR_2019/papers/Li_Generating_Multiple_Hypotheses_for_3D_Human_Pose_Estimation_With_Mixture_CVPR_2019_paper.pdf
+% bishop94mixture https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf
+% sharma19monocular https://openaccess.thecvf.com/content_ICCV_2019/papers/Sharma_Monocular_3D_Human_Pose_Estimation_by_Generation_and_Ordinal_Ranking_ICCV_2019_paper.pdf
+% cheng19occlusion-aware https://openaccess.thecvf.com/content_ICCV_2019/papers/Cheng_Occlusion-Aware_Networks_for_3D_Human_Pose_Estimation_in_Video_ICCV_2019_paper.pdf
+
+% rupprecht17learning: learning in an uncertain world: https://arxiv.org/pdf/1612.00197.pdf
+
+
+Several previous papers have looked at the problem of modelling ambiguous 3D human pose reconstructions. Early work includes~\cite{kinematic-jump-processes} who rely on known body segement lengths to resolve depth ambiguities at each joint. Sidenbldh et al.~\cite{tracking-3d-human-figures} define a probalistic method for tracking 3D articulated humans based on a prior probabilisty distribution over pose that models how humans are expected to move. Sminchisescu et al.~\cite{density-prop} describe a mixture density propagation algorithm for predicts the conditional state distributon necessary for 3D body pose tracking based on input silhouettes. More recently, ~\cite{cheng19occlusion-aware} tackle the problem of video 3D reconstruction in the presence of occlusions, and show that temporal cues can be used to disambiguate the solution. 
+% While our method is similar in the goal of correctly handling the prediction uncertainty, we differ by applying our method to predicting \emph{full mesh} of the human body.
+% This is arguably a more challenging scenario due to the increased complexity of the desired 3D shape.
+
+% The method is similar in that it attempts to handle prediction uncertainty, although the work in this chapter differs by predicting the \emph{full mesh} of the subject. This is arguably a more challenging scenario due to the increased complexity of the desired 3D shape.
+
+
+The following paragraphs describe implementations of common approaches used to model prediction uncertainty in deep networks. Note that the methods discussed, including Mixture Density Networks~\cite{bishop94mixture,li19generating} and Conditional Variational Auto-Encoders~\cite{sharma19monocular} differ from the work in this chapter as they output a distribution over reconstructed \emph{3D locations} of a finite set of human body joints, rather than a full mesh. This chapter argues that the parameters of a 3D morphable model offers a better space for coding not just 3D shapes and poses, but also their ambiguities. In addition, predicting a full mesh is a more challenging scenario due to the increased complexity of the desired 3D shape. A later section in this chapter describes how these techniques can be extended to act as baselines for the system proposed here. 
+% TODO: An exception is the very recent work of BLAH, who extend the ar
+
+% As far as we could determine, the work in this chapter is the first to model ambiguous reconstructions directly in the space of human body model parameters, although notable works such as ~\cite{xxx} have come later and are worthy of discussion.
+% Ignas paper
 
 % To be fair, we don't learn a prior directly on the SMPL parameters.
 
 % They model distributions conditioned on the parent of each joint in the kinematic tree and show that this prior can be used to obtain improved parametric fits.
-More recently,~\citet{akhter15pose-conditioned} learn a prior over human skeleton joint angles (but not directly a prior on the SMPL parameters) from a MoCap dataset.~\citet{li19generating} use the Mixture Density Networks model of~\cite{bishop94mixture} to capture ambiguous 3D reconstructions of sparse human body keypoints directly in physical space.
-\citet{sharma19monocular} learn a conditional variational auto-encoder to model ambiguous reconstructions as a posterior distribution; they also propose two scoring methods to extract a single 3D reconstruction from the distribution.
-\citet{cheng19occlusion-aware} tackle the problem of video 3D reconstruction in the presence of occlusions, and show that temporal cues can be used to disambiguate the solution.
-While our method is similar in the goal of correctly handling the prediction uncertainty, we differ by applying our method to predicting \emph{full mesh} of the human body.
-This is arguably a more challenging scenario due to the increased complexity of the desired 3D shape.
+% More recently,~\citet{akhter15pose-conditioned} estimate a 3D human stick figure from 2D joint locations, making use of a prior over joint angles learnt from a motion capture dataset.
+
+\subsubsection{Mixture Density Networks (MDN)}
+
+Li et al. ~\cite{li19generating} use the Mixture Density Networks model of~\cite{bishop94mixture} to capture ambiguous 3D reconstructions of sparse human body keypoints (rather than a full mesh as in this work) directly in physical space. 
+
+The idea of a Mixture Density Network for articulated 3D reconstruction is to represent the probability of a 3D pose vector $y \in \R{3N}$ given an input set of features (e.g. 2D keypoints, image feature etc.) $x \in \R{2N}$. $w$ are the neural network weights  and neural network weights $w$ as a linear combination of $M$ Gaussian functions:
+
+\begin{equation}
+  p(y | x, w) = \sum_{i}^{M} \Pi_{i}(x, w)\phi_{i}(y | x, w)
+\end{equation}
+
+Here, $\Pi_{i}(x, w)$ are mixing coefficients which must satisfy $0 \leq \Pi_{i}(x) \leq 1$ and $\sum_{i=1}^{M} = 1$. $\phi(y | x, w)$ is the conditional distribution of the 3D pose $y$ for the $i^{th}$ Gaussian component. 
+
+\begin{equation}
+  \phi(y | x, w) = 
+    \frac{
+      1
+    }{
+      (2\pi)^{\frac{d}{2}} \sigma_{i}(x, w)^{d}
+    } 
+    \exp{
+    -\frac{
+      || y - \mu_{i}(x, w) ||^{2}
+    }{
+      2\sigma_{i}(x, w)^{2}
+    }
+  }
+\end{equation}
+
+A dataset of $K$ independent and identically distributed training examples including input $X$ and 3D poses $Y$ can be used to optimize the weights $w$ of such a network. The posterior distribution of $w$ is given by
+
+\begin{align}
+  p(w | X, Y) 
+  &\propto p(Y | X, w)p(w, X) \\
+  &= p(w | X) \prod_{j=1}^{K} p(y_j | x_j, w)
+  % &= p(w | X) \prod_{j=1}^{K} \sum_{i=1}^{M} \Pi_{i}(x_{j}, w) \phi_{i} (y_{j} | x_{j}, w)
+\end{align}
+
+The optimal weight $w^{*}$ is obtained by minimizing the negative log-posterior
+
+\begin{align}
+  w^{*} &= \argmin_{w} -\log p(w | X, Y) \\
+        &= \argmin_{w} \left[-\sum_{j=1}^{K} \log p(y_j | x_j, w)\right] - \log p(w | X)
+\end{align}
+
+This formulation can be used to form a loss function to optimize the network. 
+
+\begin{equation}
+  L = \left[-\sum_{j=1}^{K} \log p(y_j | x_j, w)\right] - \log p(w | X)
+\end{equation}
+
+This can be deconstructed into two terms, $L = L_{3D} + L_{PRIOR}$. $L_{3D}$ tunes the network weights such that ground truth 3D poses are likely under the model, and $L_{PRIOR}$ which acts as a prior over $\mu(w, X), \sigma(w, X)$ and $\Pi(w, X)$. In the Li et al. implementation, the prior is uniform over $\mu(w, X)$ and $\sigma(w, X)$, and a Dirichlet conjugate prior is used over the mixture coefficients $\Pi(w, X)$. 
+
+For completeness, the 3D alignment term is given as
+\begin{equation}
+  L_{3D} = -\sum_{j=1}^{K} \log \sum_{i=1}^{M} \Pi_{i}(x_{j}, w) \phi_{i}(y_j | x_j, w)
+\end{equation}
+
+% https://arxiv.org/pdf/2103.10978.pdf
+A version of this setup is used as a baseline in the later experiment section, although adapted to model the conditional probability of 3D morphable model joint angles through the generator function. Another notable work in this category (released after the content of this chapter) is that of Sengupta et al~\lazycite{Sengupta}{} who extend the MDN formulation to model ambiguity in pose and shape, operating on a collection of human images. 
+
+\subsubsection{Conditional Variational Auto-Encoder (CVAE)}
+
+Another approach, proposed by \citet{sharma19monocular} is to learn a conditional variational auto-encoder (CVAE) to model ambiguous reconstructions as a posterior distribution. 
+
+To explain this, first consider a simple directed, latent variable model. $x$ is the observed variable, and $u$ is a latent variable, or \emph{code}, which should provide information about $x$.
+
+\begin{center}
+\begin{tikzpicture}
+  \SetGraphUnit{5}
+  \Vertex{x}
+  \WE(x){z}
+  \WE(z){y}
+  \Edge(z)(x)
+  \Edge(y)(z)
+  % \Edge[label = 2](B)(C)
+  % \Edge[label = 3](C)(B)
+  % \Edge[label = 4](B)(A)
+  % \Loop[dist = 4cm, dir = NO, label = 5](A.west)
+  % \Loop[dist = 4cm, dir = SO, label = 6](C.east)
+  % \tikzset{EdgeStyle/.append style = {bend left = 50}}
+  % \Edge[label = 7](A)(C)
+  % \Edge[label = 8](C)(A)
+\end{tikzpicture}
+\end{center}
+
+The joint distribution of such a model is given as
+
+$$
+  p_{\theta}(x,z,y) = p(x|z)p(z|y)p(y)
+$$
+
+This type of latent variable model can be viewed as a generative process for obtaining the observed data $x$. The procedure for this is:
+
+$$
+\begin{aligned}
+  y &\sim p(y) \\
+  z &\sim p(z|y) \\
+  x &\sim p(x|z)
+\end{aligned}
+$$
+
+There are two objectives. First, $p$ must be tuned such that the latent model closely matches the true underlying distribution $p_{data}$. Secondly, to infer good values for the latent variables $z$ given data $p(z|x,y)$. 
+
+The Kullback-Leibler (KL) divergence can be used to measure how closely $p(x,z,y)$ fits a training dataset. Divergence is measured between the data distribution $p_{data}(x)$ and the model's marginal distribution $p(x) = \int p(x,z) \,dz$. 
+%https://jaan.io/what-is-variational-autoencoder-vae-tutorial/
+
+
+According to Bayes,
+$$
+\begin{aligned}
+  p(z|x,y) 
+  &= \frac{p(x|y,z)p(z|y)}{p(x|y)} \\
+  &= \frac{p(x|y,z)p(z|y)}{\int p(x|y,z)p(z|y) \,dz}
+\end{aligned}
+$$
+
+Note the integral on the demoninator requires expotential time to compute, since it needs to be evaluate all configurations of latent variables. 
+% This is equivalent to maximizing the marginal log-likelihood $log p(x)$ over the dataset $D$. 
+
+% $$
+% \max_{p} \sum_{x \in D} \log p_{\theta}(x) = \max_{p} \sum_{x \in D} \log \int p_{\theta}(x,z) \,dz
+% $$
+
+% In practice, however, it is generally intractable for high-dimensional $z$ to compute this expression since it involves an integration over all possible latent variables $z$. 
+Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates.
+
+% AWF: ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
+
+To handle this, a variational method is used, which estimates the intractable posterior $p(z|x,y)$ with a new distribution $q(z|x,y)$. One may consider using KL divergence to measure the error between using $q$ instead of $p$, $KL(q_{\lambda}(z|x,y) \| p(z|x,y))$:
+
+The goal is to find the variational parameters $\lambda$ that minimize the divergence:
+
+$$
+\begin{aligned}
+  q^{*}_{\lambda}(z|x,y) 
+  &= \argmin_{\lambda} KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
+  &= \argmin_{\lambda} \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]-\mathbb{E}_{q} \left[ \log p(x,z|y) \right] + \log p(x|y)
+\end{aligned}
+$$
+
+Unfortunately, this is again intractable as the evidence term $p(x|y)$ appears once more. However, note that with this definition
+
+$$
+\begin{aligned}
+  \log p(x|y) 
+  &= 
+  \mathbb{E}_{q} \left[ \log p(x,z|y) \right]
+  - \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]
+  + KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
+  &= 
+  \underbrace{
+    \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
+  - KL(q_{\lambda}(z|x,y) \| p(z|y))}_{ELBO}
+  + KL(q_{\lambda}(z|x,y) \| p(z|x,y))
+\end{aligned}
+$$
+
+This expression can be used to derive the Evidence Lower Bound (ELBO) as follows:
+\begin{equation}
+  \log p(x|y) 
+  \geq \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
+  - KL(q_{\lambda}(z|x,y) \| p_{\theta}(z|y))
+\end{equation}
+
+Further, note that the tightness of the lower bound is determined by the specific choice of $q$. In particular, the error between the original objective $\log p_{\theta}(x)$ and the ELBO is given by $KL(p(z|x) || q(z|x))$. The error is zero if these exactly match.
+
+% $$
+% \begin{aligned}
+%   \log p_{\theta}(x|y) 
+%   &= \log \int p_{\theta}(x, z) \,dz \\
+%   &= \log \int p_{\theta}(x, z) \frac{q_{\lambda}(z|x,y)}{q_{\lambda}(z|x,y)} \,dz \\
+%   &\geq q_{\lambda}(z|x) \log \frac{p_{\theta}(x, z)}{q_{\lambda}(z|x,y)} \,dz \\
+%   &=\mathbb{E}_{q_{\lambda}(z|x,y)} \left[ \log \frac{p_{\theta}(x,z)}{q_{\lambda}(z|x,y)} \,dz \right] \\
+% \end{aligned}
+% $$
+
+% Note that Jensen's inequality is used in the final step. This final expression is known as the Evidence Lower Bound (ELBO). 
+
+
+% The tightness of the lower bound is determined by the specific choice of $q$. In particular, the error between the original objective $\log p_{\theta}(x)$ and the ELBO is given by $KL(p(z|x) || q(z|x))$. The error is zero if these exactly match.
+
+Assuming a sensible choice for $q_{\lambda}(z)$, this construction admits a tractable unbias Monte Carlo estimator:
+\begin{equation}
+  \log p_{\theta}(x) = \frac{1}{k} \sum_{i=1}^{k} \log \frac{p_{\theta}(x, z_{i})}{q_{\lambda}(z_{i}|x)}, \textrm{where } z_{i} \sim q_{\lambda}(z,x)
+\end{equation}
+
+% Or alternatively,
+\begin{align}
+  \log p_{\theta}(x) 
+  &= \int \log \left[ p_{\theta}(x, z) \frac{p_{\theta}(z)}{q_{\lambda}(z|x)} \right] q(z|x) \,dz \\
+  &= \int \log p_{\theta}(x|z)q_{\lambda}(z|x) \,dz - KL(q_{\lambda}(z|x) \| p_{\theta}(z))
+\end{align}
+
+The next question is how to implement such a model using a deep neural network. Here,
+
+\begin{enumerate}
+  \item \textbf{Encoder} $q_{\lambda}(z|x) = \mathcal{N}(z | \mu_{\lambda}(x), \Sigma_{\lambda}(x))$ where $(\mu_{\lambda}(x),\Sigma_{\lambda}(x)) = \Phi_{\lambda}(x)$ are computed by an encoder neural network $\Phi$.
+  \item \textbf{Decoder} $p_{\theta}(x|z) = \mathcal{N}(x | \mu_{\theta}(z), \Sigma_{\theta}(z))$ where $(\mu_{\theta}(z),\Sigma_{\theta}(z)) = \Psi_{\theta}(z)$ are computed by a decoder neural network $\Psi$.
+  \item \textbf{Prior} $p_{\theta}(z)$ is set to a simple fixed distribution (e.g.~std Gaussian) to ensure $KL(q_{\lambda}(z|x) \| p_{\theta}(z))$ is trivial to compute.
+  \item We express samples $z = \mu_{\theta}(x) + \Sigma_{\theta}(x)^{-\frac{1}{2}} \epsilon$ where $\epsilon$ is a sample from an std Gaussian, also known as *reparameterization trick*. We also use the shorthand notation $z = \Phi(x) \square \epsilon$ that captures the fact that $\mu_{\theta}(x)$ and $\Sigma_{\theta}(x)$ are estimated by the encoder $\Phi$.
+  \end{enumerate}
+
+
+
+
+% disambiguates the problem, The idea is to map the input to a unit Gaussian distribution which represents the space of possible outputs. A controlled version of the ground truth for the input is then used to select a point in the Gaussian, which serves to disambiguate the 
+
+% ground truth is then used  By carefully restricting information flow, the ground truth 3D output is then used to select the correct mode
+
+% represent the space of possible outputs as a normal distribution 
+% The idea behind a CVAE is to represent the space of  
+
+% https://github.com/junyanz/BicycleGAN
+
+
+In their work, Sharma et al. also propose two scoring methods to extract a single 3D reconstruction from the distribution which can be thought of as an alternative mechanism to the weighted quantizer scheme proposed here.
+
+
 % TODO: add Ignas' work
 
 % TODO: integrate this
-Compared to these works, we also make a simple but important contribution of modelling ambiguity in the space of 3D model parameters.
-Existing approaches, such as Mixture Density Networks~\cite{bishop94mixture,li19generating}, output instead a distribution on the reconstructed 3D location of a finite set of human body joints.
-This is straightforward, but difficult to extend to full 3D meshes.
-Instead, we argue that the parameters of the 3D model offer a better space for coding not just 3D shapes and poses, but also their ambiguities.
-As far as we could determine, we are the first to model ambiguous reconstructions directly in the space of human body model parameters.
 
 
 
-% Finally,~\citet{cheng19occlusion-aware} tackle the problem of video 3D reconstruction in the presence of occlusions, and show that temporal cues can be used to disambiguate the solution.
-% While our method is similar in the goal of correctly handling the prediction uncertainty, we differ by applying our method to predicting \emph{full mesh} of the human body.
-% This is arguably a more challenging scenario due to the increased complexity of the desired 3D shape.
+
 
 % Several previous papers have looked at the problem of modelling ambiguity in 3D human pose reconstruction. Early work includes~\citet{kinematic-jump-processes}, ~\citet{tracking-3d-human-figures} and \citet{density-prop}. More recently, ~\citet{akhter15pose-conditioned} learn a prior over human skeleton joint angles from a MoCap dataset.
 % %(but not directly a prior on the SMPL parameters)
@@ -63,15 +294,261 @@ As far as we could determine, we are the first to model ambiguous reconstruction
 
 
 
-
-\subsubsection{VAE}
 % BicycleGan etc.
-\subsubsection{MDN}
+
 \subsubsection{Min-of-N}
 
 Our primary contribution is to introduce a principled multi-hypothesis framework to model the ambiguities in monocular pose recovery.
 In the literature, such multiple-hypotheses networks are often trained with a so-called \emph{best-of-$M$} loss --- namely, during training, the loss is incurred only by the best of the $M$ hypothesis, back-propagating gradients from that alone~\cite{guzman2012multiple}.
 In this work we opt for the \emph{best-of-$M$} approach since it has been show to outperform  alternatives (such as variational auto-encoders or mixture density networks) in tasks that are similar to our 3D human pose recovery, and which have constrained output spaces \cite{rupprecht17learning}.
+
+
+
+% \subsubsection{Notes}
+
+% % https://wiseodd.github.io/techblog/2016/12/10/variational-autoencoder/
+
+% To generate the required parameters, we use a 2 stage multi-layer perceptron (MLP) $G: X \mapsto (z, \beta, \gamma, s, t)^{M}$ to generate a latent code $z_{i}$ that can be passed through the inverse flow to generate joint angles $\theta = F^{-1}(z_{i})$, and the remaining components: $\beta_{i}, \gamma_{i}$ and orthographic camera parameters $s_{i}, t_{i}$.
+
+% Once these $M$ SMPL parameterizations have been computed, we can then generate the $M$ meshes using the standard SMPL skinning pipeline:
+
+% $P_{i} = S((\theta_{i}, \beta_{i}, \gamma_{i})$
+
+% We make use of a standard joint regressor $J: K \mapsto \mathbb{R}^{16\times 2}$ in order to compute the approximate 3D joint positions $K \in \mathbb{R}^{16\times 2}$ associated with the input 2D joints. Orthographic projection $\pi(s, t): \mathbb{R}^{16\times 3} \mapsto \mathbb{R}^{16\times 2}$ is then used to generate the predicted set of 2D points.
+% From these diverse modes, we apply a loss to ensure they are all consistent with respect to the input set of 2D joints:
+
+% \begin{equation}
+%     L_{reproj-input} = \sum_i{|| \pi(s_{i}, t_{i})[J(P_{i})] - x||}
+% \end{equation}
+
+% We then apply a 3D joint loss in order to identify the best hypothesis among predicted modes:
+
+% % i* = argmin_{i}{{J(Y_{i})} - y}
+
+% \begin{equation}
+%     L_{obj} = L_{joint3d} + L_{reproj-gt} + L_{vertex}
+% \end{equation}
+
+% Where
+
+% This, and this and this are the equations.
+
+% We consider the problem of reconstructing $x$ (3D object) form a partial observation $y$ (2D projection).
+% We also assume that observations are noisy, so the observation process is described by a known conditional distribution $p(y|x)$.
+% We assume that $x$ has a ``useful'' parameterization or code $z$.
+% The parameterization is another random variable linked to $x$ via distribution $p(x|z)$.
+% While this could be learned, we assume a parameterization is given to us (e.g. SMPL).
+
+% The goal is to: 1) learn an ``inverse function'' $q(z|x)$ inverting the parameterization of the data $x$ and 2) learn a ``prediction'' function $q(z|y)$ that recovers $x$ in code space.
+% The assumption is that expressing reconstruction ambiguities is easy in code space, so that $q(z|y)$ is far simple to model than $p(x|y)$; however, we pay the price of having to learn $q(z|x)$.
+
+% We formulate this similar to a conditional variational autoencoder (cVAE):
+
+% $$
+% \begin{aligned}
+% \log p(x|y)
+% &= \log \int p(x,z|y) \,dz \\
+% %&= \log \int p(x,z|y) \frac{q(z|x,y)}{q(z|x,y)} \,dz \\
+% &= \log \int \underbrace{p(x|z,y) \frac{p(z|y)}{q(z|x,y)}}_{\text{$\approx$ const.}} q(z|x,y) \,dz \\
+% &= \log \int p(x|z,y) \frac{p(z|y)}{q(z|x,y)} q(z|x,y) \,dz \\
+% &\geq \int \log \left(p(x|z,y) \frac{p(z|y)}{q(z|x,y)}\right) q(z|x,y) \,dz \\
+% &=\int \log p(x|z,y) ~q(z|x,y) \,dz \\
+% &~~~~~- KL\left(q(z|x,y) \| p(z|y)\right)
+% \end{aligned}
+% $$
+
+% This bound is tight whenever $q(z|x,y) \propto p(x|z,y) p(z|y)$, i.e. $q(z|x,y) = p(z|x,y)$.
+% Now we make the assumption that $x$ contains a superset on the information of $y$ on $z$, i.e. $y \perp z ~| x$.
+% This translates in the relations $p(x|z,y) = p(x|z)$ and $p(z|x,y) = p(z|x)$.
+% This also means that we can consider $q(z|x) = q(z|x,y)$.
+% With these simplification, we get:
+
+% \begin{multline}
+%   \log p(x|y) \geq \\
+% \int \log p(x|z) ~q(z|x) \,dz - KL\left(q(z|x) \| p(z|y)\right)
+% \end{multline}
+
+% The bound is tight when $q(z|x) = p(z|x)$ as in a standard VAE.
+% By comparisong, a standard VAE without conditioning looks like:
+% \begin{multline}
+%   \log p(x) \geq \\
+% \int \log p(x|z) ~q(z|x) \,dz - KL\left(q(z|x) \| p(z)\right)
+% \end{multline}
+% So the only difference is $p(z)$ instead of $p(z|y)$ in the KL divergence (and the fact that one bounds $p(x)$ instead of $p(x|y)$.)
+
+% This model combines:
+% \begin{enumerate}
+%   \item The forward parameterization $p(x|z)$ (e.g. SMPL, linear basis).
+%   \item The inverse parameterization $q(z|x)$, to be learned.
+%   \item The reconstruction in code space $p(z|y)$. This distribution models the ambiguity in the reconstruction, must be learned, and is assumed to be simpler to model than $p(x|y)$ directly.
+% \end{enumerate}
+
+
+% \subsection{Older}
+
+% A VAE is model of a distributon $p(x)$ expressed as teh marginal of $p(x,u)$ where $u$ is a code.
+% The idea is that $p(x|u)$ can be learned as a neural network and $p(u)$ is given a-priori and simple.
+% Furthermore, we also learn a conditional distribution $q(u|x)$ that approximates $p(u|x)$ and helps us computing the log-likelihood of the model.
+
+% This is done as follows:
+% $$
+% \begin{aligned}
+% \log p(x)
+% &= \log \int p(x,u) \,du \\
+% &= \log \int p(x,u) \frac{q(u|x)}{q(u|x)} \,du \\
+% &= \log \int p(x|u) \frac{p(u)}{q(u|x)} q(u|x) \,du \\
+% &= \log \int p(x|u) \frac{p(u)}{q(u|x)} q(u|x) \,du \\
+% &\geq \int \log \left(p(x|u) \frac{p(u)}{q(u|x)}\right) q(u|x) \,du \\
+% &=\int \log p(x|u) ~q(u|x) \,du - KL\left(q(u|x) \| p(u)\right)
+% \end{aligned}
+% $$
+% Note that the model is comprised by
+% \begin{itemize}
+% \item the encoder $q(u|x)$  (trainable)
+% \item the decoder $p(x|u)$ (trainable)
+% \item the prior $p(u)$ (fixed)
+% \end{itemize}
+% The log-likelihood of this model is
+% \begin{multline}
+% E_{p_{\text{gt}}(x)}[
+%   \log p(x)
+% ]
+% \geq \\
+% E_{p_{\text{gt}}(x)}
+% \left[
+% E_{q(u|x)}[
+%   \log p(x|u)
+% ]
+% -
+% KL\left(q(u|x) \| p(u)\right)
+% \right]
+% \end{multline}
+% where $p_{\text{gt}}(x)$ is the true distribution of $x$.
+
+% In a standard implementation, we do the following:
+
+% \begin{enumerate}
+% \item \textbf{Encoder} We set $q(u|x) = \mathcal{N}(u | \mu_x, \Sigma_x)$ where $(\mu_x,\Sigma_x) = \Phi(x)$ are computed by an encoder network $\Phi$.
+% \item \textbf{Decoder} We set $p(x|u) = \mathcal{N}(x | \mu_u, \Sigma_u)$ where $(\mu_u,\Sigma_u) = \Psi(u)$ are computed by a decoder network $\Psi$.
+% \item \textbf{Prior} We set $p(u)$ to a simple fixed distribution (e.g.~std Gaussian) so that $KL(q(u|x) \| p(u))$ is trivial to compute.
+% \item We express samples $u = \mu_x + \Sigma_x^{-\frac{1}{2}} \epsilon$ where $\epsilon$ is a sample from an std Gaussian, also known as *reparameterization trick*. We also use the shorthand notation $u = \Phi(x) \square \epsilon$ that captures the fact that $\mu_x$ and $\Sigma_x$ are estimated by the encoder $\Phi$.
+% \end{enumerate}
+
+% Then, given a dataset of samples $x_1,x_2,\dots,...$, we get random noise vectors $\epsilon_1,\epsilon_2,\dots$ and use SGD to follow the gradient:
+% $$
+%   \nabla_{\Phi,\Psi}
+%   \left[
+%     \log \mathcal{N} (x_i| \Psi(\Phi(x_i) \square \epsilon_i))
+%     - KL(\mathcal{N}(u| \Phi(x_i)) \| p(u))
+%   \right]
+% $$
+
+% Note that this quantity can be computed in closed form.
+
+% \subsection{Variant}
+
+% Now we consider a variant of the model above in which $p(x|u)$ is given and fixed and $p(u)$ must be learned (which is the opposite of what we had before).
+
+% The derivation of the bound above is the same, but the implementation is a little different. We have:
+
+% \begin{itemize}
+% \item the encoder $q(u|x)$ (trainable)
+% \item the decoder $p(x|u)$ (fixed)
+% \item the prior $p(u)$ (trainable)
+% \end{itemize}
+
+% \paragraph{Example: pose.} $x \in\mathbb{R}^{3\times K}$ are 3D points, $u\in\mathbb{R}^d$ a set of angles, and $p(x|u)$ the action of the kinematic tree.
+
+% We may then build the model as follows:
+% \begin{itemize}
+% \item \textbf{Encoder} We set $q(u|x) = \mathcal{N}(u | \mu_x, \Sigma_x)$ where $(\mu_x,\Sigma_x) = \Phi(x)$ are computed by an encoder network $\Phi$. Same as before.
+
+% \item \textbf{Decoder} We set $p(x|u) = \mathcal{N}(x | \mu_u, \Sigma)$ where $\mu_u = f(u)$ is computed by the a known model $f$ and $\Sigma$ is a small fixed variance.
+
+% \item \textbf{Prior} $p(u)$ is a representation of a not-so-trivial prior distribution.
+
+% \item We use the reparameterizatino trick as before, since that affects the encoder.
+% \end{itemize}
+% However, now the story is slightly different since $p(x|u)$ is fixed and $p(u)$ must be learned.
+% For this, we rewrite the bound as:
+% \begin{multline}
+% E_{p_{\text{gt}}(x)}[
+%   \log p(x)
+% ]
+% \geq
+% \\
+% E_{p_{\text{gt}}(x)}
+% E_{q(u|x)}\left[
+% \log p(x)
+% -
+% \log \frac{q(u|x)}{p(u)}
+% \right]
+% =
+% \\
+% E_{p_{\text{gt}}(x)}
+% E_{q(u|x)}\left[
+% \log p(x|u)
+% -
+% \log q(u|x)
+% +
+% \log p(u)
+% \right]
+% \end{multline}
+
+% \paragraph{Interpretation.} In expectation under $q(u|x)$, the term $\log p(x|u)$ is a cross entropy term that encourages $x$ to be reconstructed well from the sample $u \sim q(u|x)$. The term $-log q(u|x)$ is an entropy term that prevents $q(u|x)$ from collapsing to a deterministic function. The term $\log p(u)$  is a cross-entropy that encourages $p(u)$ to match the required prior on the parameters.
+
+% In terms of SGD, we have something like:
+% $$
+%   \nabla_{\Phi,p(u)}
+%   \left[
+%     \log \mathcal{N} (x_i| \Psi(\Phi(x_i) \square \epsilon_i))
+%     + H(\mathcal{N}(u|\Phi(x_i)))
+%     + \log p(u_i)
+%   \right]
+% $$
+% where $H$ is the entropy of the Gaussian distribution $\mathcal{N}(u|\mu_{x_i}, \Sigma_{x_i})$ (also easy to compute in closed form).
+
+% The ``tricky'' bit is to express $p(u_i)$ with an expressive and learnable model.
+
+% \subsection{Conditional VAEs}
+
+% We now want to modify the formulation so as to consider a partial observation $y$ and be able to compute $p(x|y)$ from it.
+
+% \paragraph{Example: pose} We consider the case in which we have $y = \Pi(x)$ as observation, usually some form of projection or distortion of $x$ (possibly stochastic/noisy).
+
+% \paragraph{CVAE Formulation 1.} This takes VAE and adds $|y$ everywhere, using the fact $p(x|u,y) = p(x|u)$:
+% $$
+% \begin{aligned}
+% \log p(x|y)
+% &= \log \int p(x,u|y) \,du \\
+% &= \log \int p(x,u|y) \frac{q(u|y)}{q(u|y)} \,du \\
+% &= \log \int p(x|u) \frac{p(u|y)}{q(u|y)} q(u|y) \,du \\
+% &= \log \int p(x|u) \frac{p(u|y)}{q(u|y)} q(u|y) \,du \\
+% &\geq \int \log \left(p(x|u,y) \frac{p(u|y)}{q(u|y)}\right) q(u|y) \,du \\
+% &=\int \log p(x|u) ~q(u|y) \,du - KL\left(q(u|y) \| p(u|y)\right)
+% \end{aligned}
+% $$
+
+% The strange thing is that this requires to use $p(u|y)$ as prior rather than $p(u).$
+
+% \paragraph{CVAE Formulation 2.} This one seems much better: just replace $q(u|x)$ with $q(u|y)$ in the math:
+% $$
+% \begin{aligned}
+% \log p(x)
+% &= \log \int p(x,u) \,du \\
+% &= \log \int p(x|u) p(u) \frac{q(u|y)}{q(u|y)}  \,du \\
+% &\geq \int \log \left(\frac{p(x|u) p(u)}{q(u|y)}\right) q(u|y) \,du \\
+% &=
+% \int \log p(x|u)~ q(u|y) \,du +
+% \int \log \frac{p(u)}{q(u|y)} q(u|y) \,du\\
+% &=
+% \int \log p(x|u)~ q(u|y) \,du
+% -
+% KL(q(u|y) \| p(u)).
+% \end{aligned}
+% $$
+
+
 
 
 % We also make an important contribution to better optimize our multi-hypothesis predictions.
