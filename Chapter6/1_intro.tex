@@ -68,26 +68,26 @@ The following paragraphs describe implementations of common approaches used to m
 
 Li et al. ~\cite{li19generating} use the Mixture Density Networks model of~\cite{bishop94mixture} to capture ambiguous 3D reconstructions of sparse human body keypoints (rather than a full mesh as in this work) directly in physical space. 
 
-The idea of a Mixture Density Network for articulated 3D reconstruction is to represent the probability of a 3D pose vector $y \in \R{3N}$ given an input set of features (e.g. 2D keypoints, image feature etc.) $x \in \R{2N}$. $w$ are the neural network weights  and neural network weights $w$ as a linear combination of $M$ Gaussian functions:
+The idea of a Mixture Density Network for articulated 3D reconstruction is to represent the probability of a 3D pose vector $x \in \R{3N}$ given an input set of features (e.g. 2D keypoints, image feature etc.) $y \in \R{M}$. $w$ are the neural network weights. The posterior density is given as a linear combination of $M$ Gaussian functions:
 
 \begin{equation}
-  p(y | x, w) = \sum_{i}^{M} \Pi_{i}(x, w)\phi_{i}(y | x, w)
+  p(x | y, w) = \sum_{i}^{M} \Pi_{i}(y, w)\phi_{i}(x | y, w)
 \end{equation}
 
-Here, $\Pi_{i}(x, w)$ are mixing coefficients which must satisfy $0 \leq \Pi_{i}(x) \leq 1$ and $\sum_{i=1}^{M} = 1$. $\phi(y | x, w)$ is the conditional distribution of the 3D pose $y$ for the $i^{th}$ Gaussian component. 
+Here, $\Pi_{i}(y, w)$ are mixing coefficients which must satisfy $0 \leq \Pi_{i}(y) \leq 1$ and $\sum_{i=1}^{M} = 1$. $\phi(x | y, w)$ is the conditional distribution of the 3D pose $x$ for the $i^{th}$ Gaussian component. 
 
 \begin{equation}
-  \phi(y | x, w) = 
+  \phi(x | y, w) = 
     \frac{
       1
     }{
-      (2\pi)^{\frac{d}{2}} \sigma_{i}(x, w)^{d}
+      (2\pi)^{\frac{d}{2}} \sigma_{i}(y, w)^{d}
     } 
     \exp{
     -\frac{
-      || y - \mu_{i}(x, w) ||^{2}
+      || x - \mu_{i}(y, w) ||^{2}
     }{
-      2\sigma_{i}(x, w)^{2}
+      2\sigma_{i}(y, w)^{2}
     }
   }
 \end{equation}
@@ -96,8 +96,8 @@ A dataset of $K$ independent and identically distributed training examples inclu
 
 \begin{align}
   p(w | X, Y) 
-  &\propto p(Y | X, w)p(w, X) \\
-  &= p(w | X) \prod_{j=1}^{K} p(y_j | x_j, w)
+  &\propto p(X | Y, w)p(w, Y) \\
+  &= p(w | Y) \prod_{j=1}^{K} p(x_j | y_j, w)
   % &= p(w | X) \prod_{j=1}^{K} \sum_{i=1}^{M} \Pi_{i}(x_{j}, w) \phi_{i} (y_{j} | x_{j}, w)
 \end{align}
 
@@ -105,20 +105,20 @@ The optimal weight $w^{*}$ is obtained by minimizing the negative log-posterior
 
 \begin{align}
   w^{*} &= \argmin_{w} -\log p(w | X, Y) \\
-        &= \argmin_{w} \left[-\sum_{j=1}^{K} \log p(y_j | x_j, w)\right] - \log p(w | X)
+        &= \argmin_{w} \left[-\sum_{j=1}^{K} \log p(x_j | y_j, w)\right] - \log p(w | Y)
 \end{align}
 
 This formulation can be used to form a loss function to optimize the network. 
 
 \begin{equation}
-  L = \left[-\sum_{j=1}^{K} \log p(y_j | x_j, w)\right] - \log p(w | X)
+  L = \left[-\sum_{j=1}^{K} \log p(x_j | y_j, w)\right] - \log p(w | Y)
 \end{equation}
 
-This can be deconstructed into two terms, $L = L_{3D} + L_{PRIOR}$. $L_{3D}$ tunes the network weights such that ground truth 3D poses are likely under the model, and $L_{PRIOR}$ which acts as a prior over $\mu(w, X), \sigma(w, X)$ and $\Pi(w, X)$. In the Li et al. implementation, the prior is uniform over $\mu(w, X)$ and $\sigma(w, X)$, and a Dirichlet conjugate prior is used over the mixture coefficients $\Pi(w, X)$. 
+This can be deconstructed into two terms, $L = L_{3D} + L_{PRIOR}$. $L_{3D}$ tunes the network weights such that ground truth 3D poses are likely under the model, and $L_{PRIOR}$ which acts as a prior over $\mu(w, Y), \sigma(w, Y)$ and $\Pi(w, Y)$. In the Li et al.~\cite{xxx} implementation, the prior is uniform over $\mu(w, Y)$ and $\sigma(w, Y)$, and a Dirichlet~\cite{xxx} conjugate prior is used over the mixture coefficients $\Pi(w, Y)$. 
 
 For completeness, the 3D alignment term is given as
 \begin{equation}
-  L_{3D} = -\sum_{j=1}^{K} \log \sum_{i=1}^{M} \Pi_{i}(x_{j}, w) \phi_{i}(y_j | x_j, w)
+  L_{3D} = -\sum_{j=1}^{K} \log \sum_{i=1}^{M} \Pi_{i}(y_{j}, w) \phi_{i}(x_j | y_j, w)
 \end{equation}
 
 % https://arxiv.org/pdf/2103.10978.pdf
