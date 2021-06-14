@@ -41,6 +41,10 @@ While ambiguous pose reconstruction has been previously investigated, this work 
 
 % rupprecht17learning: learning in an uncertain world: https://arxiv.org/pdf/1612.00197.pdf
 
+% Resolving 3D https://arxiv.org/abs/1908.06963
+
+% https://arxiv.org/abs/1807.01511 (deep autoencoder)
+
 
 Several previous papers have looked at the problem of modelling ambiguous 3D human pose reconstructions. Early work includes~\cite{kinematic-jump-processes} who rely on known body segement lengths to resolve depth ambiguities at each joint. Sidenbldh et al.~\cite{tracking-3d-human-figures} define a probalistic method for tracking 3D articulated humans based on a prior probabilisty distribution over pose that models how humans are expected to move. Sminchisescu et al.~\cite{density-prop} describe a mixture density propagation algorithm for predicts the conditional state distributon necessary for 3D body pose tracking based on input silhouettes. More recently, ~\cite{cheng19occlusion-aware} tackle the problem of video 3D reconstruction in the presence of occlusions, and show that temporal cues can be used to disambiguate the solution. 
 % While our method is similar in the goal of correctly handling the prediction uncertainty, we differ by applying our method to predicting \emph{full mesh} of the human body.
@@ -126,105 +130,233 @@ Another approach, proposed by \citet{sharma19monocular} is to learn a conditiona
 
 To explain this, first consider a simple directed, latent variable model. $x$ is the observed variable, and $u$ is a latent variable, or \emph{code}, which should provide information about $x$.
 
+% \begin{center}
+% \begin{tikzpicture}
+%   \SetGraphUnit{5}
+%   \Vertex{x}
+%   \WE(x){z}
+%   \WE(z){y}
+%   \Edge(z)(x)
+%   \Edge(y)(z)
+%   % \Edge[label = 2](B)(C)
+%   % \Edge[label = 3](C)(B)
+%   % \Edge[label = 4](B)(A)
+%   % \Loop[dist = 4cm, dir = NO, label = 5](A.west)
+%   % \Loop[dist = 4cm, dir = SO, label = 6](C.east)
+%   % \tikzset{EdgeStyle/.append style = {bend left = 50}}
+%   % \Edge[label = 7](A)(C)
+%   % \Edge[label = 8](C)(A)
+% \end{tikzpicture}
+% \end{center}
+
 \begin{center}
-\begin{tikzpicture}
-  \SetGraphUnit{5}
-  \Vertex{x}
-  \WE(x){z}
-  \WE(z){y}
-  \Edge(z)(x)
-  \Edge(y)(z)
-  % \Edge[label = 2](B)(C)
-  % \Edge[label = 3](C)(B)
-  % \Edge[label = 4](B)(A)
-  % \Loop[dist = 4cm, dir = NO, label = 5](A.west)
-  % \Loop[dist = 4cm, dir = SO, label = 6](C.east)
-  % \tikzset{EdgeStyle/.append style = {bend left = 50}}
-  % \Edge[label = 7](A)(C)
-  % \Edge[label = 8](C)(A)
-\end{tikzpicture}
-\end{center}
+  \begin{tikzpicture}
+    \SetGraphUnit{5}
+    \Vertex{x}
+    \WE(x){z}
+    \Edge(z)(x)
+    % \Edge[label = 2](B)(C)
+    % \Edge[label = 3](C)(B)
+    % \Edge[label = 4](B)(A)
+    % \Loop[dist = 4cm, dir = NO, label = 5](A.west)
+    % \Loop[dist = 4cm, dir = SO, label = 6](C.east)
+    % \tikzset{EdgeStyle/.append style = {bend left = 50}}
+    % \Edge[label = 7](A)(C)
+    % \Edge[label = 8](C)(A)
+  \end{tikzpicture}
+  \end{center}
 
 The joint distribution of such a model is given as
 
 $$
-  p_{\theta}(x,z,y) = p(x|z)p(z|y)p(y)
+  p_{\theta}(x,z) = p(x|z)p(z)
 $$
+
+% $$
+%   p_{\theta}(x,z,y) = p(x|z)p(z|y)p(y)
+% $$
+
 
 This type of latent variable model can be viewed as a generative process for obtaining the observed data $x$. The procedure for this is:
 
+% $$
+% \begin{aligned}
+%   y &\sim p(y) \\
+%   z &\sim p(z|y) \\
+%   x &\sim p(x|z)
+% \end{aligned}
+% $$
+
 $$
 \begin{aligned}
-  y &\sim p(y) \\
-  z &\sim p(z|y) \\
+  z &\sim p(z) \\
   x &\sim p(x|z)
 \end{aligned}
 $$
 
-There are two objectives. First, $p$ must be tuned such that the latent model closely matches the true underlying distribution $p_{data}$. Secondly, to infer good values for the latent variables $z$ given data $p(z|x,y)$. 
+This represents sampling a latent vector $z$ from the prior distribution $p(z)$ followed by sampling data $x$ from the conditional likelihood distribution $p(x|z)$. The variational autoencoder comprises a probabilistic encoder $p(z|x)$ that describes the distribution of the latent variables given data, and a probabilistic decoder $p(x|z)$ which describes the distribution of the data given the latent variable. 
 
-The Kullback-Leibler (KL) divergence can be used to measure how closely $p(x,z,y)$ fits a training dataset. Divergence is measured between the data distribution $p_{data}(x)$ and the model's marginal distribution $p(x) = \int p(x,z) \,dz$. 
-%https://jaan.io/what-is-variational-autoencoder-vae-tutorial/
+% There are two objectives. First, $p$ must be tuned such that the latent model closely matches the true underlying distribution $p_{data}$. Secondly, to infer good values for the latent variables $z$ given observed data, in other words to calculate the posterior $p(z|x)$. 
+% p(z|x,y)
 
-
-According to Bayes,
+Bayes theorem can be used to draw the link between these terms. 
+% $$
+% \begin{aligned}
+%   p(z|x,y) 
+%   &= \frac{p(x|y,z)p(z|y)}{p(x|y)} \\
+%   &= \frac{p(x|y,z)p(z|y)}{\int p(x|y,z)p(z|y) \,dz}
+% \end{aligned}
+% $$
 $$
 \begin{aligned}
-  p(z|x,y) 
-  &= \frac{p(x|y,z)p(z|y)}{p(x|y)} \\
-  &= \frac{p(x|y,z)p(z|y)}{\int p(x|y,z)p(z|y) \,dz}
+  p(z|x) 
+  &= \frac{p(x|z)p(z)}{p(x)} \\
+  &= \frac{p(x|z)p(z)}{\int p(x|z')p(z') \,dz'}
 \end{aligned}
 $$
 
-Note the integral on the demoninator requires expotential time to compute, since it needs to be evaluate all configurations of latent variables. 
+A simple way to set up terms is to assume $p(z) = \mathcal{N}(0, I)$ is a standard Gaussian distribution and $p(x|z) = \mathcal{N}(f(z),g(z))$ is a Gaussian parameterized by outputs of neural networks $f, g$. Unfortunately, the term $p(z|x)$ is generally intractable for high-dimensional $z$ to compute this expression since the integral is taken integration over all possible configurations of latent variables $z$. Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates. % ASK AWF!? Ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
+
+
+% $p(x,z,y)$
+% The Kullback-Leibler (KL) divergence can be used to measure how closely $p(x,z)$ fits a training dataset. Divergence is measured between the data distribution $p_{data}(x)$ and the model's marginal distribution $p(x) = \int p(x,z) \,dz$. 
+%https://jaan.io/what-is-variational-autoencoder-vae-tutorial/
+
+
+
+
+% Note the integral on the demoninator requires expotential time to compute, since it needs to be evaluate all configurations of latent variables. 
+% In practice, this expression is generally intractable for high-dimensional $z$ to compute this expression since the integral is taken integration over all possible configurations of latent variables $z$. 
+% Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates. % ASK AWF!? Ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
+
 % This is equivalent to maximizing the marginal log-likelihood $log p(x)$ over the dataset $D$. 
 
 % $$
 % \max_{p} \sum_{x \in D} \log p_{\theta}(x) = \max_{p} \sum_{x \in D} \log \int p_{\theta}(x,z) \,dz
 % $$
 
-% In practice, however, it is generally intractable for high-dimensional $z$ to compute this expression since it involves an integration over all possible latent variables $z$. 
-Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates.
-
-% AWF: ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
-
-To handle this, a variational method is used, which estimates the intractable posterior $p(z|x,y)$ with a new distribution $q(z|x,y)$. One may consider using KL divergence to measure the error between using $q$ instead of $p$, $KL(q_{\lambda}(z|x,y) \| p(z|x,y))$:
+Instead, a variational method is used to estimate the intractable posterior $p(z|x)$ using a new tractable distribution $q(z)$. To do this, Kullback-Leibler (KL) divergence can be used to measure the difference between two probability distributions. For example, it can be used to measure how closely the approximation $q(z)$ matches the true distribution $p(z|x)$ 
+$KL(q_{\lambda}(z) \| p(z|x))$:
+% $KL(q_{\lambda}(z|x,y) \| p(z|x,y))$:
 
 The goal is to find the variational parameters $\lambda$ that minimize the divergence:
 
-$$
-\begin{aligned}
-  q^{*}_{\lambda}(z|x,y) 
-  &= \argmin_{\lambda} KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
-  &= \argmin_{\lambda} \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]-\mathbb{E}_{q} \left[ \log p(x,z|y) \right] + \log p(x|y)
-\end{aligned}
-$$
-
-Unfortunately, this is again intractable as the evidence term $p(x|y)$ appears once more. However, note that with this definition
-
-$$
-\begin{aligned}
-  \log p(x|y) 
-  &= 
-  \mathbb{E}_{q} \left[ \log p(x,z|y) \right]
-  - \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]
-  + KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
-  &= 
-  \underbrace{
-    \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
-  - KL(q_{\lambda}(z|x,y) \| p(z|y))}_{ELBO}
-  + KL(q_{\lambda}(z|x,y) \| p(z|x,y))
-\end{aligned}
-$$
-
-This expression can be used to derive the Evidence Lower Bound (ELBO) as follows:
 \begin{equation}
-  \log p(x|y) 
-  \geq \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
-  - KL(q_{\lambda}(z|x,y) \| p_{\theta}(z|y))
+  q^{*}(z) = \argmin_{\lambda} KL(q(z) \| p(z|x))
 \end{equation}
 
-Further, note that the tightness of the lower bound is determined by the specific choice of $q$. In particular, the error between the original objective $\log p_{\theta}(x)$ and the ELBO is given by $KL(p(z|x) || q(z|x))$. The error is zero if these exactly match.
+And looking at this term
+$$
+\begin{aligned}
+KL(q(z) \| p(z|x))
+  &= KL(q(z) \| p(z|x)) \\
+  &= -\sum_{z \sim q(z)} q(z) \log \frac{p(z|x)}{q(z)} \\
+  &= -\sum_{z \sim q(z)} q(z) \log \frac{p(x,z)}{q(z)} \frac{1}{p(x)} \\
+  &= -\sum_{z \sim q(z)} q(z) \log \left[ \frac{p(x,z)}{q(z)} - \log p(x) \right] \\
+  &= -\sum_{z \sim q(z)} q(z) \log \frac{p(x,z)}{q(z)} 
+  + \sum_{z \sim q(z)} q(z) \log p(x) \\
+  &= -\sum_{z \sim q(z)} q(z) \log \frac{p(x,z)}{q(z)} 
+  + \log p(x) \underbrace{\sum_{z \sim q(z)} q(z)}_{=1} \\
+\end{aligned}
+$$
+
+Notice that rearraging gives the following expression
+$$
+\begin{aligned}
+  \log p(x) = KL(q_{\lambda}(z) \| p(z|x)) 
+  + \underbrace{\sum_{z \sim q(z)} q(z) \log \frac{p(x,z)}{q(z)}}_{ELBO}
+\end{aligned}
+$$
+
+Recall the aim of this exercise is to minimize $KL(q_{\lambda}(z) \| p(z|x))$. Since $x$ is given, $\log p(x)$ is a constant and as KL is non-negative this can be achieved by maximizing the final term, known as the Evidence Lower Bound (ELBO).
+$$
+\begin{aligned}
+  ELBO 
+  &= \sum_{z \sim q(z)} q(z) \log \frac{p(x,z)}{q(z)} \\
+  &= \sum_{z \sim q(z)} q(z) \log \frac{p(x|z)p(z)}{q(z)} \\
+  &= \sum_{z \sim q(z)} q(z) \left[ \log p(x|z) 
+  + \log \frac{p(z)}{q(z)} \right] \\
+  &= \sum_{z \sim q(z)} q(z) \log p(x|z) 
+  + \sum_{z \sim q(z)} q(z) \log \frac{p(z)}{q(z)} \\
+  &= E_{z \sim q(z)} \log p(x|z) - KL(q(z) \| p(z))
+\end{aligned}
+$$
+
+Peering at the two terms, one can think the first term $E_{z \sim q(z)} \log p(x|z)$ as a reconstruction `loss' which promotes $x's$ generated from $z's$ being likely. The second term $KL(q(z) \| p(z))$ is a regularizer that keeps the approximate distribution $q$ close to $p$. Further, note that the tightness of the lower bound is determined by the specific choice of $q$. In particular, the error between the original expression $\log p(x)$ and the ELBO is given by $KL(q(z) || p(z|x))$. The error is zero if these exactly match.
+
+
+
+% $$
+% \begin{aligned}
+%   q^{*}_{\lambda}(z|x) 
+%   &= \argmin_{\lambda} KL(q_{\lambda}(z|x) \| p(z|x)) \\
+%   &= \argmin_{\lambda} 
+%   \mathbb{E}_{z \sim q(z|x)} \left[ \log q_{\lambda}(z|x) \right]
+%   -\mathbb{E}_{z \sim q(z|x)} \left[ \log \frac{p(x,z)p(z)}{p(x)} \right] \\
+%   &= \argmin_{\lambda} 
+%   \mathbb{E}_{z \sim q(z|x)} \left[ \log q_{\lambda}(z|x) \right]
+%   -\mathbb{E}_{z \sim q(z|x)} \left[ \log p(z) \right] 
+%   -\mathbb{E}_{z \sim q(z|x)} \left[ \log p(x|z) \right] 
+%   +\mathbb{E}_{z \sim q(z|x)} \left[ \log p(x) \right] \\
+%   &= \argmin_{\lambda} 
+%   \mathbb{E}_{z \sim q(z|x)} \left[ \log q_{\lambda}(z|x) \right]
+%   -\mathbb{E}_{z \sim q(z|x)} \left[ \log p(x,z) \right] 
+%   + \log p(x)
+% \end{aligned}
+% $$
+% % $$
+% % \begin{aligned}
+% %   q^{*}_{\lambda}(z|x,y) 
+% %   &= \argmin_{\lambda} KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
+% %   &= \argmin_{\lambda} \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]-\mathbb{E}_{q} \left[ \log p(x,z|y) \right] + \log p(x|y)
+% % \end{aligned}
+% % $$
+
+% Unfortunately, this is again intractable as the evidence term $p(x)$ appears once more. However, note that with this definition
+
+% $$
+% \begin{aligned}
+%   \log p(x|y) 
+%   &= 
+%   \mathbb{E}_{q} \left[ \log p(x,z|y) \right]
+%   - \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x,y) \right]
+%   + KL(q_{\lambda}(z|x,y) \| p(z|x,y)) \\
+%   &= 
+%   \underbrace{
+%     \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
+%   - KL(q_{\lambda}(z|x,y) \| p(z|y))}_{ELBO}
+%   + KL(q_{\lambda}(z|x,y) \| p(z|x,y))
+% \end{aligned}
+% $$
+
+% $$
+% \begin{aligned}
+%   \log p(x) 
+%   &= 
+%   \mathbb{E}_{q} \left[ \log p(x,z) \right]
+%   - \mathbb{E}_{q} \left[ \log q_{\lambda}(z|x) \right]
+%   + KL(q_{\lambda}(z|x) \| p(z|x)) \\
+%   &= 
+%   \underbrace{
+%     \mathbb{E}_{q} \left[ q_{\lambda}(z|x) \log p(x|z) \right]
+%   - KL(q_{\lambda}(z|x) \| p(z))}_{ELBO}
+%   + KL(q_{\lambda}(z|x) \| p(z|x))
+% \end{aligned}
+% $$
+
+% This expression can be used to derive the Evidence Lower Bound (ELBO) as follows:
+% \begin{equation}
+%   \log p(x) 
+%   \geq \mathbb{E}_{q} \left[ q_{\lambda}(z|x) \log p(x|z) \right]
+%   - KL(q_{\lambda}(z|x) \| p_{\theta}(z))
+% \end{equation}
+% \begin{equation}
+%   \log p(x|y) 
+%   \geq \mathbb{E}_{q} \left[ q_{\lambda}(z|x,y) \log p(x|z,y) \right]
+%   - KL(q_{\lambda}(z|x,y) \| p_{\theta}(z|y))
+% \end{equation}
+
+
 
 % $$
 % \begin{aligned}
@@ -241,17 +373,17 @@ Further, note that the tightness of the lower bound is determined by the specifi
 
 % The tightness of the lower bound is determined by the specific choice of $q$. In particular, the error between the original objective $\log p_{\theta}(x)$ and the ELBO is given by $KL(p(z|x) || q(z|x))$. The error is zero if these exactly match.
 
-Assuming a sensible choice for $q_{\lambda}(z)$, this construction admits a tractable unbias Monte Carlo estimator:
-\begin{equation}
-  \log p_{\theta}(x) = \frac{1}{k} \sum_{i=1}^{k} \log \frac{p_{\theta}(x, z_{i})}{q_{\lambda}(z_{i}|x)}, \textrm{where } z_{i} \sim q_{\lambda}(z,x)
-\end{equation}
+% A careful choice of $q_{\lambda}(z)$ leads this construction to admit a tractable unbias Monte Carlo estimator:
+% \begin{equation}
+%   \log p_{\theta}(x) = \frac{1}{k} \sum_{i=1}^{k} \log \frac{p_{\theta}(x, z_{i})}{q_{\lambda}(z_{i}|x)}, \textrm{where } z_{i} \sim q_{\lambda}(z,x)
+% \end{equation}
 
 % Or alternatively,
-\begin{align}
-  \log p_{\theta}(x) 
-  &= \int \log \left[ p_{\theta}(x, z) \frac{p_{\theta}(z)}{q_{\lambda}(z|x)} \right] q(z|x) \,dz \\
-  &= \int \log p_{\theta}(x|z)q_{\lambda}(z|x) \,dz - KL(q_{\lambda}(z|x) \| p_{\theta}(z))
-\end{align}
+% \begin{align}
+%   \log p_{\theta}(x) 
+%   &= \int \log \left[ p_{\theta}(x, z) \frac{p_{\theta}(z)}{q_{\lambda}(z|x)} \right] q(z|x) \,dz \\
+%   &= \int \log p_{\theta}(x|z)q_{\lambda}(z|x) \,dz - KL(q_{\lambda}(z|x) \| p_{\theta}(z))
+% \end{align}
 
 The next question is how to implement such a model using a deep neural network. Here,
 
@@ -275,13 +407,7 @@ The next question is how to implement such a model using a deep neural network. 
 % https://github.com/junyanz/BicycleGAN
 
 
-In their work, Sharma et al. also propose two scoring methods to extract a single 3D reconstruction from the distribution which can be thought of as an alternative mechanism to the weighted quantizer scheme proposed here.
-
-
-% TODO: add Ignas' work
-
-% TODO: integrate this
-
+Sharma et al.~\cite{xxx} adapt this formulation to model 3D skeletons and produce results on Human3.6M and HumanEva-I. They also propose two scoring methods to extract a single 3D reconstruction from the distribution which can be thought of as an alternative mechanism to the weighted quantizer scheme proposed here. There have also techniques~\cite{xxx} which extend these variational methods to generative adversarial netowrks. These are interesting and further reading here is available from xxx. 
 
 
 
@@ -296,11 +422,28 @@ In their work, Sharma et al. also propose two scoring methods to extract a singl
 
 % BicycleGan etc.
 
-\subsubsection{Min-of-N}
+\subsubsection{Min-of-$M$}
 
-Our primary contribution is to introduce a principled multi-hypothesis framework to model the ambiguities in monocular pose recovery.
-In the literature, such multiple-hypotheses networks are often trained with a so-called \emph{best-of-$M$} loss --- namely, during training, the loss is incurred only by the best of the $M$ hypothesis, back-propagating gradients from that alone~\cite{guzman2012multiple}.
-In this work we opt for the \emph{best-of-$M$} approach since it has been show to outperform  alternatives (such as variational auto-encoders or mixture density networks) in tasks that are similar to our 3D human pose recovery, and which have constrained output spaces \cite{rupprecht17learning}.
+The idea of Min-of-N frameworks is to view the posterior distribution as a discrete set of $M$ hypotheses. A neural network is trained to produce $M$ hypotheses $\{f^{m}(y)\}_{m=1}^{M}$, where $y$ is an input vector. In the literature, such multiple-hypotheses networks are often trained with a so-called \emph{best-of-$M$} loss --- namely, during training, the loss is incurred only by the best of the $M$ hypothesis, back-propagating gradients from that alone~\cite{guzman2012multiple}. For example, with ground truth 3D points $\hat{X}$ the min-of-$M$ loss is given as
+\begin{equation}
+  \mathcal{L}_\text{best}(y;m^*)
+  =
+  \frac{1}{N}
+  \sum_{i=1}^N
+  \big \| x - f^{m_i^*}(y) \big \|,
+  ~~
+  m_i^*
+  =
+  \operatornamewithlimits{argmin}_{m=1,\dots,M}
+  \big \| x -  f^{m}(y) \big \|,
+\end{equation}
+
+Note that this formulation can be seen as a variation of the Mixture Desity Network defined previously. In particular, consider the effect of reducing the covariance of each Gaussian to a single point.
+
+% WORKS THAT USE MDNs
+
+%% https://arxiv.org/abs/1807.01511 (deep autoencoder
+This chapter opts for the \emph{best-of-$M$} approach since it has been show to outperform  alternatives (such as variational auto-encoders or mixture density networks) in tasks that are similar to our 3D human pose recovery, and which have constrained output spaces. For example, Rupprecht et al.~\cite{rupprecht17learning} demonstrate the model on classicly ambiguous tasks including human pose estimation and future prediction. The primary contribution in this chapter is the introduction of a principled multi-hypothesis framework which models ambiguities in monocular pose recovery.
 
 
 
@@ -548,21 +691,16 @@ In this work we opt for the \emph{best-of-$M$} approach since it has been show t
 % \end{aligned}
 % $$
 
-
-
-
 % We also make an important contribution to better optimize our multi-hypothesis predictions.
 
 \subsection{Overcoming limitations with best-of-$M$ frameworks}
 
-A major drawback of the \emph{best-of-$M$} approach is that it only guarantees that \emph{one} of the hypotheses lies close to the correct solution; however, it says nothing about the plausibility, or lack thereof, of the \emph{other} $M-1$ hypotheses, which can be of arbitrarily poor quality.
-% TODO: Integrate this
-\footnote{
 Theoretically, best-of-$M$ can minimize its loss by quantizing optimally (in the sense of minimum expected distortion) the posterior distribution, which would be desirable for coverage.
 However, this is \emph{not} the only solution that optimizes the best-of-$M$ training loss, as in the end it is sufficient that \emph{one} hypothesis per training sample is close to the ground truth.
 In fact, this is exactly what happens; for instance, during training hypotheses in best-of-$M$ are known to easily become degenerate and `die off', a clear symptom of this problem.
-}
-%
+
+A major drawback of the \emph{best-of-$M$} approach is that it only guarantees that \emph{one} of the hypotheses lies close to the correct solution; however, it says nothing about the plausibility, or lack thereof, of the \emph{other} $M-1$ hypotheses, which can be of arbitrarily poor quality.
+
 Not only does this mean that most of the hypotheses may be uninformative, but in an application it is impossible to determine \emph{which} hypothesis should be used, leaving open the possibility of selecting a `bad' one.
 This has also a detrimental effect during learning because it makes gradients sparse as prediction errors are back-propagated only through one of the $M$ hypotheses for each training image.
 
@@ -586,8 +724,6 @@ Concurrently to the work in this chapter, priors have been built over 3D human p
 % In order to do so, since best-of-$M$ lacks an explicit n\emph{prior} over plausible human body poses, thus resulting in an optimal coverage of the \emph{likely} solutions.
 
 %an arbitrary number of $n<M$ hypotheses that optimally cover the set of plausible poses.
-
-
 
 \subsection{Sourcing datasets for training and evaluation}
 
