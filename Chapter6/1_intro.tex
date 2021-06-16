@@ -68,8 +68,7 @@ The following paragraphs describe implementations of common approaches used to m
 
 Li et al. ~\cite{li19generating} use the Mixture Density Networks model of~\cite{bishop94mixture} to capture ambiguous 3D reconstructions of sparse human body keypoints (rather than a full mesh as in this work) directly in physical space. 
 
-The idea of a Mixture Density Network for articulated 3D reconstruction is to represent the probability of a 3D pose vector $x \in \R{3N}$ given an input set of features (e.g. 2D keypoints, image feature etc.) $y \in \R{M}$. $w$ are the neural network weights. The posterior density is given as a linear combination of $M$ Gaussian functions:
-
+The idea of a Mixture Density Network for articulated 3D reconstruction is to represent the probability of a 3D pose vector $x \in \R{3N}$ given an input set of features $y \in \R{M}$. $y$ is left general here, but could be for example a set of 2D keypoints, extracted image features etc. $w$ are the neural network weights. The posterior density is given as a linear combination of $M$ Gaussian functions
 \begin{equation}
   p(x | y, w) = \sum_{i}^{M} \Pi_{i}(y, w)\phi_{i}(x | y, w)
 \end{equation}
@@ -215,7 +214,8 @@ $$
 \end{aligned}
 $$
 
-A simple way to set up terms is to assume $p(z) = \mathcal{N}(0, I)$ is a standard Gaussian distribution and $p(x|z) = \mathcal{N}(f(z),g(z))$ is a Gaussian parameterized by outputs of neural networks $f, g$. Unfortunately, the term $p(z|x)$ is generally intractable for high-dimensional $z$ to compute this expression since the integral is taken integration over all possible configurations of latent variables $z$. Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates. % ASK AWF!? Ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
+% A simple way to set up terms is to assume $p(z) = \mathcal{N}(0, I)$ is a standard Gaussian distribution and $p(x|z) = \mathcal{N}(f(z),g(z))$ is a Gaussian parameterized by outputs of neural networks $f, g$. 
+Unfortunately, $p(z|x)$ is generally intractable for high-dimensional $z$ since the integral is taken over all possible configurations of latent variables $z$ (or $z'$ as in the expansion above). Even estimation attempts based on Monte Carlo tend to fail due to high variance in gradient estimates. % ASK AWF!? Ask why this fails? can't you just try fewer samples? is this because the distribution is very 'isolated'
 
 
 % $p(x,z,y)$
@@ -239,7 +239,7 @@ Instead, a variational method is used to estimate the intractable posterior $p(z
 $KL(q_{\lambda}(z) \| p(z|x))$:
 % $KL(q_{\lambda}(z|x,y) \| p(z|x,y))$:
 
-The goal is to find the variational parameters $\lambda$ that minimize the divergence:
+The goal is to find the variational parameters for $q$ that minimize the divergence:
 
 \begin{equation}
   q^{*}(z) = \argmin_{\lambda} KL(q(z) \| p(z|x))
@@ -424,28 +424,26 @@ Sharma et al.~\cite{xxx} adapt this formulation to model 3D skeletons and produc
 
 \subsubsection{Min-of-$M$}
 
-The idea of Min-of-N frameworks is to view the posterior distribution as a discrete set of $M$ hypotheses. A neural network is trained to produce $M$ hypotheses $\{f^{m}(y)\}_{m=1}^{M}$, where $y$ is an input vector. In the literature, such multiple-hypotheses networks are often trained with a so-called \emph{best-of-$M$} loss --- namely, during training, the loss is incurred only by the best of the $M$ hypothesis, back-propagating gradients from that alone~\cite{guzman2012multiple}. For example, with ground truth 3D points $\hat{X}$ the min-of-$M$ loss is given as
+The idea of Min-of-N frameworks is to view the posterior distribution as a discrete set of $M$ hypotheses. A neural network is trained to produce $M$ hypotheses $\{f^{m}(Y_{i})\}_{m=1}^{M}$, where $Y_{i}$ is an input vector for the $i^{th}$ movie. In the literature, such multiple hypotheses networks are often trained with a so-called \emph{best-of-$M$} loss --- namely, during training, the loss is incurred only by the best of the $M$ hypothesis, back-propagating gradients from that alone~\cite{guzman2012multiple}. For example, with ground truth 3D points $X_{i}$ the min-of-$M$ loss is given as
 \begin{equation}
-  \mathcal{L}_\text{best}(y;m^*)
+  \mathcal{L}_\text{best}(Y;m^*)
   =
   \frac{1}{N}
   \sum_{i=1}^N
-  \big \| x - f^{m_i^*}(y) \big \|,
+  \big \| X_{i} - f^{m_i^*}(Y_{i}) \big \|,
   ~~
   m_i^*
   =
   \operatornamewithlimits{argmin}_{m=1,\dots,M}
-  \big \| x -  f^{m}(y) \big \|,
+  \big \| X_{i} -  f^{m}(Y_{i}) \big \|,
 \end{equation}
 
-Note that this formulation can be seen as a variation of the Mixture Desity Network defined previously. In particular, consider the effect of reducing the covariance of each Gaussian to a single point.
+Note that this formulation can be seen as a variant of the mixture density networks as defined previously. In particular, consider an MDN with $M$ modes and reduce the covariance of each Gaussian to a single point. Further analysis of this model is left to the later method section.
 
-% WORKS THAT USE MDNs
-
-%% https://arxiv.org/abs/1807.01511 (deep autoencoder
 This chapter opts for the \emph{best-of-$M$} approach since it has been show to outperform  alternatives (such as variational auto-encoders or mixture density networks) in tasks that are similar to our 3D human pose recovery, and which have constrained output spaces. For example, Rupprecht et al.~\cite{rupprecht17learning} demonstrate the model on classicly ambiguous tasks including human pose estimation and future prediction. The primary contribution in this chapter is the introduction of a principled multi-hypothesis framework which models ambiguities in monocular pose recovery.
 
-
+% WORKS THAT USE MDNs
+%% https://arxiv.org/abs/1807.01511 (deep autoencoder
 
 % \subsubsection{Notes}
 
@@ -719,7 +717,8 @@ The new method, referred to henceforth as $n$-quantized-best-of-$M$, does so by 
 There are a number of techniques in the literature for building precise priors over human pose deformation. A common formulation, relied upon in previous chapters, is to impose a unimodal Gaussian on the 3D kinematic tree rotations. The mean and covariance parameters can either be obtained from the 3D scans used to construct the morphable model, or alternatively from a separate 3D dataset (e.g. CMU) which exhibits a wider range of motion. Alternative priors have been designed to specifically penalize ``interpenetration'', a phenomenon that a body part self-intersects the mesh or a prior that specifically penalizes ``out-of-range'' rotations. 
 
 Recently, more expressive 3D pose priors have been designed based on modern deep laerning advancements. Kanazawa et al.~\cite{xxx} propose a method that uses a per-part discriminator to ensure network-predicted 3D models lie on a manifold of plausible bodies. In addition, VAE methods have been proposed which constrain poses to a Gaussian parameterized by higher-level features. % CITE 
-Concurrently to the work in this chapter, priors have been built over 3D human pose using normalizing flows. In particular, ~\citet{xu-2020-cvpr} release a prior for their new GHUM/GHUML model, and~\citet{weakly-supervised-normflow} build a prior on SMPL joint angles to constrain their weakly-supervised network. The prior introduced in this chapter differs slightly as it is learnt on 3D morphable model joint locations, rather than the Rodrigues rotations.
+
+Concurrently to the work in this chapter, priors have been built over 3D human pose using \emph{normalizing flows}. In particular, ~\cite{xu-2020-cvpr} release a prior for their new GHUM/GHUML model, and~\cite{weakly-supervised-normflow} build a prior on SMPL joint angles to constrain their weakly-supervised network. The prior introduced in this chapter differs slightly as it is learnt on 3D morphable model joint locations, rather than the Rodrigues rotations.
 
 % In order to do so, since best-of-$M$ lacks an explicit n\emph{prior} over plausible human body poses, thus resulting in an optimal coverage of the \emph{likely} solutions.
 
@@ -727,15 +726,15 @@ Concurrently to the work in this chapter, priors have been built over 3D human p
 
 \subsection{Sourcing datasets for training and evaluation}
 
-The method described in this chapter focuses on modelling ambiguities in 3D reconstructions using a min-of-$M$ loss. To train such a model, gradients are propagated through the best hypothesis -- in this case, the closest to a 3D ground truth mesh. Consequently, a dataset of images with corresponding 3D annotations is required. As previously described, such datasets are limited in number and size for animals, although the RGBD Dog dataset is suitable for this purpose. It is thought likely that the growing interest in 3D animal reconstruction will result in new datasets being made available shortly, and the method described here can be evaluated shortly. In the mean time, in order to test the quality of reconstruction methods, the method is extensively evaluated against competitive 3D human reconstruction benchmarks.
+The method described in this chapter focuses on modelling ambiguities in 3D reconstructions using a min-of-$M$ loss. To train such a model, gradients are propagated through the best hypothesis -- in this case, the closest to a 3D ground truth mesh. Consequently, a dataset of images with corresponding 3D annotations is required. As previously described, such datasets are limited in number and size for animals. Despite featuring only one animal subject and being captured in the controlled environment, the RGBD Dog dataset~\cite{xxx} does allow for direct evaluation on animals. However, in order to provide a fuller evaluation of the method, extensive evaluation is conducted against competitive 3D human reconstruction benchmarks.
 
 \subsection{System overview}
-To summarise, our key contributions are as follows.
-First, we deal with the challenge of 3D mesh reconstruction for articulated objects such as humans in \emph{ambiguous} scenarios.
-Second, we introduce a \emph{$n$-quantized-best-of-$M$} mechanism to allow best-of-$M$ models to generate an arbitrary number of $n<M$ predictions.
-Third, we introduce a mode-wise re-projection loss for multi-hypothesis prediction, to ensure that predicted hypotheses are \emph{all} consistent with the input.
+To summarise, the key contributions in this chapter are as follows.
+First, a multiple hypothesis network is introduced in order to deal with the challenge of 3D mesh reconstruction of articulated objects in \emph{ambiguous} scenarios.
+Second, a mechanism referred to as \emph{$n$-quantized-best-of-$M$} allows best-of-$M$ models to generate an arbitrary number of $n<M$ predictions.
+Third, a mode-wise re-projection loss for multi-hypothesis prediction is used to ensure that predicted hypotheses are \emph{all} consistent with the input.
 
-Empirically, we achieve state-of-the-art monocular mesh recovery accuracy on Human36M, its more challenging version augmented with heavy occlusions, and the 3DPW datasets.
-Our ablation study validates each of our modelling choices, demonstrating their positive effect.
+Empirically, this work demonstrates the first formal study of ambiguous 3D reconstruction for an animal category. In addition, the method achieves competitive state-of-the-art monocular mesh recovery accuracy on Human36M, its more challenging version augmented with heavy occlusions, and the 3DPW datasets. 
+The method is also ablated in a formal study to validate each of the modelling choices, demonstrating their positive effect.
 
 \input{Chapter6/FigTex/fig-method.tex}

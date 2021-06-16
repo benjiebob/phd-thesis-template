@@ -1,7 +1,7 @@
 \section{Experiments}\label{s:exp}
 
-In this section we compare our method to several strong baselines.
-We start by describing the datasets and the baselines, followed by a quantitative and a qualitative evaluation.
+In this section the method is compared to several strong baselines.
+To start, the datasets and baselines are described followed by a detailed quantitative and qualitative evaluation.
 
 
 \input{Chapter6/Tables/tab_all.tex}
@@ -9,29 +9,35 @@ We start by describing the datasets and the baselines, followed by a quantitativ
 
 \subsection{Datasets}
 
-We begin by testing on a recent animal dataset of dogs. Since this dataset is limited, we additionally run an evaluation on a Human3.6m dataset which is considerably more varied and challenging.
+The method is first tested on the RGBD-Dog dataset, containing images of dogs captured with corresponding 3D annotations. Since the dataset is somewhat limited, and to show the generality and accuracy of the approach, the method is applied to competitive human 3D reconstruction benchmarks Human3.6m~(\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} and 3DPW~\cite{vonmarcard2018recovering}. Finally, qualitiative results are demonstrated on images from MSCOCO which are challenging and varied. This section discusses each of these datasets before moving on to the evaluation protocol. 
 
 \subsubsection{RGBD-Dog Dataset}
 
-Our evaluation begins with the recent RGBD-Dog dataset. 
-
-Our evaluation focuses on the Human3.6m (\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} 
-and \textbf{3DPW} datasets \cite{vonmarcard2018recovering}.
+RGBD-Dog is a new dataset of dogs captured with calibrated depth cameras. A 3D dog model is fit to the sequences in order to provide ground truth pose $\pose$ and shape $\shape$ parameters. 
 
 \subsubsection{Human3.6M}
 
-H36M is one of the largest datasets of humans annotated with 3D pose using MoCap sensors.
+H36M is one of the largest datasets of humans annotated with 3D pose using MoCap sensors. As is common practice, the method is trained on subjects S1, S5, S6, S7 and S8, and tested on S9 and S11. 
+
+\subsubsection{3D People in the Wild}
+3DPW is only used for evaluation and, following SPIN~\cite{kolotouros19convolutional}, evaluation is conducted on its test set.
+
+
+\subsubsection{Constructing ambiguous datasets (AH36M/A3DPW/ADOG).}
+Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem. 
+
+% Hence, in order to allow for a quantitative evaluation in a more noisy scenario, we construct an adapted version of H36M with synthetically-generated occlusions as follows 
+Hence, we construct an adapted version of H36M with synthetically-generated occlusions (\cref{f:ambi_samples}) by randomly hiding a subset of the 2D keypoints and re-computing an image crop around the remaining visible joints. While 3DPW does contain real scenes, for completeness, we also evaluate on a noisy, and thus more challenging version (A3DPW) generated according to the aforementioned strategy. 
+
+The procedure for constructing AH36M/A3DPW starts with the full size image with a set of 2D joints and apply synthetic occlusions to the subject's body parts by randomly hiding a subset of the 2D keypoints and re-computing a slightly padded image crop around the joints that remained visible. 
+For each image, we randomly choose one of 4 possible strategies for hiding the keypoints: 1) Hiding arm and head keypoints; 2) legs; 3) head; 4) no keypoints hidden. The selection probabilities are $p(1)=p(2)=p(3)=0.3$, $p(4)=0.1$.
 
 \input{Chapter6/FigTex/fig-amb-datasets.tex}
 
-As common practice, we train on subjects S1, S5, S6, S7 and S8, and test on S9 and S11. 
-
-\subsubsection{3D People in the Wild}
-3DPW is only used for evaluation and, following \cite{kolotouros19convolutional}, we evaluate on its test set.
 
 \subsection{Evaluation Protocol}
 
-Our evaluation is consistent with~\cite{kolotouros19learning,kolotouros19convolutional} - we report two metrics that compare the lifted dense 3D SMPL shape to the ground truth mesh: Mean Per Joint Position Error (\textbf{\MPJPE}), Reconstruction Error (\textbf{\RE}). 
+Our evaluation is consistent with GraphCMR~\cite{kolotouros19learning} and SPIN~\cite{kolotouros19convolutional} - metrics are reported that compare the lifted dense 3D SMPL shape to the ground truth mesh: Mean Per Joint Position Error (\textbf{\MPJPE}), Reconstruction Error (\textbf{\RE}). 
 For H36M, all errors are computed using an evaluation scheme known as ``Protocol \#2''. 
 
 % TODO: Check this is correct with Protocol 2
@@ -59,15 +65,6 @@ As mentioned above, such an assumption is rarely correct due to the inherent amb
 We thus also report \MPJPE-$n$/\RE-$n$ an extension of \MPJPE\RE used in~\cite{li19generating}, that enables an evaluation of $n$ different shape hypotheses.
 In more detail, to evaluate an algorithm, we allow it to output $n$ possible predictions and, out of this set, we select the one that minimizes the \MPJPE/\RE metric.
 We report results for $n\in \{1,5,10,25\}$.
-
-\subsection{Ambiguous H36M/3DPW (AH36M/A3DPW).}
-Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem. 
-
-% Hence, in order to allow for a quantitative evaluation in a more noisy scenario, we construct an adapted version of H36M with synthetically-generated occlusions as follows 
-Hence, we construct an adapted version of H36M with synthetically-generated occlusions (\cref{f:ambi_samples}) by randomly hiding a subset of the 2D keypoints and re-computing an image crop around the remaining visible joints. While 3DPW does contain real scenes, for completeness, we also evaluate on a noisy, and thus more challenging version (A3DPW) generated according to the aforementioned strategy. 
-
-The procedure for constructing AH36M/A3DPW starts with the full size image with a set of 2D joints and apply synthetic occlusions to the subject's body parts by randomly hiding a subset of the 2D keypoints and re-computing a slightly padded image crop around the joints that remained visible. 
-For each image, we randomly choose one of 4 possible strategies for hiding the keypoints: 1) Hiding arm and head keypoints; 2) legs; 3) head; 4) no keypoints hidden. The selection probabilities are $p(1)=p(2)=p(3)=0.3$, $p(4)=0.1$.
 
 
 

@@ -1,24 +1,34 @@
 \section{Preliminaries}\label{s:preliminaries}
 
-Before discussing our method, we describe the necessary background, starting from SMPL\@.
+Before discussing the method, it is important to cover necessary background. The overall technique is suitable for modelling ambiguities in articulated subjects, including quadrupedal animals and humans. To demonstrate results on both object classes, separate 3D deformable models are employed. For animals, this chapter continues using the Skinned Multi-Animal Linear (SMAL)~\cite{xxx} model relied upon in previous chapters. For modelling humans, the popular Skinned Multi-\emph{Person} Linear model (SMPL)~\cite{xxx} is used. Fortunately, both models are designed as drop in replacements for each other so this detail can be abstracted during description of the method. This section begins by clarifying the abstraction, details a standard single hypothesis approach for 3D reconstruction before a detailed explanation of normalizing flows.
 
-\subsection{SMPL.}
+\subsection{3D Morphable Model (SMPL/SMAL).}
 
-SMPL is a model of the human body parameterized by axis-angle rotations $\theta \in \mathbb{R}^{69}$ of 23 body joints, the shape coefficients $\beta \in \mathbb{R}^{10}$ modelling shape variations, and a global rotation $\gamma \in \mathbb{R}^{3}$.
-SMPL defines a \emph{skinning function}  $S: (\theta, \beta, \gamma) \mapsto V$ that maps the body parameters to the vertices $V \in \mathbb{R}^{6890\times 3}$ of a 3D mesh.
+Both SMAL and SMPL are 3D morphable models representing quadrupedal animals and humans respectively. Each supplies a set of triangles and a function $v(\pose,\shape): \R{\npose} \times \R{\nshape} \mapsto \RR{3}{V}$ which outputs a set of vertex positions from pose $\pose \in \R{\npose}$ and shape $\shape \in \R{nshape}$ parameters. Recall pose is determines joint angles and shape governs global body proportions (e.g. limb lengths). Parameters are also required to express the model's translation and orientation, which can be condensed into a variable $\posn$. A 3D model of the subject given pose, shape and position parameters is therefore given as $\posn * v(\pose,\shape)$. A comparison between properties of each model is given in Table XXX. 
+
+% \begin{table}
+    
+% \end{table}
+% parameterizes of quadrupedal animals and hum be viewed as models of SMPL is a model of the human body parameterized by axis-angle rotations $\theta \in \mathbb{R}^{69}$ of 23 body joints, the shape coefficients $\beta \in \mathbb{R}^{10}$ modelling shape variations, and a global rotation $\gamma \in \mathbb{R}^{3}$.
+% SMPL defines a \emph{skinning function}  $S: (\theta, \beta, \gamma) \mapsto V$ that maps the body parameters to the vertices $V \in \mathbb{R}^{6890\times 3}$ of a 3D mesh.
 % The skinngin n itself is non-linear due to the conversion of the rotation angles into rotation matrices when the kinematic tree is assembled.
 
-\subsection{Predicting the SMPL parameters from a single image.}
+\subsection{Predicting the 3D model parameters from a single image.}
 
-Given an image $\mathbf{I}$ containing a person, the goal is to recover the SMPL parameters $(\theta, \beta, \gamma)$ that provide the best 3D reconstruction of it.
-% Conceptually, this is an inverse problem since the image $\mathbf{I} = \Gamma(S(\theta, \beta, \gamma), \eta)$ can be thought to be generated from the SMPL parameters $(\theta, \beta, \gamma)$ plus a number of unknown factors $\eta$ capturing details of the appearance, background, etc.
-Existing algorithms~\cite{kanazawa18learning} cast this as learning a deep network $G(I) = (\theta, \beta, \gamma, t)$ that predicts the SMPL parameters as well as the %scale $s \in \mathbb{R}$ and
-translation $t \in \mathbb{R}^3$ of the perspective camera observing the person. We assume a fixed set of camera parameters.
+Given an image $\mathbf{I}$ containing a person, the goal is to recover the 3D model parameters $(\pose,\shape,\posn)$ that provide the best possible 3D reconstruction. 
+%$(\theta, \beta, \gamma)$ that provide the best 3D reconstruction of it.
+Conceptually, this is an inverse problem since the image $\mathbf{I} = \Gamma(\posn * v(\pose,\shape), \eta)$ can be thought to be generated from model parameters $(\pose,\shape)$, position $\posn$ plus a number of unknown factors $\eta$ capturing details of the appearance, background etc.
+%$\mathbf{I} = \Gamma(S(\theta, \beta, \gamma), \eta)$ 
+
+% can be thought to be generated from the SMPL parameters $(\theta, \beta, \gamma)$ plus a number of unknown factors $\eta$ capturing details of the appearance, background, etc.
+Existing algorithms~\cite{kanazawa18learning} cast this as learning a deep network $G(I) = (\pose, \shape, \posn, f)$ that predict the model parameters and a focal length $f$ for a perspective camera $\proj_{f}$ observing the subject. As is common practice, in this chapter a fixed set of camera parameters are used.
+%$G(I) = (\theta, \beta, \gamma, t)$ that predicts the SMPL parameters as well as the %scale $s \in \mathbb{R}$ and
+% translation $t \in \mathbb{R}^3$ of the perspective camera observing the person. We assume a fixed set of camera parameters.
 % \rk{TODO: Ben refines: The camera defines a function $\pi_{s,t}(X) = sx + t_{x}, sy + t_{y}$ projecting 3D points $X\in\mathbb{R}^3$ to 2D image coordinates: https://github.com/nkolot/SPIN/blob/b95a00a7c0147f2c5bee0874ba0972c6389b6f99/demo.py}.
-During training, the camera is used to constrain the reconstructed 3D mesh and the annotated 2D keypoints to be consistent.
-Since most datasets only contain annotations for a small set of keypoints (\cite{guler2018densepose} is an exception), and since these keypoints do not correspond directly to any of the SMPL mesh vertices, we need a mechanism to translate between them.
-This mechanism is a fixed linear regressor $J : V \mapsto X$ that maps the SMPL mesh vertices $V = S(G(I))$ to the 3D locations $X = J(V) = J(S(G(I)))$ of the $K$ joints.
-Then, the projections $\pi_{t}(X)$ of the 3D joint positions into image $\mathbf{I}$ can be compared to the available 2D annotations.
+As demonstrated in previous chapters, during training the camera is used to constrain the reconstructed 3D mesh and the annotated 2D keypoints to be consistent.
+Since most datasets only contain annotations for a small set of keypoints (\cite{guler2018densepose} is an exception), and since these keypoints do not necessarily correspond directly to any of the 3D mesh vertices, a mechanism is used to translate between them. 
+This mechanism is a fixed linear regressor which determines the 3D locations of the joints. This can be viewed as $\posn * v(\pose,\shape)\jointselect)$, where the mesh vertices are post-multiplied by a $V \times J$ matrix $\jointselect$.
+As usual, the 3D joint positions can be compared to available 2D annotations by means of the projection function $\proj_{f}$. Model 2D annotations are therefore given as $\proj_{f}(\posn * v(\pose,\shape)\jointselect))$.
 
 \subsection{Normalizing flows.}
 
@@ -45,3 +55,14 @@ $$
 $$
 Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
 RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
+
+\subsubsection{Worked example of normalizing flows}
+
+To assist with explanation, consider the following toy example. In this case, the data distribution is given as the multi-modal `moons' dataset.
+
+% TODO - normalizing flows demo.
+
+\subsubsection{Theoretical comparison to other methods of modelling ambiguities}
+TODO.
+
+
