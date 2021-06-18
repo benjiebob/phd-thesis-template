@@ -14,13 +14,20 @@ In what follows, the learning scheme that drives the monocular predictor $G$ to 
 \subsection{Learning with multiple hypotheses}
 
 For learning the model, access is assumed to a training set of $N$ images $\{I_i\}_{i =1,\dots,N}$, each cropped around a subject (either an animal or human).
-Furthermore, for each training image $I_i$, it is assumed that the following are known: (1) the 2D location $Y_i$ of the body joints (2) their 3D location $X_i$, and (3) the ground truth SMPL fit $(\theta_i, \beta_i, \gamma_i)$.
-Depending on the set up, some of these quantities can be inferred from the others (e.g.~we can use the selector $\jointselect$ to convert ground truth 3D morphable model parameters to the 3D joints $X_i$ and then the camera projection to obtain $Y_i$).
+Furthermore, for each training image $I_i$, it is assumed that the following are known: (1) the 2D location $Y_i$ of the body joints (2) their 3D location $Y_i$, and (3) the ground truth SMPL fit $(\theta_i, \beta_i, \gamma_i)$.
+Depending on the set up, some of these quantities can be inferred from the others (e.g.~the selector $\jointselect$ can be used to convert ground truth 3D morphable model parameters to the 3D joints $Y_i$ and then the camera projection to obtain $X_i$).
 In the sequel, the following notation is used to express the 3D joint positions of the model predicted by the network's $m$-th SMAL/SMPL predictor $G_m (I) = (\pose_m, \shape_m, \posn_m, f_m)$ applied to image $I_{i}$:
 
 \begin{equation}
   \hat Y^{m}(I_{i}) = \posn_{m} * v(\pose_{m},\shape_{m})\jointselect
 \end{equation}
+
+And the following notation represents 3D joint predictions projected into the 2D image plane:
+
+\begin{equation}
+  \hat X^{m}(I_{i})) = \proj_{f_{m}}(\posn_{m} * v(\pose_{m},\shape_{m})\jointselect)
+\end{equation}
+  
 
 \subsection{Best-of-$M$ loss.}
 Given a single input image, the network predicts a set of poses, where at least one should be similar to the ground truth 3D annotation $\inputjtsthree_{i}$.
@@ -70,7 +77,7 @@ In other words, $\mathcal{\bar Y}^n$ \emph{optimally quantizes} $\mathcal{\hat Y
 To this end, the output of the best-of-$M$ model can be interpreted as a set of choices $\mathcal{\hat Y}^M(I)$ for the possible pose.
 These poses are of course not all equally likely, but it is difficult to infer their probability from~\eqref{e:loss-best}.
 Instead, the following approximation is used.
-A prior $p(X)$ is designed that expresses the likelihood of possible poses (defined in the next section), and set:
+A prior $p(Y)$ is designed that expresses the likelihood of possible poses (defined in the next section), and set:
 \begin{equation}\label{e:conditional}
 p(Y|I)
 =
@@ -137,7 +144,8 @@ More specifically, the set of predicted 3D reconstructions are constrained to li
   \frac{1}{N}
   \sum_{i=1}^N
   \sum_{m=1}^M
-  \big \| X^*_i - \proj_{f}(\hat Y^m(I)) \big \|.
+  % \big \| X^*_i - \proj_{f}(\hat Y^m(I)) \big \|.
+  \big \| X^*_i - \hat X^m(I_i) \big \|.
 \end{equation}
 
 Note that many training images exhibit significant occlusion, so $X^*$ often contains invisible or missing points. This is handled by masking $\mathcal{L}_\text{ri}$ to prevent these points contributing to the loss.
@@ -167,7 +175,8 @@ For this method, these are only applied to the best hypothesis $m_i^*$ found abo
 \mathcal{L}_\beta(G;m^*) = \frac{1}{N}
   \sum_{i=1}^N \| \beta_i - G_{\beta,m_i^*}(I_i)\|; \\
 \mathcal{L}_\text{rb}(G;m^*) = \frac{1}{N} \label{e:smpl2}
-  \sum_{i=1}^N \| X^*_i - \proj_{G_{f,m_i^*}(I_i)}(\hat{Y}^{m_i^*}(I_i))\|
+  % \sum_{i=1}^N \| X^*_i - \proj_{f}(\hat{Y}^{m_i^*}(I_i))\|
+  \sum_{i=1}^N \| X^*_i - \hat{X}^{m_i^*}(I_i)\|
 \end{align}}%
 Note here that $\mathcal{L}_\text{rb}$ is used to refer to a 2D re-projection error between the best hypothesis and ground truth 2D points $X^*_i$. This differs from the earlier loss $\mathcal{L}_\text{ri}$, which is applied across all modes to enforce consistency to the visible \emph{input} points. Note that it would have been possible to use \cref{e:smpl,e:smpl2} to select the best hypothesis $m_i^*$, but it would entail an unmanageable memory footprint due to the requirement of SMPL-meshing for every hypothesis before the best-of-$M$ selection. 
 

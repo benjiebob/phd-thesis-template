@@ -1,6 +1,6 @@
 \section{Experiments}\label{s:exp}
 
-In this section the method is compared to several strong baselines.
+In this section the method is evaluated on dogs and humans, and compared to several strong baselines.
 To start, the datasets and baselines are described followed by a detailed quantitative and qualitative evaluation.
 
 
@@ -9,7 +9,12 @@ To start, the datasets and baselines are described followed by a detailed quanti
 
 \subsection{Datasets}
 
-The method is first tested on the RGBD-Dog dataset, containing images of dogs captured with corresponding 3D annotations. Since the dataset is somewhat limited, and to show the generality and accuracy of the approach, the method is applied to competitive human 3D reconstruction benchmarks Human3.6m~(\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} and 3DPW~\cite{vonmarcard2018recovering}. Finally, qualitiative results are demonstrated on images from MSCOCO which are challenging and varied. This section discusses each of these datasets before moving on to the evaluation protocol. 
+The method is evaluated on the RGBD-Dog dataset, the first image dataset containing 3D ground truth annotations for an animal category. The work in this chapter is therefore novel in demonstrating multi-hypothesis results on an animal category. However, the dataset is relatively small in size and contains limited diversity so is an unsuitable candidate for robust evaluation. Therefore, to realise the full potential of the method, comparative and ablative experiments are conducted on competitive human 3D reconstruction benchmarks on popular datasets Human3.6m~(\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} and 3D People in the Wild~(\textbf{3DPW})~\cite{vonmarcard2018recovering}. In addition, qualitative results are shown on the COCO~\cite{xxx}, a particularly challenging dataset of internet human images, rife with ambiguity and seldom tackled in the 3D reconstruction literature. 
+
+For animals, the WLDO model trained on StanfordExtra is tuned for the multi-hypothesis reconstruction task on RGBD-Dog. StanfordExtra is covered in depth in \Cref{chap:wldo}. To enable fair comparison to SPIN~\cite{kolotouros19learning}, GraphCMR~\cite{kolotouros19learning}, HMR~\cite{kanazawa18end-to-end} and others, the training protocol for humans follows recent 3D human reconstruction literature uses an assortment of human datasets, including MPI-INF-3DHP~\cite{xxx}, LSP~\cite{}, HR-LSPET~\cite{}, MPII~\cite{} and COCO~\cite{}. 
+The remainder of this section discusses these datasets used for training and evaluation. 
+
+% The WLDO network, trained originally on the 2D StanfordExtra dataset is tuned on the RGBD-Dog first tested on the RGBD-Dog dataset, containing images of dogs captured with corresponding 3D annotations. Since the dataset is somewhat limited, and to show the generality and accuracy of the approach, the method is applied to competitive human 3D reconstruction benchmarks Human3.6m~(\textbf{H36M})~\cite{ionescu2013human3,IonescuSminchisescu11} and 3DPW~\cite{vonmarcard2018recovering}. Finally, qualitiative results are demonstrated on images from MSCOCO which are challenging and varied. This section discusses each of these datasets before moving on to the evaluation protocol. 
 
 \subsubsection{RGBD-Dog Dataset}
 
@@ -17,11 +22,25 @@ RGBD-Dog is a new dataset of dogs captured with calibrated depth cameras. A 3D d
 
 \subsubsection{Human3.6M}
 
-H36M is one of the largest datasets of humans annotated with 3D pose using MoCap sensors. As is common practice, the method is trained on subjects S1, S5, S6, S7 and S8, and tested on S9 and S11. 
+Human3.6m is one of the largest datasets of humans annotated with 3D skeletal positions using a high-speed motion capture system. 11 professional actors (6 male, 5 female) are captured in an indoor environment performing 17 scenarios (e.g. discussion, smoking, taking photo, talking on the phone etc.). Per-frame pose and per-subject shape parameters for SMPL are computed using the MoSH~\cite{xxx} optimization scheme. Following common practice, the method in this chapter is trained on images from subjects S1, S5, S6, S7 and S8, and tested on S9 and S11. While accurate ground truth are useful for evaluating 3D reconstruction approaches, the dataset lacks environment occlusion and other sources of ambiguity. To overcome this, a later section discusses derives a new `ambiguous' version of this dataset, by adding synethetic occluders. 
 
 \subsubsection{3D People in the Wild}
-3DPW is only used for evaluation and, following SPIN~\cite{kolotouros19convolutional}, evaluation is conducted on its test set.
+3DPW is the first dataset captured in the wild containing accurately annotated 3D poses collected through a combination of video (including mobile phone footage) and calibrated inertial sensors (IMU). Following SPIN~\cite{kolotouros19convolutional} to enable fair comparison, 3DPW data is not used for training and evaluation is conducted on the its test. This represents a total of 60 video sequences and associated 3D skeletal joint locations and SMPL parameters. While sequences in 3DPW are more complex than those in H36M, the dataset still contains relatively few examples of significant occlusion common to internet images. Therefore, an ambiguous version of this dataset, A3DPW, is constructed to better analyse model perforamnce on challenging in-the-wild scenes.
 
+\subsubsection{Assorted human training datasets}
+As previously discussed, following the literature to enable fair comparison, a multitude of datasets are available. Each is discussed briefly:
+
+\paragraph{Human3.6M.} As mentioned in the above section, images taken of subjects S1, S5, S6, S7 and S8 with associated 3D pose and SMPL parameters are used for training.
+
+\paragraph{MPI-INF-3DHP.} TODO. What is it? Following standard practice, frames are subsampled by a factor of 10 and use 60\% of the original SMPL fits, deemed by the SPIN~\cite{kolotouros19learning} to be reliable, and 40\% generated by the SPIN network itself.
+
+\paragraph{LSP.} Sports-people in action. The high resolution version is used for training. Contains only 2D data.
+
+\paragraph{HR-LSPET.} An extended version of LSP in high resolution form.
+
+\paragraph{MPII.} Contains 25,000 images of 40,000 people with annotated body joints. Images were extracted from YouTube videos.
+
+\paragraph{COCO.} Person keypoints are annnotated on internet images captured of humans in uncontrolled conditions. The dataset is therefore challenging.
 
 \subsubsection{Constructing ambiguous datasets (AH36M/A3DPW/ADOG).}
 Since H36M is captured in a controlled environment, it rarely depicts challenging real-world scenarios such as body occlusions that are the main source of ambiguity in the single-view 3D shape estimation problem. 
@@ -177,12 +196,9 @@ The difference is more significant for 3DPW which probably happens because 3DPW 
 
 \input{Chapter6/FigTex/fig-qualresults2.tex}
 
+\subsubsection{Qualitative results on MS-COCO} \label{s:supp_qual}
+Qualtitative results in ~\Cref{fig:h36m_qual_coco} are demonstrated on challenging examples from the MS-COCO dataset~\cite{lin2014microsoft}.
 
-% TODO: integrate
-\section{Results on MS-COCO} \label{s:supp_qual}
-In addition to the experiments with quantitative evaluation on H36m, AH36m and 3DPW in \cref{s:exp}, in this section, we also provide qualitative results on challenging examples from the MS-COCO dataset~\cite{lin2014microsoft}.
-
-% \vspace{-5cm}
 \input{Chapter6/FigTex/fig-qualresultscoco.tex}
 
 % THIS STUFF ISN'T VALID. TRAINED IN DIFFERENT WAY.

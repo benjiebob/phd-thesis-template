@@ -37,30 +37,24 @@ As usual, the 3D joint positions can be compared to available 2D annotations by 
 % In this paper, we utilize a particular version of NF dubbed RealNVP \cite{dinh17density}.
 % A more detailed explanation of NF and RealNVP has been deferred to the supplementary.
 
-The idea of normalizing flows is to represent a complex distribution $p(X)$ on a random variable $X$ as a much simpler distribution $p(z)$ on a transformed version $z=f(X)$ of $X$.
+The idea of normalizing flows is to represent a complex distribution $p(Y)$ on a random variable $Y$ as a much simpler distribution $p(z)$ on a transformed version $z=f(Y)$ of $Y$.
 The transformation $f$ is learned so that $p(z)$ has a fixed shape, usually a Normal $p(z) \sim \mathcal{N}(0,1)$.
 Furthermore, $f$ itself must be \emph{invertible} and \emph{smooth}.
 In this case, the relation between $p(\theta)$ and $p(z)$ is given by a change of variable
 $$
- p(z = f(X)) =  \left| \frac{df(X)}{dX} \right| p(X),
+ p(z = f(Y)) =  \left| \frac{df(Y)}{dY} \right| p(Y),
 $$
 where, for notational simplicity, we have assumed that $z,X\in\mathbb{R}^D$ are vectors.
 
 The challenge is to learn $f$ from data in a way that maintains its invertibility and smoothness.
-This is done by decomposing $z = f_L \circ \dots \circ f_1 (X)$ in $n$ layers, where $X_l = f_l(X_{l-1})$, $x = X_n$ and $X=X_0$, and each layer is in turn smooth and invertible.
+This is done by decomposing $z = f_L \circ \dots \circ f_1 (Y)$ in $n$ layers, where $Y_l = f_l(Y_{l-1})$, $y = Y_n$ and $Y=Y_0$, and each layer is in turn smooth and invertible.
 Then one can write
 $$
- \log p(z = f(X)) =
- \log p(X) + \sum_{l=1}^L \log \left| \frac{df_l(X_{l-1})}{dX_{l-1}} \right|.
+ \log p(z = f(Y)) =
+ \log p(Y) + \sum_{l=1}^L \log \left| \frac{df_l(Y_{l-1})}{dY_{l-1}} \right|.
 $$
 Now the challenge reduces to making sure that individual layers are in fact smooth and invertible and that their inverses and Jacobian determinants are easy to compute.
-RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(X_{0:d,l}, X_{d:D,l-1}) = \big(X_{0:d,l-1},~ X_{d:D,l-1} \odot e^{g_l(X_{0:d,l-1})} + h_i(X_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
-
-\subsubsection{Worked example of normalizing flows}
-
-To assist with explanation, consider the following toy example. In this case, the data distribution is given as the multi-modal `moons' dataset.
-
-% TODO - normalizing flows demo.
+RealNVP~\cite{dinh17density} does so by writing each layer as $f_l(Y_{0:d,l}, Y_{d:D,l-1}) = \big(Y_{0:d,l-1},~ Y_{d:D,l-1} \odot e^{g_l(Y_{0:d,l-1})} + h_i(Y_{0:d,l-1})\big)$ where $g_l,h_l:\mathbb{R}^d \rightarrow \mathbb{R}^{D-d}$ are two arbitrary neural networks.
 
 \subsubsection{Theoretical comparison to other methods of modelling ambiguities}
 TODO.
