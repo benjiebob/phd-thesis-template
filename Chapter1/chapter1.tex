@@ -17,19 +17,16 @@
 
 Animal welfare is an important concern for business and society, with an estimated 70 billion animals currently living under human care~\cite{FAOSTAT}. Across multiple industries, monitoring and assessing animal health is achieved by measuring individuals' body shape and movement. These measurements should be taken without interfering with the animal's normal activity, and are needed around the clock, under a variety of lighting and weather conditions, perhaps at long range (e.g.\ in farm fields or wildlife parks). 
 
-Of course, employing humans to monitor large animal populations is costly and can lead to data bias. For example, prey animals such as rodents are known to alter their behaviour in the presense of perceived predators. To overcome this, there is a developing field of literature which focuses on automatic animal monitoring. Many of of these are specifically designed for use in pre-clinical work. Some systems measure animals ``invasively'', meaning they surgically implant a measuring device. Although these systems can offer detailed biometric data (such as blood pressure, ECG etc.), the implantation procedure cause stress to the animals, which leads to welfare concerns and complex behavioural effects which are non-trivial to account for in collected readings. 
+Of course, employing humans to monitor large animal populations is costly and can lead to data bias. For example, prey animals such as rodents are known to alter their behaviour in the presense of perceived predators. To overcome this, there is a developing field of literature which focuses on automatic animal monitoring. Many of of these are specifically designed for use in pre-clinical work. Some systems measure animals ``invasively'', meaning they surgically implant a measuring device. Although these systems can offer detailed biometric data (such as blood pressure, ECG etc.), a stressful implantation procedure is generally required that can lead to complex behavioural effects which are difficult to model.
 
-These factors motivate the design of non-invasive systems which rely on other means, including cameras, to monitor animal populations. Even simple examples of these can be surprisingly effective. For example, a reliable pixel-based motion detector can be used to indicate the most basic of health standards -- that the animal is capable of movement. More advanced systems are able to estimate animal behaviour, energy and inquisitiveness levels of target animals by analysing activity patterns over time. Basic analysis can be achieved by mechanical means, such as by installing floor-level pressure pads~\cite{zammit2010reliability}, but deeper insights are generally available by installing cameras and running computer vision algorithms. 
+This then motivates the design of non-invasive systems which rely on other means, including cameras, to monitor animal populations. Even simple examples of these can be surprisingly effective. For example, a reliable pixel-based motion detector can be used to indicate the most basic of health standards -- that the animal is capable of movement. More advanced systems are able to estimate animal behaviour, energy and inquisitiveness levels of target animals by analysing activity patterns over time. Basic analysis can be achieved by mechanical means, such as by installing floor-level pressure pads~\cite{zammit2010reliability}, but deeper insights are generally afforded through computer vision algorithms processing images obtained from camera systems.
 
-Some systems treat measuring animal behaviour as machine learning classification task, in which a machine is taught to visually recognize predefined activites using a large collection of manually annotated videos. For `normal' behaviours (e.g. drinking, eating etc.) this is a viable approach and health insights can be inferred by monitoring the pattern of these over time. However, these systems cannot be readily extended to identify more serious conditions (e.g. animals experiencing a seizure), due to the ethical concerns associated with collecting examples of such behaviours for system training. 
+Techniques that represent animal behaviour using cameras for health and welfare analysis can be grouped into two categories. The former class treat animal behaivour as a machine learning classification task, in which a computer is taught to visually recognize predefined activites using a large collection of manually annotated videos. For `normal' behaviours (e.g. drinking, eating etc.) this is a viable approach and health insights can be inferred by monitoring the pattern of these over time. However, systems of this kind cannot readily be extended to identify more serious conditions (e.g. animals experiencing a seizure), due to the ethical concerns associated with collecting examples of such behaviours for system training. 
 
-To overcome this concern, and reduce annotation effort, recent methods take inspiration from `proxy' representations of humans popularized in recent computer vision literature. Following work in human pose estimation, some methods propose to represent animal subjects using a sparse set of control 
-points (often termed \emph{joints}). Such a representation has many benefits. Firstly, downstream algorithms can use detected points to realise higher fidelity health, either using simple rules (e.g. measuring limb trajectories) or with downstream machine learning systems that typically require much less task-specific training data since nusinance factors (e.g. background, textures etc.) have been removed. Secondly, annotating keypoints is much quicker and cheaper than behaviours, largely due to the plentiful examples of internet animal imagery and also as the annotation task is much less specialized. Finally, the representation is much more compact; in raw form a 1 minute clip at 20fps in 1080p requires at worse XXX GB compared to 20 keypoints $\approxeq$ 1MB. 
+To overcome this concern, and reduce annotation effort, the second class of approaches take inspiration from `proxy' representations of human beings, which have been recently popularized in computer vision literature. Following work in human pose estimation, some methods design discriminative body part recognizers or keypoint predictors in order to represent animal subjects as a sparse set of control point (often termed \emph{joints}) locations. This representation offers a number of advantages. Firstly, data collection for this proxy representation is quicker and cheaper since it can be completed by non-expert annotators. Secondly, the representation preserves most important details so can be used in a pipeline with a downstream algorithm to produce the desired output. For example, one may directly measure limb trajectories to estimate the animal's balance. Thirdly, downstream machine learning algorithms typically require much less task-specific training data since nusinance factors (e.g. background, textures etc.) have already been removed. Finally, for data retention purposes which is often important in animal welfare scenarios, recording per-frame keypoints is much less cumbersome than raw pixel data.
 
-Despite the benefits, this thesis argues that a sparse keypoint representation is too limited to derive animal insights. In particular, while estimating joints locations (and therefore approximating the animal's internal skeleton) indicates the subject's \emph{pose}, almost all \emph{shape} information is lost. This results in downstream algorithms being unable to determine the animal's weight, breathing rate, skin textures and other factors which are important for health diagnoses. This motivates the key area of exploration in this thesis, namely the research, design and development of systems that recover the 3D shape and pose of animals.
+However, it is natural to question whether abstracting animals as a set of keypoints is sufficient to facilitate all downstream applications. Unfortunately, the answer to this is `no'. While a sparse keypoint representation is generally enough to capture the animal's \emph{pose} (e.g. limb positions), nearly all body \emph{shape} information is lost. For diagnostics, this lost information is often critical. Perhaps the most obvious example of this is the loss of information which could otherwise measure the animal's weight and breathing rate. In most clinical applications, these metrics are often mandatory and, importantly cannot be estimated from keypoints alone. Therefore, this thesis contributes to a class of approaches which recover the 3D structure of an animal, including \emph{both pose and shape} information from an input image or video sequence.
 
-% TODO: motivate the 3 chapters
-Of concern in this work
 
 % Tthe animal's skeleton can be recovered   However, this thesis argues that despite the benefits, such a representation is too limited for health monitoring purposes. For example, such a representation 
 
@@ -60,84 +57,102 @@ Of concern in this work
 %********************************** %Second Section  *************************************
 \section{Approach} %Section - 1.2
 
-This thesis focuses on developing methods for recovering a 3D model of an animal oa tracking system to enable recovery of a per-frame 3D animal reconstruction from an image or video stream. 
+% This thesis focuses on developing methods for recovering a 3D model of an animal oa tracking system to enable recovery of a per-frame 3D animal reconstruction from an image or video stream. 
 
-The system should apply to a wide range of animal species without significant customization. Success in this endeavour would enable real-time changes of a known skeletal structure to be programmatically analysed to completely model an animal’s movements. These behaviour patterns could then be interpreted to form a profile for each animal in a batch, taking into account expected norms for their species as well as their individual personality traits. When animals are first brought into a facility, they are given some time to acclimatize to their new surroundings before a clinical study begins. The application could make use of this period to refine behaviour models to their particular characteristics without being influenced by external factors. The system would then begin monitoring the population, storing detailed analytics and reacting to any deviations to an animal’s unique behaviour profile. As a simple example, should a typically lively and sociable dog suddenly begin exhibiting signs of withdrawal from the group, this would indicate a cause for concern and be stored in that animal’s ‘virtual log book’. In some cases, an animal may begin to exhibit signals that demand immediate attention, such as a dramatic and sudden energy drop that may indicate pain. The application could handle such events by sending an SMS text message to an on-call veterinary professional, to alert them of the specific problem and thereby enable a rapid response. These real-time diagnostics could then be aggregated and displayed on a dashboard screen, visible to all laboratory technicians. A concept drawing is shown in Figure \ref{fig:wellness_dashboard}.
+% The system should apply to a wide range of animal species without significant customization. Success in this endeavour would enable real-time changes of a known skeletal structure to be programmatically analysed to completely model an animal’s movements. These behaviour patterns could then be interpreted to form a profile for each animal in a batch, taking into account expected norms for their species as well as their individual personality traits. When animals are first brought into a facility, they are given some time to acclimatize to their new surroundings before a clinical study begins. The application could make use of this period to refine behaviour models to their particular characteristics without being influenced by external factors. The system would then begin monitoring the population, storing detailed analytics and reacting to any deviations to an animal’s unique behaviour profile. As a simple example, should a typically lively and sociable dog suddenly begin exhibiting signs of withdrawal from the group, this would indicate a cause for concern and be stored in that animal’s ‘virtual log book’. In some cases, an animal may begin to exhibit signals that demand immediate attention, such as a dramatic and sudden energy drop that may indicate pain. The application could handle such events by sending an SMS text message to an on-call veterinary professional, to alert them of the specific problem and thereby enable a rapid response. These real-time diagnostics could then be aggregated and displayed on a dashboard screen, visible to all laboratory technicians. A concept drawing is shown in Figure \ref{fig:wellness_dashboard}.
 
-\subsection{Problem definition}
-    A major challenge of this work is to develop and adapt methods for resolving the inherent ambiguity associated with recovering a 3D model from 2D input data. This challenge can be overcome by augmenting the input video sequence (Figure \ref{fig:arap_input}) with strong prior knowledge about the target species class (e.g.\ quadruped body measurements). This prior knowledge can be divided into two components: a \emph{shape} prior that enforces topological (e.g.\ order of body parts) and measurement constraints (e.g.\ length of limbs), and a \emph{pose} prior that defines likely limb configurations and can be used to rule out those which are anatomically impossible.
+% \subsection{Problem definition}
+This thesis tackles the problem of recovering dense 3D reconstructions of animals from monocular images or video. Of course, humans generally have no problem with this task. For example, most humans are capable of predicting, at least approximately, the 3D structure of most scenes including animal subjects, even from a single viewpoint. However, the visual evidence present in a single 2D image notoriously~\citep{Faugeras01geometry} contains insufficient information for the third dimension to be recovered unambiguously. Having access to a full video sequence does help somewhat, although significant sources of ambiguity remain due to camera motion, animal limb movement and occlusion caused by environment or other objects. 
+To assist, this thesis follows a common strategy, popularized in 3D human mesh reconstruction literature, which incoporates strong prior knowledge over the target subject class to reduce the reconstruction ambiguity. This prior can be factored into two components: a \emph{shape} prior that enforces topological (e.g.\ order of body parts) and measurement constraints (e.g.\ length of limbs), and a \emph{pose} prior that defines likely limb configurations and can be used to rule out those which are anatomically impossible. 
+In this thesis, the prior takes the form of a \emph{3D morphable model} -- a parameterized 3D mesh model which can be adapted to match the input animal.
 
-    \begin{figure}[H]
-        \centering
-        \begin{subfigure}{0.33\textwidth}
-        \centering
-            \includegraphics[width=1\linewidth]{input/66}
-        \end{subfigure}%
-        \begin{subfigure}{0.33\textwidth}
-        \centering
-            \includegraphics[width=1\linewidth]{input/167}
-        \end{subfigure}%
-        \begin{subfigure}{0.33\textwidth}
-        \centering
-            \includegraphics[width=1\linewidth]{input/208}
-        \end{subfigure}%
-        \caption{An example input video sequence.}
-        \label{fig:arap_input}
-    \end{figure}
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}{0.33\textwidth}
+    \centering
+        \includegraphics[width=1\linewidth]{input/66}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+    \centering
+        \includegraphics[width=1\linewidth]{input/167}
+    \end{subfigure}%
+    \begin{subfigure}{0.33\textwidth}
+    \centering
+        \includegraphics[width=1\linewidth]{input/208}
+    \end{subfigure}%
+    \caption{An example input video sequence.}
+    \label{fig:arap_input}
+\end{figure}
 
-    An example output showing the recovery of a 3D model from an input 2D monocular video is shown in Figure \ref{fig:intro_arap_output}:
+    % An example output showing the recovery of a 3D model from an input 2D monocular video is shown in Figure \ref{fig:intro_arap_output}:
     
-    \begin{figure}[H]
-        \centering
-        \begin{subfigure}{1\textwidth}
-        \centering
-            \includegraphics[width=1\linewidth]{input/arapsfm_output}
-        \end{subfigure}%
-        \caption{Sample output printed from Deformable Mesh Animation~\cite{arap_stebbing}.}
-        \label{fig:intro_arap_output}
-    \end{figure}
+    % \begin{figure}[H]
+    %     \centering
+    %     \begin{subfigure}{1\textwidth}
+    %     \centering
+    %         \includegraphics[width=1\linewidth]{input/arapsfm_output}
+    %     \end{subfigure}%
+    %     \caption{Sample output printed from Deformable Mesh Animation~\cite{arap_stebbing}.}
+    %     \label{fig:intro_arap_output}
+    % \end{figure}
 
-    
-    A distinction should be made between two common tracking techniques: (1) discriminative body part recognizers and joint position predictors, and (2) 3D reconstructions via generative model fitting. Discriminative predictors have become the dominant paradigm in human body tracking to facilitate common use-cases, such as gesture detection or controllerless gameplay. However, recovering 3D models from human subjects is a growing field. Applications are found in fashion to faciliate online `try-ons' for virtual clothing~\cite{lin2014digital}, in animation and visual effects to generate virtual characters from live actor performances~\cite{laine2017production}, and in healthcare for tracking patients' body weight over time~\cite{velardo2010weight}. It is hypothesized that recovering a full 3D animal reconstruction is necessary to enable the intended diagnostic purposes of this animal work. In particular, returning only joint positions or body parts may be insufficient to estimate animal weight. If this can be realized, identifying behavioural changes from the reconstruction is expected to be a relatively straightforward machine learning problem. 
+As elluded to in the previous section, a distinction should be made between two common tracking techniques: (1) discriminative body part recognizers and joint position predictors, and (2) 3D reconstructions via generative model fitting. Discriminative predictors are a popular alternative to full mesh recovery, and have facilitated common use-cases, such as gesture detection or controllerless gameplay. However, to enable animal \emph{shape} recovery, the work in this thesis is closer to approaches that recover full 3D surface models of human subjects. Applications are found in fashion to faciliate online `try-ons' for virtual clothing~\cite{lin2014digital}, in animation and visual effects to generate virtual characters from live actor performances~\cite{laine2017production}, and in healthcare for tracking patients' body weight over time~\cite{velardo2010weight}. 
 
-    A typical method for recovering 3D structure from tracking targets is using a \emph{model fitting} approach, in which a 3D object representative of the target class is adapted to recreate the performance of the target. This method involves: (1) parameterizing a representative 3D \emph{template mesh} with terms that represent shape and pose attributes and (2) defining an optimizer to adapt to these per-frame parameter settings to an input video sequence. An example of a template mesh is shown in Figure~\ref{fig:arap_template}.
-    
-    \begin{figure}[H] % Example image
-        \center{\includegraphics[width=0.2\linewidth]{template_mesh}}
-        \caption{An example prior, in this case a template mesh.}
-        \label{fig:arap_template}
-    \end{figure}
+%It is hypothesized that recovering a full 3D animal reconstruction is necessary to enable the intended diagnostic purposes of this animal work. In particular, returning only joint positions or body parts may be insufficient to estimate animal weight. If this can be realized, identifying behavioural changes from the reconstruction is expected to be a relatively straightforward machine learning problem. 
 
-    Shape attributes capture variation between different members of the target class and remain constant for a particular individual. For example, shape parameters may be adapted to vary a model's height and weight. However, pose attributes generally capture limb positions and joint angles, and therefore tend to vary considerably during a capture sequence. Figure~\ref{fig:black_shape} highlights the difference by keeping pose parameters fixed while shape attributes are varied between the three models~\cite{Streuber:SIGGRAPH:2016}.
+A typical method for recovering 3D structure from articulated subjects is via a \emph{model fitting} approach, in which a representative 3D morphable model is adapted to recreate the performance of the target. This method involves: (1) designing a suitable 3D morphable model with shape and pose parameterized that represent the target animal species, and (2) designing a machine learning algorithm which operates on an input image or video sequence and outputs per-frame parameters. An example of a template mesh is shown in Figure~\ref{fig:arap_template}.
 
-    \begin{figure}[H] % Example image
-        \center{\includegraphics[width=0.9\linewidth]{body_shapes}}
-        \caption{Varying human shape parameters while pose remains fixed. Reprinted from~\cite{Streuber:SIGGRAPH:2016}.}
-        \label{fig:black_shape}
-    \end{figure}
-    
-    Shape and pose parameters derived from a video sequence can be applied to the template mesh to generate a digital version of the same activity. If successful, the changing parameters should appear to adapt (or morph) the template mesh to faithfully reconstruct the performance given by the original live animal. In early experimentation, in which tracking targets are restricted to the same species, the template can be chosen to be a close shape fit to the target animal, thereby largely reducing the problem to finding optimal per-frame pose parameters. However, tracking examples are eventually broadened to include a wide range of animal species.
+\begin{figure}[t] % Example image
+    \center{\includegraphics[width=0.2\linewidth]{template_mesh}}
+    \caption{An example prior, in this case a template mesh.}
+    \label{fig:arap_template}
+\end{figure}
 
-    \subsection{Relation to human reconstruction}
-    % NEEDS TIDYING
-    Given that human tracking is now an established computer vision subfield, and the growing interest in analysing human behaviour from CCTV camera tracking systems, it is natural to ask whether the techniques used in this work transfer to the animal case. As an emerging research field, animal tracking presents many challenges in common with human gait and pose tracking problems, particularly in accurately monitoring morphable objects which frequently self-occlude. However, notable additional challenges are posed by the large shape and texture variation between animal tracking candidates and also due to the lack of available training data which could otherwise be employed to train deep neural networks. An advantageous aspect of tracking animals over humans is the simple fact that animals tend not to wear clothing, which in humans causes significant shape and appearance variability.
+Shape attributes capture variation between different members of the target class and therefore remain fixed for a particular individual. For example, shape parameters may be adapted to vary a model's height and weight. However, pose attributes capture limb positions and joint angles, and therefore tend to vary considerably between frames of a capture sequence. Figure~\ref{fig:black_shape} highlights the difference by keeping pose parameters fixed while shape attributes are varied between the three models~\cite{Streuber:SIGGRAPH:2016}.
 
-    The previous chapter discussed the primary objective of this work, which is to recover full 3D shape and pose from a live input video sequence exhibiting an animal subject. As explained, the major challenge common to all methods operating on monocular RGB input is to resolve the inherent depth ambiguity associated with recovering a 3D model from 2D input. Competitive methods achieve this by relying on strong motion cues~\cite{kinect_fusion} or (if available) by incorporating strong prior knowledge of the tracking target. Strong shape and pose priors (e.g. body part configuration, acceptable body part lengths, likely joint positions etc.) are available for this problem, so this report will focus on analysing these methods in the literature.
+\begin{figure}[t] % Example image
+    \center{\includegraphics[width=0.9\linewidth]{body_shapes}}
+    \caption{Varying human shape parameters while pose remains fixed. Reprinted from~\cite{Streuber:SIGGRAPH:2016}.}
+    \label{fig:black_shape}
+\end{figure}
 
-    All solutions face an important design decision, which is to make a distinction between features of an input sequence the system should aim to model and to which it should remain invariant. For example, nearly all human systems aim to model the angle between a tracking target's upper and lower leg region, but nearly all will attempt to remain invariant to skin colour variation between candidates. The next two sections discuss examples of systems in which this decision has been made differently, generally according to the intended real-world application.
+Once shape and pose parameters have been derived from a video sequence, they can be applied to the template mesh to generate a digital version of the same activity. If successful, the changing parameters should appear to adapt the template mesh such that it faithfully reproduces the activity of the animal in the input data. 
 
-    We address this problem using techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting.  A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
+%In early experimentation, in which tracking targets are restricted to the same species, the template can be chosen to be a close shape fit to the target animal, thereby largely reducing the problem to finding optimal per-frame pose parameters. However, tracking examples are eventually broadened to include a wide range of animal species.
 
-    Although superficially similar to human tracking, animal tracking (AT) has some interesting differences that make it worthy of study:
+\subsection{Relation to human reconstruction}
+% NEEDS TIDYING
+In recent times, 3D human reconstruction has become an established computer vision subfield. It is therefore natural to question to what extent techniques developed for this purpose transfer to the animal case. Some aspects of this are considered:
 
-    \subsubsection*{Variability.}
-    In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
+% Of course, there is some overlap in challenges between animal and human subjects, most notably in the need to reconstruct self-deforming objects which frequently self-occlude. However, additional challenges are posed for animals due to the complex diversity in shape, pose and texture between animal tracking candidates, the limited availability of 3D data for training algorithms and the prevalence of environmental/object occlusion, particularly in internet animal imagery.  However, one advantageous aspect when tracking animals over humans is the simple fact that animals tend not to wear clothing, which in humans causes significant shape and appearance variability.
 
-    \subsubsection*{Training data.}
-    For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
 
-    Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
-    For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+\subsubsection*{Self-deforming objects.} Animal and human subjects have control over the position of their limbs, for purposes of movement and expression. Capturing these complex motions is of generally important to ensure reconstructions are anatomically plausible. For quadrupedal animals, limb reasoning can be made more difficult due to four legs (rather than two for humans) in rapid motion in a small area. This increases self-occlusion and can make it more challenging to distinguish between left/right and back/front.
+
+\subsubsection*{Variability.}
+The variation of shape across and within animal species is considerably greater than in humans and variations in surface texture are considerably larger and more complex than in humans. One advantageous aspect of tracking animals rather than humans is that animals generally do not wear clothing. 
+
+% In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
+
+\subsubsection*{Training data.}
+For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
+
+Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
+For animal tracking, this is considerably harder: animals behave differently on treadmills than in their quotidian environments, and although some animals such as horses and dogs have been coaxed into motion capture studios~\cite{wilhelm2015furyexplorer}, it remains impractical to consider mocap for a family of tigers at play.
+
+% The previous chapter discussed the primary objective of this work, which is to recover full 3D shape and pose from a live input video sequence exhibiting an animal subject. As explained, the major challenge common to all methods operating on monocular RGB input is to resolve the inherent depth ambiguity associated with recovering a 3D model from 2D input. Competitive methods achieve this by relying on strong motion cues~\cite{kinect_fusion} or (if available) by incorporating strong prior knowledge of the tracking target. Strong shape and pose priors (e.g. body part configuration, acceptable body part lengths, likely joint positions etc.) are available for this problem, so this report will focus on analysing these methods in the literature.
+
+% All solutions face an important design decision, which is to make a distinction between features of an input sequence the system should aim to model and to which it should remain invariant. For example, nearly all human systems aim to model the angle between a tracking target's upper and lower leg region, but nearly all will attempt to remain invariant to skin colour variation between candidates. The next two sections discuss examples of systems in which this decision has been made differently, generally according to the intended real-world application.
+
+% We address this problem using techniques from the recent human body and hand tracking literature, combining machine learning and 3D model fitting.  A discriminative front-end uses a deep hourglass network to identify candidate 2D joint positions. These joint positions are then linked into coherent skeletons by solving an optimal joint assignment problem, and the resulting skeletons create an initial estimate for a generative model-fitting back-end to yield detailed shape and pose for each frame of the video.  
+
+% Although superficially similar to human tracking, animal tracking (AT) has some interesting differences that make it worthy of study:
+
+% \subsubsection*{Variability.}
+% In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
+
+% \subsubsection*{Training data.}
+
 
 % \begin{figure}[H] % Example image
 %     \center{\includegraphics[width=0.95\linewidth]{dash}}
@@ -148,14 +163,17 @@ The system should apply to a wide range of animal species without significant cu
 
 %********************************** % Third Section  *************************************
 \section{Contributions}  %Section - 1.3 
-In summary, the contributions of this thesis are as follows:
-\begin{enumerate}
-    \item We demonstrate a robust framework for 3D animal reconstruction using deformable template models
-\end{enumerate}
+This thesis tackles key challenges associated with deriving 3D dense reconstructions of animal subjects from monouclar input images and video sequences. \Cref{chap:relwork} contains an in-depth literature review of works focusing on 3D reconstruction of articulated subjects. Specific attention is put towards approaches for designing 3D morphable models, and strategies for predicting the parameters from input data. 
+
+\Cref{chap:cgas} introduces an approach for 3D animal reconstruction and overcomes the limited availability of real world 3D training data for animals by generating synthetic training images. A deep neural network is trained on these images and tested on real world examples to produce estimated joint positions. Importantly, generalizability is ensured by working with silhouette images. The joint predictions are adjusted using a discrete optimization, before a model fitting procedure recovers the full 3D animal model. The method is tested on a range of animal videos and is the first to demonstrate full 3D animal mesh recovery with with no required user intervention. 
+
+\Cref{chap:wldo} describes an end-to-end and real-time neural network which recovers accurate 3D reconstructions for the challenging dog category, trained using weak 2D supervision. The chapter introduces SMBLD, a new 3D deformable template model which includes additional limb scaling parameters and a detailed shape prior learnt during network training. The method is shown to be state-of-the-art on a new StanfordExtra dataset, the largest of its kind for animals, improving over competitive energy minimization techniques even when they are given access to ground truth data. 
+
+\Cref{chap:3dmulti} tackles the problem of recovering 3D reconstructions when given input images exhibiting significant sources of ambiguity, such as environmental occlusion or a partial views of the subject. Rather than attempting to recover a reconstruction uniquely, a multi-hypothesis neural network outputs a set of plausible and varied reconstructions all consistent with the input image. The network is trained according to a best-of-$M$ loss, to which flexibility is added using a novel quantization scheme based on normalizing flows. 
 
 \section{Co-Authored Papers}  %Section - 1.4
 
-Extracts from this thesis appear in the following co-authored publications and preprints. \Cref{chap:cgas} contains work from:
+This thesis was in part derived from three co-authored publications. \Cref{chap:cgas} contains work from:
 
 \begin{quote}
     \textbf{Benjamin Biggs}, Thomas Roddick, Andrew Fitzgibbon and Roberto Cipolla. \emph{Creatures Great and SMAL: Recovering the Shape and Motion of Animals from Video}. ACCV 2018, Oral Presentation.
@@ -173,7 +191,3 @@ Extracts from this thesis appear in the following co-authored publications and p
 \begin{quote}
     \textbf{Benjamin Biggs}, Sebastien Ehrhadt, Hanbyul Joo, Benjamin Graham, Andrea Vedaldi and David Novotny. \emph{3D Multi-bodies: Fitting Sets of Plausible 3D Human Models to Ambiguous Image Data}. NeurIPS 2020, Spotlight Presentation.
 \end{quote}
-
-\section{Thesis Structure}  %Section - 1.3 
-
-The following thesis chapters discuss methods for deriving 3D animal reconstructions from monocular input images and video. \Cref{chap:intro} begins by covering the necessary background and motivation before an in-depth literature review in \Cref{chap:relwork}. \Cref{chap:cgas} discusses an approach for animal reconstruction learning only from synthetic training data. \Cref{chap:wldo} describes an end-to-end and real-time technique applied to the challenging dog category. \Cref{chap:3dmulti} introduces a method for handling input images with significant ambiguity. The final \Cref{chap:summary} summarizes the work and offers a discussion for worthy future endeavours in the field.
