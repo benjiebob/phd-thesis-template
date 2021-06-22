@@ -17,29 +17,19 @@ This thesis has discussed the topic of dense 3D animal reconstruction from monoc
 
 \Cref{chap:cgas} contributes to perhaps the two most pertinant questions when reconstructing animals, namely (a) how to deal with the lack of 3D training data and (b) how to avoid the need for user intervention. The strategy for overcoming this involves using a 3D animal graphics model to generate training data for a deep learning pipeline. Consideration is given to various mechanisms for bridging the so-called `synth-to-real domain gap', but settles with a key observation that silhouettes are extremely informative to animal shape and pose and are simple to synthesize. In addition, silhouettes have become simple to extract from test set RGB sequences, by harnessing large training datasets generally designed for instance segmentation tasks. However, the chapter acknowledges that ambiguities exist when working in the silhouette domain, and proposes an optimal joint assignment discrete optimization problem, solved using quadratic programming and optimized using genetic algorithms, to try and recover the most likely skeleton trajectory over a video sequence. As is shown experimentally, the recovered trajectories are sufficient as input to a model fitting pipeline, which optimizes the SMAL~\cite{xxx} 3D morphable model to match this input evidence. 
 
-However, despite success on these sequences, the approach has certain downsides. As demonstrated in \Cref{chap:wldo}, the CGAS approach is heavily dependent on the quality of the shape and pose prior for generating varied shapes. This results in suboptimal performance on uncontrolled ``in-the-wild'' datasets of challenging shapes and poses, such as StanfordExtra. Further, the CGAS approach is too slow to process video in real-time, inhibiting its use for reconstructing 
+However, despite success on these sequences, the approach has certain downsides. As demonstrated in \Cref{chap:wldo}, the quality of predicted joints at test time is heavily dependent on the quality of the shape and pose prior for generating varied shapes. This results in suboptimal performance on uncontrolled ``in-the-wild'' datasets of challenging shapes and poses, such as varied dog images sourced on the internet which are outside the range of the prior. Further, the approach is too slow to process video in real-time, which inhibits applications which could otherwise report behaviour anomalies in animals. These issues are tackled with the WLDO approach in \Cref{chap:wldo}. Firstly, a new 3D morphable model is designed with new limb scaling parameters and a more representative 3D shape prior is learnt during the training loop of a neural network. The method operates in real-time, and shows state-of-the-art performance on StanfordExtra, a new challenging dataset introduced in this chapter with no energy minimization phase necessary. The lack of 3D training data is overcome by means of a weakly supervised training strategy, making use of 2D annotations present in the training dataset.
 
-for processing video in real-time, This initial approach therefore results in poor performance on in-the-wild and relatively uncontrolled dog images in StanfordExtra, which is proposed in this thesis to highlight this problem with existing reconstruction methods. 
-
-The WLDO approach introduced in this chapter proposes a mechanism to handle this. Firstly, a new dataset which is released 
-
-approach is tested on the challenging dog category, which exhibits significant diversity and  and significant the importance of video sequences to resolve ambiguities caused by silhouetets are important,
-
-FFurther, with the observation that silhouettes are extremely informative over animal shape and pose . (which are relatively plentiful) an answer to arguable ththe most pertinant question when reconstructing animals: what to do when you 
-
-targets the question of what to do in a low training data setting technical chapterApart from a discussion across  work 
-
-\subsection{Discussion}
-
-Talk about meshes, radiance fields etc.
+Although WLDO is somewhat capable of handling images with some occlusion, similar to state-of-the-art approaches designed for 3D human reconstruction, heavily ambiguous input images cause failures. As explored, even when these networks are fine-tuned with such examples, they are restricted to recovering only a single possible reconstruction obtained by `averaging' over the space of plausible reconstructions. \Cref{chap:3dmulti} explores this problem and proposes to output a set of plausible reconstructions consistent with the input. Ambiguities in humans and animals are represented again using 3D morphable models. A multi-hypothesis network is trained using a best-of-$M$ loss. The chapter overcomes theoretical limitations with this construction, proposing a quantizer weighted by a normalizing flow prior to allow optimal sets of different sizes to be recovered without the need to entirely retrain the network. In additon, a 2D reprojection loss is used to discourage mode degeneration and ensure consistency to the input evidence. This approach is the first to specifically model ambiguities in an animal category and also achieves state of the art performance on competitive human benchmarks. Importantly, results are also demonstrated on RGBD-Dog, the first publically-available animal dataset with 3D annotations available for training and evaluation.
 
 \subsection{Applications in Animal Tracking}
 
 Discussion as to what GSK have been doing.
 
-\subsection{Future Work}
+\subsection{Discussions and areas for future work}
 
-What needs to happen etc.
+Talk about meshes, radiance fields etc.
+
+
 
 % \section{Broader impact}
 
