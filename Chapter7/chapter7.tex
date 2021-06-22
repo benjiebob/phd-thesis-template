@@ -11,9 +11,23 @@
     \graphicspath{{Chapter7/Figs/Vector/}{Chapter7/Figs/}}
 \fi
 
-\section{Discussion and Limitations}
+\section{Summary and discussion}
 
-In this section I will conclude and discuss limitations
+This thesis has discussed the topic of dense 3D animal reconstruction from monocular images and video, using 3D morphable models as a strong prior over the object category. To this end, \Cref{chap:relwork} has covered the necessary technical background and related work, focusing particularly on the design of articulated models and methods for fitting them to input data. The core technical chapters have focused on three important considerations of particular importance to 3D animal tracking. 
+
+\Cref{chap:cgas} contributes to perhaps the two most pertinant questions when reconstructing animals, namely (a) how to deal with the lack of 3D training data and (b) how to avoid the need for user intervention. The strategy for overcoming this involves using a 3D animal graphics model to generate training data for a deep learning pipeline. Consideration is given to various mechanisms for bridging the so-called `synth-to-real domain gap', but settles with a key observation that silhouettes are extremely informative to animal shape and pose and are simple to synthesize. In addition, silhouettes have become simple to extract from test set RGB sequences, by harnessing large training datasets generally designed for instance segmentation tasks. However, the chapter acknowledges that ambiguities exist when working in the silhouette domain, and proposes an optimal joint assignment discrete optimization problem, solved using quadratic programming and optimized using genetic algorithms, to try and recover the most likely skeleton trajectory over a video sequence. As is shown experimentally, the recovered trajectories are sufficient as input to a model fitting pipeline, which optimizes the SMAL~\cite{xxx} 3D morphable model to match this input evidence. 
+
+However, despite success on these sequences, the approach has certain downsides. As demonstrated in \Cref{chap:wldo}, the CGAS approach is heavily dependent on the quality of the shape and pose prior for generating varied shapes. This results in suboptimal performance on uncontrolled ``in-the-wild'' datasets of challenging shapes and poses, such as StanfordExtra. Further, the CGAS approach is too slow to process video in real-time, inhibiting its use for reconstructing 
+
+for processing video in real-time, This initial approach therefore results in poor performance on in-the-wild and relatively uncontrolled dog images in StanfordExtra, which is proposed in this thesis to highlight this problem with existing reconstruction methods. 
+
+The WLDO approach introduced in this chapter proposes a mechanism to handle this. Firstly, a new dataset which is released 
+
+approach is tested on the challenging dog category, which exhibits significant diversity and  and significant the importance of video sequences to resolve ambiguities caused by silhouetets are important,
+
+FFurther, with the observation that silhouettes are extremely informative over animal shape and pose . (which are relatively plentiful) an answer to arguable ththe most pertinant question when reconstructing animals: what to do when you 
+
+targets the question of what to do in a low training data setting technical chapterApart from a discussion across  work 
 
 \subsection{Discussion}
 
