@@ -63,9 +63,12 @@ As discussed in \Cref{ss:implicit}, Neural Radience Fields (NeRF) are a relative
 
 At the time of writing, successful examples have been demonstrated on full humans and some body part categories (e.g. hands) but not yet for animal subjects. Part of the reason for this is likely the lack of large-scale 3D animal datasets which are typically required (but not always~\cite{xxx}) for training. 
 
-While some NeRF approaches learn human articulation from large-scale pose datasets (e.g. AMASS), some maintain an internal 3D skeleton structure and focus NeRF at modelling complex skin/clothing features relative to these landmarks. Such an strategy could form the basis for an approach for animals, perhaps using WLDO in~\Cref{chap:wldo} to obtain a 3D animal skeletons and camera parameters and using an implicit representation to model the skin details. An interesting research direction here is to test if the implicit representation could be supervised by silhouettes alone.
+% https://arxiv.org/pdf/2104.03953.pdf SNARF, ANerf
+% Animatable Neural Radiance Fields for Human Body Modeling
 
-If achieved, such a representation may have significant value to designers of morphable 3D animal models, enabling facial features, skin abrasions, fur and other complex features to be incoporated. Recovering such details for real animals could be of considerable therapeutic significance. However, for real-world applications, consideration should be taken to ensure fast rendering at inference time. Until recently~\cite{xxx}, this has been a commonly cited concern with neural representations, which have typically required slow processes such as marching cubes. In addition, care must be taken when planning to use neural representations in a pipeline with a later downstream task, e.g. behaviour prediction. It is not immediately clear how to pass features from such a representation to subsequent classifiers; of course, one could pass network weights as input but these may be too complex or noisy a learning signal for effective behaviour prediction. However, animal shape could be modelled with sufficient precision, such a feature vector could be discriminative enough to use directly for animal identity -- potentially enabling single-shot recognition of different animals in multi-housed (or even wildlife~\lazycite{camera trap}{} scenarios.)
+While some NeRF approaches~\lazycite{}{NPMs, Multi-view NHR} learn human articulation from large-scale pose datasets (e.g. AMASS [30], DeformingThings4D [26], CAPE [30], MANO [45]), some maintain an internal 3D skeleton structure and focus NeRF at modelling complex skin/clothing features relative to these landmarks~\lazycite{xxx}{SNARF, ANerf, Animatable Neural Radience Fields}. Such an strategy could form the basis for an approach for animals, perhaps using WLDO in~\Cref{chap:wldo} to obtain a 3D animal skeletons and camera parameters and using an implicit representation to model the skin details. An interesting research direction here is to test if the implicit representation could be supervised by silhouettes alone.
+
+If achieved, such a representation could enable facial features, skin abrasions, fur and other complex features to be incoporated. If recovered in images and video sequences of real animals, these details could be of considerable therapeutic significance. However, for real-world applications, consideration should be taken to ensure fast rendering at inference time. Until recently~\cite{xxx}, this has been a commonly cited concern with neural representations, which have typically required slow processes such as marching cubes. In addition, care must be taken when planning to use neural representations in a pipeline with a later downstream task, e.g. behaviour prediction. It is not immediately clear how to pass features from such a representation to subsequent classifiers; of course, one could pass network weights as input but these may be too complex or noisy a learning signal for effective behaviour prediction. However, animal shape could be modelled with sufficient precision, such a feature vector could be discriminative enough to use directly for animal identity -- potentially enabling single-shot recognition of different animals in multi-housed (or even wildlife~\lazycite{camera trap}{} scenarios.)
 
 % implicit methods and incurs a large memory footprint that slows training and inference. 
 
@@ -97,30 +100,45 @@ If achieved, such a representation may have significant value to designers of mo
 
 % Introduce automatic rigging, and structured shape representations which can gain and lose features. 
 
-and OctTrees and as-rigid-as-possible come with a long history of as they are compact and easy to render. ParticulaSpecifically for articulated structures, techniques benefit from established deformation constraints such as linear blend skinning to ensure plausible surface variations. 
+The technical chapters of this thesis have covered methods for reconstructing 3D humans, dogs, camels, tigers, cats and many more. However, apart from humans as a special case, despite being of diverse shapes the remaining animals have similar topology. For instance, they have similar skeletal structures with precisely four legs and a tail. A natural question is to ask whether the approaches defined in this thesis would extend to different, stranger animal classes. For example, would WLDO work on an octupus? The hesitant answer to this is `yes' subject to having access to a representative 3D morphable model that matches the topology of the target species. With sufficient training examples, the initialized model should adapt using expectation maximization steps to better capture the species in question. However, given that there are 8.7 million different species of animal on Earth, it is clearly intractable to consider designing a 3D morphable model, complete with an internal skeleton and shape space for all of them.
+
+This concern can be handled in two ways. The first avenue of exploration is to look at techniques which do not require a 3D morphable model at all. As mentioned before, there are implicit approaches for simpler poses~\lazycite{PIFu}{} which require full 3D training data and emerging approaches based requiring only 2D keypoints, for simpler animals such as birds (although strong initialization is still used)~\lazycite{}{Bird paper} and human keypoints~\cite{}{David's papers}. However, the quality and robustness of such techniques on in-the-wild and uncontrolled images are not yet comparable. However, these are worthy avenues of research.
+
+Alternatively, one could consider what would be required to design a more sophisticated 3D morphable model that generalizes to all conceivable species. Clearly, a large dataset of 3D scans covering a decent range of species would be needed; but one could imagine sourcing these from existing artist models, biomechanical scans, museums etc. Of interest then, is how to design a model that generalizes to all species?
+
+Recent work in shape interpolation, modelling etc. 
 
 
-In this thesis, meshes have been integrated into neural network architectures by fixing the triangulation according to a 3D morphable model and outputting vertex locations parameterized by shape and pose. 
+% idesigning a more sophisticated morphable model which extends to all species. much more representative shape prior by training on the plethora of 3D artist data or even obtaining scans from museums. 
+
+% unconare still far behind  and attempts to template-free approaches for humans in simpler capture environments, attempts at extending non-rigid structure from motion methodologies for humans this for humans~\cite{PiFu}, static objects There have been early attempts at this,  For this reason, it is proposed that a worthy area of investigation is to design 
+
+% fall into a category of ``medium-to-large quadruped'' thesis, attention has been given to reconstruction 
+
+% and OctTrees and as-rigid-as-possible come with a long history of as they are compact and easy to render. ParticulaSpecifically for articulated structures, techniques benefit from established deformation constraints such as linear blend skinning to ensure plausible surface variations. 
 
 
-are a suitable choice for modelling articulated structures, as reconstruction techniques can make use of established deformation constraints, such as  including linear blend skinning, as-rigid-as-possible deformation constraints, differentiable rendering and others. Additionally,  for this work, due to a long history of work in 
+% In this thesis, meshes have been integrated into neural network architectures by fixing the triangulation according to a 3D morphable model and outputting vertex locations parameterized by shape and pose. 
 
 
-However, it is not clear how to design a 3D morphable model to cover groups of animals with considerably different topologies. an appropriate does not naturally extend when representing animals with considerably different topologies; for example, consider modelling an octupus, dog and marmoset. In such a case, it is necessary 
+% are a suitable choice for modelling articulated structures, as reconstruction techniques can make use of established deformation constraints, such as  including linear blend skinning, as-rigid-as-possible deformation constraints, differentiable rendering and others. Additionally,  for this work, due to a long history of work in 
+
+
+% However, it is not clear how to design a 3D morphable model to cover groups of animals with considerably different topologies. an appropriate does not naturally extend when representing animals with considerably different topologies; for example, consider modelling an octupus, dog and marmoset. In such a case, it is necessary 
 
 % In addition, methods can take advantage of a long history of methods for meshes, many covered in \Cref{chap:relwork} of this thesis including differentiable rendering, linear blend skining, ARAP regularizers and many more etc. 
 
-For representing articulated structures, meshes are more appropriate than voxel grids, in which a surface is represented as occupany values over a fixed sized 3D grid. For this reason, the resolution of the output surface scales cubicly in the size of the grid, most of which is usually sparse. Improvements to this have recently been made with OctNets~\cite{xxx}, which use octrees~\cite{xxx} to learn a more efficient partitioning of the voxel space, thereby reducing memory. 
+% For representing articulated structures, meshes are more appropriate than voxel grids, in which a surface is represented as occupany values over a fixed sized 3D grid. For this reason, the resolution of the output surface scales cubicly in the size of the grid, most of which is usually sparse. Improvements to this have recently been made with OctNets~\cite{xxx}, which use octrees~\cite{xxx} to learn a more efficient partitioning of the voxel space, thereby reducing memory. 
 
-However, 
+% However, 
 
-neural   and are an appropriate choice for neural networks; sinceoffering a fixed set of vertices a 3D surface a representation has some benefits; for example, the such a representation has some limitations. triangular meshes rigged with internals as the 
-representation for  
+% neural   and are an appropriate choice for neural networks; sinceoffering a fixed set of vertices a 3D surface a representation has some benefits; for example, the such a representation has some limitations. triangular meshes rigged with internals as the 
+% representation for  
 
-\begin{enumerate}
-    \item Use of radiance fields. PiFu and Nerf. etc.
-    \item Represented thousands of different animals. Shape modelling from structured chairs interpolation paper.
-\end{enumerate}
+% \begin{enumerate}
+%     \item Use of radiance fields. PiFu and Nerf. etc.
+%     \item Represented thousands of different animals. Shape modelling from structured chairs interpolation paper.
+% \end{enumerate}
 
 
 \subsection{Representations of reconstruction ambiguity}
