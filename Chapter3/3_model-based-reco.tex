@@ -187,8 +187,26 @@
     While the dominant paradigm in human reconstruction is now end-to-end deep learning methods, SPIN~\cite{kolotouros19learning} show impressive improvement by incorporating an energy minimization process within their training loop to further minimize a 2D reprojection loss subject to fixed pose \& shape priors. This idea inspired the work presented in \Cref{chap:wldo} of this thesis, in which a 3D dog shape prior is learnt during the training loop via expectation maximization.
 
     % https://openaccess.thecvf.com/content_ICCV_2019/papers/Xu_DenseRaC_Joint_3D_Pose_and_Shape_Estimation_by_Dense_Render-and-Compare_ICCV_2019_paper.pdf
+
+    \subsubsection{Implicit representations}\label{ss:implicit}
     
     There have also been a few recent works that reconstruct 3D humans without an explicit template prior. The general idea is to interpret a neural network as an implicit representation of the 3D surface. In particular, the network $f$ is trained to map sampled 3D locations $(x,y,z) \in \R{3}$ to an occupancy value $\{0,1\}$ (and optionally a texture value $(r,g,b) \in \R{3}$). This results in a memory efficient representation of the 3D surface as the space used to embed the surface does not need to be explicitly stored. Saito et al.~\cite{pifuSHNMKL19,saito2020pifuhd} present an example of such an architecture. Their network maps 3D locations with ResNet~\lazycite{Resnet}{Resnet} features sampled at coordinates projected with a known weak-perpective camera to occupancy and texture values. Li et al.\lazycite{https://project-splinter.github.io/monoport/}{MonoPort} later sped up reconstruction and rendering to allow real-time inference. Neural Radiance Fields (NeRF) capture high resolution details of static scenes by mapping 3D coordinates $(x,y,z)$ and viewing directions $(\theta, \phi)$ to volume density and view-dependent emitted radiances. The work was adapted to articulated structures~\lazycite{ANerf}{ANerf} by learning new skin for the SMPL model, using SPIN~\cite{kolotouros19learning} as a basic 3D skeleton predictor. A current downside of these techniques is the need to train a separate model per scene/subject and the slow inference time. However, these works do demonstrate high quality results and are a worthy direction for future research.
+
+    % TODO - add these!    
+
+    % https://zju3dv.github.io/animatable_nerf/
+
+    % https://pablopalafox.github.io/npms/palafox2021npms.pdf - decent related work about implicit representations for 3D shapes & deformable shapes. This paper learns different MLPs, one for shape and one for pose from existing datasets e.g. AMASS [30], DeformingThings4D [26], CAPE [30], MANO [45]
+
+    % Multi-view Neural Human Rendering - https://openaccess.thecvf.com/content_CVPR_2020/papers/Wu_Multi-View_Neural_Human_Rendering_CVPR_2020_paper.pdf
+    % https://arxiv.org/pdf/2104.03953.pdf - SNARF: Differentiable Forward Skinning for Animating Non-Rigid Neural Implicit Shapes 
+    % https://arxiv.org/abs/2102.06199 A-NERF
+    % https://arxiv.org/abs/2011.14143 i3DMM - human heads
+    % https://arxiv.org/abs/2007.11432 Combining Implicit Function Learning and Parametric Models for 3D Human Reconstruction
+    % https://www.sciencedirect.com/science/article/abs/pii/S0097849321000777: DIMNet: Dense implicit function network for 3D human body reconstruction
+    % https://pablopalafox.github.io/npms/?fbclid=IwAR0EPN8SuJ1j8LZyiccF4EgNA67nvrmmk7_kOf6P7Gk_fN1zgX32Z2txZmg - NPMs: 
+
+    % TODO: talk about how they are slow, but methods have been developed to speed them up.
 
     % Show the basic structure of these networks in a picture
 
@@ -288,6 +306,8 @@
     
     Tangential to these approaches is the work of Kulkarni et al.\lazycite{Canonical Surface Mapping}{Canonical Surface Mapping} who reconstruct pose (although not shape) parameters for an rigged mesh using a deep network, learning from geometry cycle consistency terms rather than annotated keypoints. However, the shape is fixed to the input mesh and pose is also often confused, particularly determining the difference between the legs. The results appear of significantly poorer quality than the results in \Cref{chap:cgas} and \Cref{chap:wldo} of this thesis. Also of consideration is the end-to-end network of Kanazawa et al.~\cite{kanazawa2018birds} and subsequent paper which overcomes the need for keypoints by capturing uncertainty in camera viewpoints. In addition, their network does not require an input 3D morphable model, although they do initialize a sphere model to a mean bird. In addition, the bird category exhibits more limited articulation than our dog category. 
     
+
+    % TODO: LASR: Learning Articulated Shape Reconstruction from a Monocular Video: https://arxiv.org/pdf/2105.02976.pdf, https://lasr-google.github.io/ mesh based
     
     % TODO:
     %Finally, there are techniques which do not produce a mesh~\cite{Agudo_2018_CVPR,novotny19c3dpo} or rely heavily on input 2D keypoints or video at test-time~\cite{vicente_3dv,Probst2018_ECCVa}.
