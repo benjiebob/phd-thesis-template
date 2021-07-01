@@ -26,14 +26,11 @@ Fortunately, there are a number of options for tackling this problem. A popular 
 %Related also is the work of \lazycite{GTA-Cars}{GTA-Cars} who use a images rendered from a popular video game engine to teach an automous agent to drive with reinforcement learning. 
 %Another category of approaches are found in optical flow. Optical flow is an example of a dense point correspondence task: given two frames $I_{i}, I_{i+1}$ a model should predict a \emph{flow field} $f: \RR{H}{W} \mapsto \RR{H}{W}$. Of course, for this task the most important learning signal is obtained through observing object and camera \emph{motion}. For this reason, multiple models are trained using the FlyingChairs dataset: since natural scenes are complex to generate, models can just learn from flow directly. % Tidy up this argument
 
-A significant advance has been made recently with the introduction of generative adversarial networks (GANs). This is a worthy direction and has been considered fully in \Cref{chap:summary} of this thesis. 
-
-
-of this is that there should be an analoug% TODO: Justify why GANs are a bad idea...
+% of this is that there should be an analoug% TODO: Justify why GANs are a bad idea...
 % Mode collapse
 % With GANs, there should be an anology between shapes in the real and synthetic set. However, it's difficult to render synthetic shapes which match shapes in an unlabelled test dataset. 
 
-The system presented in this section adopts an alternative (and much simpler) approach for synthetic image generation. The idea builds on the realisation that a 2D silhouette image encodes a significant amount of the object's shape features, and by virtue of being textureless and having no background detail is much simpler to synthesise. As previously discussed, there are also a great number of `off-the-shelf' image segmentation engines which can produce accurate animal silhouettes of a high quality. 
+A significant advance has been made recently with the introduction of generative adversarial networks (GANs). This is a worthy direction and has been considered fully in \Cref{chap:summary} of this thesis. The system presented in this section adopts an alternative (and much simpler) approach for synthetic image generation. The idea builds on the realisation that a 2D silhouette image encodes a significant amount of the object's shape features, and by virtue of being textureless and having no background detail is much simpler to synthesise. As previously discussed, there are also a great number of `off-the-shelf' image segmentation engines which can produce accurate animal silhouettes of a high quality. 
 
 The joint candidate predictor is trained on synthetically generated silhouette images, and at test time, deep learning methods or standard video segmentation tools are used to extract silhouettes from real data. The system is tested on animal videos from several species, and shows accurate reconstructions of 3D shape and pose.
 
