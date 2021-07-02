@@ -120,21 +120,21 @@ Once shape and pose parameters have been derived from a video sequence, they can
 
 %In early experimentation, in which tracking targets are restricted to the same species, the template can be chosen to be a close shape fit to the target animal, thereby largely reducing the problem to finding optimal per-frame pose parameters. However, tracking examples are eventually broadened to include a wide range of animal species.
 
-\subsection{Relation to human reconstruction}
+\section{Relation to human reconstruction}
 % NEEDS TIDYING
 In recent times, 3D human reconstruction has become an established computer vision subfield. It is therefore natural to question to what extent techniques developed for this purpose transfer to the animal case. Some aspects of this are considered:
 
 % Of course, there is some overlap in challenges between animal and human subjects, most notably in the need to reconstruct self-deforming objects which frequently self-occlude. However, additional challenges are posed for animals due to the complex diversity in shape, pose and texture between animal tracking candidates, the limited availability of 3D data for training algorithms and the prevalence of environmental/object occlusion, particularly in internet animal imagery.  However, one advantageous aspect when tracking animals over humans is the simple fact that animals tend not to wear clothing, which in humans causes significant shape and appearance variability.
 
 
-\subsubsection*{Self-deforming objects.} Animal and human subjects have control over the position of their limbs, for purposes of movement and expression. Capturing these complex motions is of generally important to ensure reconstructions are anatomically plausible. For quadrupedal animals, limb reasoning can be made more difficult due to four legs (rather than two for humans) in rapid motion in a small area. This increases self-occlusion and can make it more challenging to distinguish between left/right and back/front.
+\subsection{Self-deforming objects.} Animal and human subjects have control over the position of their limbs, for purposes of movement and expression. Capturing these complex motions is of generally important to ensure reconstructions are anatomically plausible. For quadrupedal animals, limb reasoning can be made more difficult due to four legs (rather than two for humans) in rapid motion in a small area. This increases self-occlusion and can make it more challenging to distinguish between left/right and back/front.
 
-\subsubsection*{Variability.}
+\subsection{Variability.}
 The variation of shape across and within animal species is considerably greater than in humans and variations in surface texture are considerably larger and more complex than in humans. One advantageous aspect of tracking animals rather than humans is that animals generally do not wear clothing. 
 
 % In one sense, AT is simpler than human tracking as animals generally do not wear clothing. However, variations in surface texture are still considerable between individuals, and the variety of shape across and within species is considerably greater.  If tracking is specialized to a particular species, then shape variation is smaller, but training data is even harder to obtain.
 
-\subsubsection*{Training data.}
+\subsection{Training data.}
 For human tracking, hand labelled sequences of 2D segmentations and joint positions have been collected from a wide variety of sources~\cite{andriluka14cvpr,lin2014microsoft,johnson2010clustered}. Of these two classes of labelling, animal {\em segmentation} data is available in datasets such as MSCOCO~\cite{lin2014microsoft}, PASCAL VOC~\cite{everingham2010pascal} and DAVIS~\cite{Perazzi2016}.  However this data is considerably sparser than human data, and must be ``shared'' across species, meaning the number of examples for a given animal shape class is considerably fewer than is available for an equivalent variation in human shape.  While segmentation data can be supplied by non-specialist human labellers, it is more difficult to obtain {\em joint position} data.  Some joints are easy to label, such as ``tip of snout'', but others such as the analogue of ``right elbow'' require training of the operator to correctly identify across species.
 
 Of more concern however, is 3D skeleton data.  For humans, motion capture (mocap) can be used to obtain long sequences of skeleton parameters (joint positions and angles) from a wide variety of motions and activities.
