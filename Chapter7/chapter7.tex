@@ -41,7 +41,7 @@ A priority development area involves the WLDO system, presented in \Cref{chap:wl
 
  The identity prediction is implemented as an additional prediction RCNN head which outputs an identity ID. For this reason, at present it is necessary to fine tune the weights of this branch for different animal subjects. Work is in progress to replace this module with an embedding space, learnt from multiple subjects, which can be used to discriminate between identities with only a few examples. The behaviour prediction module is implemented as a linear layer, mapping the parameters for the 3D morphable model to behaviour labels. This works effectively with only a fairly small network since all background information,texture and camera variation have already been solved for. 
 
- The modules are trained on a dataset collected internally over two days from 8 HD cameras with infrared night vision support. Labelling was conducted by in-house veterinary and clinical experts. Training the full system takes approximately 24 hours on a single V100 GPU.
+ The modules are trained on a dataset collected internally over two days from 8 HD cameras with infrared night vision support. Labelling was conducted by in-house veterinary and clinical experts. Training the full system takes approximately 24 hours on a single V100 GPU. A system architecture diagram is given in \Cref{fig:dogdetectron}.
 
 % PICTURE
 
